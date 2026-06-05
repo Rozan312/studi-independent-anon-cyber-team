@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: si-act-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: si_act
+    ports:
+      - "54322:5432"
+    volumes:
+      - si_act_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  si_act_postgres_data:
