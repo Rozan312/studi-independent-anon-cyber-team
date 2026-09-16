@@ -30,9 +30,24 @@ interface Quiz {
   questions: Question[];
 }
 
+type ReviewItem = {
+  questionId: string;
+  orderIndex: number;
+  question: string;
+  explanation: string;
+  selectedLabel: string | null;
+  correctLabel: string | null;
+  isCorrect: boolean;
+};
+
 type AttemptResult = {
   score: number;
   passed: boolean;
+  review: ReviewItem[];
+  correctCount: number;
+  totalQuestions: number;
+  progressPercentage: number | null;
+  roomCompleted: boolean;
 };
 
 const emptyNotice: ActionMessageState = {
@@ -103,7 +118,12 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
 
       setAttemptResult({
         score: payload.data.score,
-        passed: payload.data.passed
+        passed: payload.data.passed,
+        review: Array.isArray(payload.data.review) ? payload.data.review : [],
+        correctCount: payload.data.correctCount ?? 0,
+        totalQuestions: payload.data.totalQuestions ?? quiz.questions.length,
+        progressPercentage: typeof payload.data.progressPercentage === "number" ? payload.data.progressPercentage : null,
+        roomCompleted: Boolean(payload.data.roomCompleted)
       });
       router.refresh();
     } catch (error) {
@@ -137,8 +157,8 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
           </h2>
           <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-400">
             {attemptResult.passed
-              ? `Skor memenuhi passing score. Poin ${quiz.room.points} akan masuk ke leaderboard jika attempt valid.`
-              : `Skor belum mencapai passing score ${quiz.passingScore}%. Review materi lalu coba ulang.`}
+              ? `Skor memenuhi passing score. Poin room ${quiz.room.points} dicatat sekali di leaderboard.`
+              : `Skor belum mencapai passing score ${quiz.passingScore}%. Pelajari penjelasan di bawah lalu coba ulang.`}
           </p>
           <div className="mx-auto mt-6 max-w-xs rounded-lg border border-white/[0.06] bg-black/25 p-5">
             <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Skor Akhir</p>
@@ -146,7 +166,17 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
               {attemptResult.score}%
             </p>
             <ProgressBar value={attemptResult.score} />
+            <p className="mt-3 text-xs text-slate-400">
+              {attemptResult.correctCount} dari {attemptResult.totalQuestions} pertanyaan benar
+            </p>
           </div>
+          {attemptResult.progressPercentage !== null ? (
+            <p className="mt-4 text-xs text-slate-400">
+              {attemptResult.roomCompleted
+                ? "Room ini sudah selesai sepenuhnya. Kerja bagus."
+                : `Progress room sekarang ${attemptResult.progressPercentage}%. Room selesai setelah semua task benar dan quiz lulus.`}
+            </p>
+          ) : null}
           <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <button
               type="button"
@@ -169,6 +199,51 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
             </button>
           </div>
         </section>
+
+        {attemptResult.review.length > 0 ? (
+          <section className="glass-panel mt-6 rounded-xl p-5 md:p-6">
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary text-glow">Review</p>
+            <h3 className="mt-1 text-lg font-semibold text-slate-100">Pembahasan per pertanyaan</h3>
+            <p className="mt-1 text-xs text-slate-400">Bandingkan jawaban Anda dengan jawaban benar dan baca penjelasannya sebelum mencoba lagi.</p>
+
+            <ol className="mt-5 space-y-4">
+              {attemptResult.review.map((item) => (
+                <li
+                  key={item.questionId}
+                  className={`rounded-xl border p-4 ${
+                    item.isCorrect ? "border-emerald-500/25 bg-emerald-500/[0.06]" : "border-rose-500/25 bg-rose-500/[0.06]"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <p className="text-sm font-semibold leading-snug text-slate-100">
+                      <span className="mr-2 text-slate-500">{item.orderIndex}.</span>
+                      {item.question}
+                    </p>
+                    <StatusPill tone={item.isCorrect ? "success" : "danger"}>{item.isCorrect ? "Benar" : "Salah"}</StatusPill>
+                  </div>
+
+                  <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+                    <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Jawaban Anda</dt>
+                      <dd className={`mt-1 font-medium ${item.isCorrect ? "text-emerald-200" : "text-rose-200"}`}>{item.selectedLabel ?? "Tidak dijawab"}</dd>
+                    </div>
+                    <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                      <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Jawaban benar</dt>
+                      <dd className="mt-1 font-medium text-emerald-200">{item.correctLabel ?? "-"}</dd>
+                    </div>
+                  </dl>
+
+                  {item.explanation ? (
+                    <p className="mt-3 rounded-lg border-l-2 border-primary/50 bg-primary/[0.06] px-3 py-2 text-xs leading-relaxed text-slate-300">
+                      <span className="font-bold text-primary">Penjelasan: </span>
+                      {item.explanation}
+                    </p>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
       </div>
     );
   }

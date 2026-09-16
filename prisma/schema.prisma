@@ -84,6 +84,9 @@ model Profile {
   announcements     Announcement[]       @relation("AnnouncementAuthor")
   leaderboardPoints LeaderboardPoint[]
   labSessions       LabSession[]
+  authoredRooms     Room[]               @relation("RoomAuthor")
+  authoredPaths     LearningPath[]       @relation("LearningPathAuthor")
+  mediaAssets       MediaAsset[]
 
   @@index([role])
 }
@@ -96,10 +99,15 @@ model LearningPath {
   category       String
   difficulty     String
   estimatedHours Int
+  coverImageUrl  String?
+  createdById    String?  @db.Uuid
   isPublished    Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   rooms          Room[]
+  createdBy      Profile? @relation("LearningPathAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
 }
 
 model Room {
@@ -113,7 +121,12 @@ model Room {
   estimatedMinutes Int
   points           Int
   orderIndex       Int
+  content          String             @default("")
+  coverImageUrl    String?
+  createdById      String?            @db.Uuid
   isPublished      Boolean            @default(false)
+  availableFrom    DateTime?
+  availableUntil   DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   learningPath     LearningPath       @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
@@ -121,8 +134,10 @@ model Room {
   quiz             Quiz?
   userProgress     UserRoomProgress[]
   labSessions      LabSession[]
+  createdBy        Profile?           @relation("RoomAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([learningPathId, orderIndex])
+  @@index([createdById])
   @@index([isPublished])
 }
 
@@ -134,6 +149,8 @@ model RoomTask {
   orderIndex      Int
   answerType      AnswerType
   expectedAnswer  String?
+  acceptedAnswers String[]             @default([])
+  hint            String?
   points          Int
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
@@ -175,11 +192,12 @@ model QuizOption {
   questionId String       @db.Uuid
   label      String
   isCorrect  Boolean      @default(false)
+  orderIndex Int          @default(0)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@index([questionId])
+  @@index([questionId, orderIndex])
 }
 
 model UserRoomProgress {
@@ -299,4 +317,17 @@ model LabSession {
 
   @@index([userId, roomId])
   @@index([status])
+}
+
+model MediaAsset {
+  id         String   @id @default(uuid()) @db.Uuid
+  uploaderId String?  @db.Uuid
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String   @unique
+  createdAt  DateTime @default(now())
+  uploader   Profile? @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([uploaderId, createdAt])
 }

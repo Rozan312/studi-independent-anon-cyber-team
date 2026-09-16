@@ -1,17 +1,25 @@
 import { AppShell } from "@/components/app-shell";
 import { RoomBuilderForm } from "@/components/instructor/room-builder-form";
 import { requireRole } from "@/lib/auth/guards";
-import { listPublishedLearningPaths } from "@/lib/services/learning-path-service";
+import { listLearningPathsForManagement } from "@/lib/services/content-service";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewInstructorRoomPage() {
+export default async function NewInstructorRoomPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {
   const profile = await requireRole(["INSTRUCTOR"]);
-  const paths = await listPublishedLearningPaths();
+  const paths = await listLearningPathsForManagement();
+  const requestedPath = Array.isArray(searchParams.pathId) ? searchParams.pathId[0] : searchParams.pathId;
 
   return (
-    <AppShell title="Room Builder" subtitle="Create safe educational rooms, task checks, and publish-ready learning modules." role={profile.role}>
-      <RoomBuilderForm paths={paths.map((path) => ({ id: path.id, title: path.title, category: path.category }))} />
+    <AppShell
+      title="Room Builder"
+      subtitle="Buat room baru dengan task awal. Setelah tersimpan, editor room terbuka untuk mengisi materi dan quiz."
+      role={profile.role}
+    >
+      <RoomBuilderForm
+        defaultPathId={requestedPath ?? null}
+        paths={paths.map((path) => ({ id: path.id, title: path.isPublished ? path.title : `${path.title} (draft)`, category: path.category }))}
+      />
     </AppShell>
   );
 }

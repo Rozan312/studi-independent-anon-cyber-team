@@ -30,7 +30,8 @@ export const roomDraftSchema = z.object({
   difficulty: z.string().min(2).max(40),
   estimatedMinutes: z.number().int().min(5).max(600),
   points: z.number().int().min(0).max(10000),
-  orderIndex: z.number().int().min(0).max(10000)
+  orderIndex: z.number().int().min(0).max(10000),
+  content: z.string().max(60000).default("")
 });
 
 export const updateRoomDraftSchema = roomDraftSchema.partial().extend({
@@ -41,7 +42,14 @@ export const roomTaskDraftSchema = z.object({
   title: z.string().min(3).max(160),
   description: z.string().min(10).max(2000),
   expectedAnswer: z.string().min(1).max(500).optional(),
+  acceptedAnswers: z.array(z.string().min(1).max(500)).max(10).default([]),
+  hint: z.string().max(1000).optional(),
   points: z.number().int().min(0).max(10000).default(10)
+});
+
+/** PATCH /api/rooms: menandai room dimulai dan menghitung ulang progress dengan aturan tunggal. */
+export const roomStartSchema = z.object({
+  roomId: uuidSchema
 });
 
 export const roomBuilderSchema = roomDraftSchema.extend({
@@ -75,4 +83,147 @@ export const labSessionStatusSchema = z.object({
   vpnStatus: z.enum(["DISCONNECTED", "CONNECTING", "CONNECTED"]).optional(),
   machineStatus: z.enum(["OFFLINE", "STARTING", "ONLINE", "STOPPING"]).optional(),
   targetIp: z.string().ip().nullable().optional()
+});
+
+// ---------------------------------------------------------------------------
+// Content authoring (learning path, room material, tasks, quiz, media)
+// ---------------------------------------------------------------------------
+
+export const slugSchema = z
+  .string()
+  .min(3)
+  .max(180)
+  .regex(/^[a-z0-9-]+$/, "Slug hanya boleh huruf kecil, angka, dan tanda hubung.");
+
+/** URL gambar: kosong berarti null; selain itu harus URL media internal atau http(s). */
+export const imageUrlSchema = z
+  .union([
+    z.literal(""),
+    z.string().max(500).regex(/^(\/api\/media\/[0-9a-fA-F-]{36}|https?:\/\/\S+)$/, "URL gambar tidak valid.")
+  ])
+  .optional()
+  .transform((value) => (value ? value : null));
+
+export const learningPathSchema = z.object({
+  title: z.string().min(3).max(160),
+  slug: slugSchema,
+  description: z.string().min(20).max(2000),
+  category: z.string().min(2).max(80),
+  difficulty: z.string().min(2).max(40),
+  estimatedHours: z.number().int().min(1).max(500),
+  coverImageUrl: imageUrlSchema,
+  isPublished: z.boolean().default(false)
+});
+
+export const updateLearningPathSchema = learningPathSchema.partial().extend({
+  pathId: uuidSchema
+});
+
+export const publishLearningPathSchema = z.object({
+  pathId: uuidSchema,
+  isPublished: z.boolean()
+});
+
+/** Tanggal jadwal dari form: kosong berarti tidak diatur; string harus ISO atau datetime-local yang valid. */
+export const scheduleDateSchema = z
+  .union([
+    z.literal(""),
+    z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/, "Format tanggal tidak valid.")
+      .refine((value) => !Number.isNaN(new Date(value).getTime()), "Tanggal tidak valid.")
+  ])
+  .optional()
+  .transform((value) => (value ? new Date(value) : null));
+
+export const roomMetadataSchema = roomDraftSchema
+  .omit({ content: true })
+  .extend({
+    roomId: uuidSchema,
+    coverImageUrl: imageUrlSchema,
+    availableFrom: scheduleDateSchema,
+    availableUntil: scheduleDateSchema
+  })
+  .refine((data) => !data.availableFrom || !data.availableUntil || data.availableUntil > data.availableFrom, {
+    message: "Tanggal tutup harus setelah tanggal buka.",
+    path: ["availableUntil"]
+  });
+
+export const roomContentSchema = z.object({
+  roomId: uuidSchema,
+  content: z.string().max(60000)
+});
+
+export const publishRoomSchema = z.object({
+  roomId: uuidSchema,
+  isPublished: z.boolean()
+});
+
+export const addRoomTaskSchema = roomTaskDraftSchema.extend({
+  roomId: uuidSchema
+});
+
+export const updateRoomTaskSchema = roomTaskDraftSchema.extend({
+  taskId: uuidSchema
+});
+
+export const moveDirectionSchema = z.enum(["up", "down"]);
+
+export const taskReferenceSchema = z.object({
+  taskId: uuidSchema
+});
+
+export const moveRoomTaskSchema = taskReferenceSchema.extend({
+  direction: moveDirectionSchema
+});
+
+export const quizUpsertSchema = z.object({
+  roomId: uuidSchema,
+  title: z.string().min(3).max(160),
+  description: z.string().min(10).max(2000),
+  passingScore: z.number().int().min(0).max(100)
+});
+
+export const quizOptionInputSchema = z.object({
+  label: z.string().min(1).max(300),
+  isCorrect: z.boolean().default(false)
+});
+
+const quizQuestionBodySchema = z.object({
+  question: z.string().min(5).max(1000),
+  explanation: z.string().min(5).max(2000),
+  options: z
+    .array(quizOptionInputSchema)
+    .min(2, "Minimal dua opsi jawaban.")
+    .max(6, "Maksimal enam opsi jawaban.")
+    .refine((options) => options.filter((option) => option.isCorrect).length === 1, {
+      message: "Tandai tepat satu opsi sebagai jawaban benar."
+    })
+});
+
+export const addQuizQuestionSchema = quizQuestionBodySchema.extend({
+  quizId: uuidSchema
+});
+
+export const updateQuizQuestionSchema = quizQuestionBodySchema.extend({
+  questionId: uuidSchema
+});
+
+export const questionReferenceSchema = z.object({
+  questionId: uuidSchema
+});
+
+export const moveQuizQuestionSchema = questionReferenceSchema.extend({
+  direction: moveDirectionSchema
+});
+
+// Komposisi learning path: memasukkan room yang sudah ada dan mengurutkan room di dalam path
+export const addRoomToPathSchema = z.object({
+  pathId: uuidSchema,
+  roomId: uuidSchema
+});
+
+export const moveRoomInPathSchema = z.object({
+  roomId: uuidSchema,
+  direction: moveDirectionSchema
 });

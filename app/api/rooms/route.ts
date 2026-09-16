@@ -1,6 +1,6 @@
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireRole } from "@/lib/auth/guards";
-import { getRoomBySlug, getRoomTasks, listPublishedRooms, updateRoomProgress } from "@/lib/services/room-service";
+import { getRoomBySlug, getRoomTasks, listPublishedRooms, startRoomProgress } from "@/lib/services/room-service";
 
 export async function GET(request: Request) {
   try {
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const profile = await requireRole(["STUDENT"]);
-    return jsonOk(await updateRoomProgress(profile.id, await request.json()));
+    return jsonOk(await startRoomProgress(profile.id, await request.json()));
   } catch (error) {
     return jsonError(error);
   }

@@ -80,3 +80,31 @@ export async function listAnnouncements() {
     orderBy: { createdAt: "desc" }
   });
 }
+
+/**
+ * Ringkasan lab session placeholder untuk halaman Platform Statistics.
+ * Semua status berasal dari tabel LabSession; tidak ada VM/host sungguhan yang dipantau.
+ */
+export async function getLabSessionOverview(limit = 5) {
+  const [byStatus, recent] = await Promise.all([
+    prisma.labSession.groupBy({
+      by: ["status"],
+      _count: { _all: true }
+    }),
+    prisma.labSession.findMany({
+      orderBy: { updatedAt: "desc" },
+      take: limit,
+      include: {
+        user: { select: { username: true, fullName: true } },
+        room: { select: { title: true, slug: true } }
+      }
+    })
+  ]);
+
+  return {
+    byStatus: byStatus
+      .map((row) => ({ status: row.status, count: row._count._all }))
+      .sort((a, b) => b.count - a.count),
+    recent
+  };
+}

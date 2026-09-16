@@ -1,17 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
-import { createRoomWithTasks, publishRoom } from "@/lib/services/instructor-service";
+import { createRoomWithTasks } from "@/lib/services/instructor-service";
+import { ContentAccessError, setRoomPublished } from "@/lib/services/content-service";
 import type { ActionMessageState } from "@/components/ui/action-message";
 
 export type InstructorActionState = ActionMessageState;
-
-const initialState: InstructorActionState = {
-  tone: "idle",
-  message: ""
-};
 
 function fieldValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -29,10 +26,16 @@ function boolValue(formData: FormData, key: string) {
 
 function actionError(error: unknown): InstructorActionState {
   if (error instanceof ZodError) {
+    const issue = error.issues[0];
+    const field = issue?.path?.length ? `${issue.path.join(".")}: ` : "";
     return {
       tone: "error",
-      message: error.issues[0]?.message ?? "Validasi room gagal."
+      message: `${field}${issue?.message ?? "Validasi room gagal."}`
     };
+  }
+
+  if (error instanceof ContentAccessError) {
+    return { tone: "error", message: error.message };
   }
 
   return {
@@ -41,9 +44,15 @@ function actionError(error: unknown): InstructorActionState {
   };
 }
 
+/**
+ * Membuat room beserta task awal, mencatat pembuatnya, lalu membuka editor room
+ * agar instruktur dapat langsung mengisi materi dan quiz.
+ */
 export async function createInstructorRoomAction(_state: InstructorActionState, formData: FormData): Promise<InstructorActionState> {
+  let createdRoomId: string | null = null;
+
   try {
-    await requireRole(["INSTRUCTOR"]);
+    const profile = await requireRole(["INSTRUCTOR"]);
 
     const taskTitles = formData.getAll("taskTitle").map(String);
     const taskDescriptions = formData.getAll("taskDescription").map(String);
@@ -59,37 +68,39 @@ export async function createInstructorRoomAction(_state: InstructorActionState, 
       }))
       .filter((task) => task.title || task.description || task.expectedAnswer);
 
-    const room = await createRoomWithTasks({
-      learningPathId: fieldValue(formData, "learningPathId"),
-      title: fieldValue(formData, "title"),
-      slug: fieldValue(formData, "slug"),
-      description: fieldValue(formData, "description"),
-      category: fieldValue(formData, "category"),
-      difficulty: fieldValue(formData, "difficulty"),
-      estimatedMinutes: intValue(formData, "estimatedMinutes", 45),
-      points: intValue(formData, "points", 100),
-      orderIndex: intValue(formData, "orderIndex", 100),
-      isPublished: boolValue(formData, "isPublished"),
-      tasks
-    });
+    const room = await createRoomWithTasks(
+      {
+        learningPathId: fieldValue(formData, "learningPathId"),
+        title: fieldValue(formData, "title"),
+        slug: fieldValue(formData, "slug"),
+        description: fieldValue(formData, "description"),
+        category: fieldValue(formData, "category"),
+        difficulty: fieldValue(formData, "difficulty"),
+        estimatedMinutes: intValue(formData, "estimatedMinutes", 45),
+        points: intValue(formData, "points", 100),
+        orderIndex: intValue(formData, "orderIndex", 100),
+        isPublished: boolValue(formData, "isPublished"),
+        tasks
+      },
+      profile.id
+    );
 
+    createdRoomId = room.id;
     revalidatePath("/instructor/rooms");
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.slug}`);
-
-    return {
-      tone: "success",
-      message: room.isPublished ? "Room berhasil dibuat dan dipublish." : "Draft room berhasil dibuat."
-    };
+    revalidatePath("/learning-paths");
   } catch (error) {
     return actionError(error);
   }
+
+  redirect(`/instructor/rooms/${createdRoomId}?created=1`);
 }
 
 export async function publishInstructorRoomAction(_state: InstructorActionState, formData: FormData): Promise<InstructorActionState> {
   try {
-    await requireRole(["INSTRUCTOR"]);
-    const room = await publishRoom(fieldValue(formData, "roomId"));
+    const profile = await requireRole(["INSTRUCTOR"]);
+    const room = await setRoomPublished(profile, { roomId: fieldValue(formData, "roomId"), isPublished: true });
 
     revalidatePath("/instructor/rooms");
     revalidatePath("/rooms");

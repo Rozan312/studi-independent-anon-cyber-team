@@ -24,8 +24,17 @@ function validateLogin(form: HTMLFormElement, isLocalAuth: boolean): string | nu
   return null;
 }
 
-export function LoginForm({ isLocalAuth }: { isLocalAuth: boolean }) {
-  const [notice, setNotice] = useState<AuthNoticeState>(null);
+export function LoginForm({
+  isLocalAuth,
+  initialNotice = null,
+  nextPath = null
+}: {
+  isLocalAuth: boolean;
+  initialNotice?: AuthNoticeState;
+  nextPath?: string | null;
+}) {
+  const [notice, setNotice] = useState<AuthNoticeState>(initialNotice);
+  const registerHref = nextPath ? `/register?next=${encodeURIComponent(nextPath)}` : "/register";
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     const message = validateLogin(event.currentTarget, isLocalAuth);
@@ -39,6 +48,7 @@ export function LoginForm({ isLocalAuth }: { isLocalAuth: boolean }) {
     <>
       <form action={loginAction} className="glass-panel mt-6 space-y-4 rounded-lg p-6" noValidate onSubmit={handleSubmit}>
         <AuthNotice notice={notice} />
+        {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
         {isLocalAuth ? (
           <label className="block text-sm">
             Username
@@ -64,7 +74,7 @@ export function LoginForm({ isLocalAuth }: { isLocalAuth: boolean }) {
         </p>
       ) : null}
       <div className="mt-4 flex justify-between text-sm text-slate-300">
-        <Link href="/register">Create account</Link>
+        <Link href={registerHref}>Create account</Link>
         <Link href="/forgot-password">Forgot password</Link>
       </div>
     </>

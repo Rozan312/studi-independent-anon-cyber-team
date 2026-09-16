@@ -7,6 +7,14 @@ import { requireRole } from "@/lib/auth/guards";
 import { getRoomBySlug } from "@/lib/services/room-service";
 import { prisma } from "@/lib/db/prisma";
 import { getLatestLabSessionForRoom } from "@/lib/services/lab-session-service";
+import { getAnswerFormat } from "@/lib/learning/answer-format";
+import { HINT_UNLOCK_AFTER_WRONG_ATTEMPTS, isHintUnlocked } from "@/lib/learning/hints";
+import { getRoomCompletionSnapshot } from "@/lib/services/progress-service";
+import { getWrongAttemptCounts } from "@/lib/services/task-service";
+import { MarkdownContent } from "@/components/content/markdown-content";
+import { PageNotice } from "@/components/ui/page-notice";
+import { hasRoleAccess } from "@/lib/auth/rbac";
+import { describeAvailability, formatScheduleDate, getRoomAvailability } from "@/lib/learning/availability";
 
 export const dynamic = "force-dynamic";
 
@@ -15,8 +23,74 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
   const room = await getRoomBySlug(params.slug);
   if (!room) notFound();
 
-  // Parallel fetch: submissions for this user in this room and target lab session status
-  const [submissions, session] = await Promise.all([
+  const availability = getRoomAvailability(room);
+  const canPreviewClosedRoom = hasRoleAccess(profile.role, ["INSTRUCTOR"]);
+
+  // Peserta hanya melihat ringkasan dan jadwal saat room belum dibuka atau sudah ditutup.
+  if (!availability.isOpen && !canPreviewClosedRoom) {
+    const isUpcoming = availability.state === "upcoming";
+
+    return (
+      <AppShell title={room.title} subtitle={room.description} role={profile.role}>
+        <PageNotice
+          tone={isUpcoming ? "info" : "warning"}
+          title={isUpcoming ? "Room belum dibuka" : "Room sudah ditutup"}
+          message={
+            isUpcoming
+              ? `Room ini dijadwalkan dibuka pada ${formatScheduleDate(availability.opensAt as Date)}. Materi, task, dan quiz akan tersedia setelah waktu tersebut.`
+              : `Room ini ditutup sejak ${formatScheduleDate(availability.closesAt as Date)}. Jawaban baru tidak lagi diterima; progress yang sudah tercatat tetap tersimpan.`
+          }
+          className="mb-6"
+        />
+
+        <section className="relative overflow-hidden rounded-xl border border-white/[0.08] bg-[#1c1f2a]/70 p-6 shadow-lg backdrop-blur-md md:p-8">
+          {room.coverImageUrl ? (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={room.coverImageUrl} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-20" />
+              <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#1c1f2a] via-[#1c1f2a]/80 to-transparent" />
+            </>
+          ) : null}
+          <div className="relative z-10">
+            <div className="mb-4 flex flex-wrap items-center gap-2">
+              <StatusPill tone="primary">{room.category}</StatusPill>
+              <StatusPill tone="neutral">{room.difficulty}</StatusPill>
+              <StatusPill tone={isUpcoming ? "warning" : "danger"}>{describeAvailability(availability)}</StatusPill>
+            </div>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-100 md:text-3xl">{room.title}</h1>
+            <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-400 md:text-base">{room.description}</p>
+            <dl className="mt-6 grid gap-3 text-xs sm:grid-cols-3">
+              <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Dibuka</dt>
+                <dd className="mt-1 font-semibold text-slate-200">{availability.opensAt ? formatScheduleDate(availability.opensAt) : "Sejak dipublish"}</dd>
+              </div>
+              <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Ditutup</dt>
+                <dd className="mt-1 font-semibold text-slate-200">{availability.closesAt ? formatScheduleDate(availability.closesAt) : "Tidak dibatasi"}</dd>
+              </div>
+              <div className="rounded-lg border border-white/[0.06] bg-black/25 p-3">
+                <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">Isi room</dt>
+                <dd className="mt-1 font-semibold text-slate-200">
+                  {room.tasks.length} task{room.quiz ? " · 1 quiz" : ""} · {room.points} pts
+                </dd>
+              </div>
+            </dl>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link href={`/learning-paths/${room.learningPath.slug}`} className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-blue-300">
+                Kembali ke learning path
+              </Link>
+              <Link href="/rooms" className="rounded-lg border border-white/[0.08] px-4 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/[0.05]">
+                Lihat room lain
+              </Link>
+            </div>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
+
+  // Parallel fetch: correct submissions, wrong-attempt counts (for hints), completion snapshot, lab status
+  const [submissions, wrongAttemptsByTask, snapshot, session] = await Promise.all([
     prisma.userTaskSubmission.findMany({
       where: {
         userId: profile.id,
@@ -25,15 +99,17 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
       },
       select: { taskId: true }
     }),
+    getWrongAttemptCounts(profile.id, room.id),
+    getRoomCompletionSnapshot(profile.id, room.id),
     getLatestLabSessionForRoom(profile.id, room.id)
   ]);
 
   const completedTaskIds = new Set(submissions.map((s) => s.taskId));
   const totalTasks = room.tasks.length;
   const completedTasksCount = room.tasks.filter((t) => completedTaskIds.has(t.id)).length;
-  
-  // Dynamic progress completion percentage
-  const completionPercentage = totalTasks === 0 ? 0 : Math.round((completedTasksCount / totalTasks) * 100);
+
+  // Satu aturan penyelesaian untuk seluruh aplikasi: semua task benar + quiz lulus (jika ada).
+  const completionPercentage = snapshot.percentage;
 
   // Map tasks linearly: Completed -> First incomplete is Active -> Rest are Locked
   let foundActive = false;
@@ -61,12 +137,27 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
 
   return (
     <AppShell title={room.title} subtitle={room.description} role={profile.role}>
-      
+      {!availability.isOpen ? (
+        <PageNotice
+          tone="warning"
+          title="Preview instruktur"
+          message={`${describeAvailability(availability)}. Student belum bisa membuka room ini; Anda melihatnya karena memiliki role instruktur atau admin.`}
+          className="mb-6"
+        />
+      ) : null}
+
       {/* Hero Banner Area */}
       <section className="bg-[#1c1f2a]/70 border border-white/[0.08] rounded-xl p-6 md:p-8 relative overflow-hidden mb-6 shadow-lg backdrop-blur-md">
         <div className="absolute -right-32 -top-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute right-0 bottom-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-        
+        {room.coverImageUrl ? (
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={room.coverImageUrl} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30" />
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#1c1f2a] via-[#1c1f2a]/80 to-transparent" />
+          </>
+        ) : null}
+
         <div className="relative z-10">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             <span className="px-3 py-1 bg-[#262a35] border border-white/[0.08] rounded-full text-xs text-slate-200 flex items-center gap-1.5 shadow-sm">
@@ -80,6 +171,13 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
               <span className="h-1.5 w-1.5 rounded-full bg-slate-500" />
               Est. {Math.round(room.estimatedMinutes / 60 * 10) / 10} hrs
             </span>
+            {availability.isScheduled ? (
+              <span className="px-3 py-1 bg-[#262a35] border border-white/[0.08] rounded-full text-xs text-slate-200 flex items-center gap-1.5 shadow-sm">
+                <StatusPill tone={availability.state === "open" ? "primary" : availability.state === "upcoming" ? "warning" : "danger"}>
+                  {describeAvailability(availability)}
+                </StatusPill>
+              </span>
+            ) : null}
           </div>
           
           <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-100 mb-2">
@@ -97,43 +195,35 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
         {/* Left main objectives column */}
         <div className="lg:col-span-8 space-y-6">
           
-          {/* Navigation tabs */}
-          <div className="flex gap-6 border-b border-white/[0.08] mb-4 overflow-x-auto pb-px">
-            <button className="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
-              Overview
-            </button>
-            <button className="pb-3 border-b-2 border-primary text-primary font-bold text-sm whitespace-nowrap text-glow">
-              Tasks
-            </button>
-            <button className="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
-              Hints
-            </button>
-            <button className="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
-              Discussion
-            </button>
-          </div>
+          {/* Section navigation */}
+          <nav className="flex gap-6 border-b border-white/[0.08] mb-4 overflow-x-auto pb-px" aria-label="Bagian room">
+            <a href="#materi" className="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600 text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
+              Materi
+            </a>
+            <a href="#tasks" className="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600 text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
+              Tasks ({completedTasksCount}/{totalTasks})
+            </a>
+            {room.quiz ? (
+              <a href="#quiz" className="pb-3 border-b-2 border-transparent text-slate-400 hover:text-slate-200 hover:border-slate-600 text-sm font-semibold transition-colors duration-200 whitespace-nowrap">
+                Quiz
+              </a>
+            ) : null}
+          </nav>
 
-          {/* Learning Objectives Info Box */}
-          <div className="bg-[#1c1f2a]/40 border border-white/[0.08] rounded-xl p-5 backdrop-blur-sm shadow-md">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-3">Learning Objectives</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-2.5 text-xs md:text-sm text-slate-400">
-                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                Analyze application flow and authorization layers in safe training scenarios.
-              </li>
-              <li className="flex items-start gap-2.5 text-xs md:text-sm text-slate-400">
-                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                Apply defensive mitigation steps using guided educational tasks.
-              </li>
-              <li className="flex items-start gap-2.5 text-xs md:text-sm text-slate-400">
-                <span className="mt-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                Record progress through quizzes, task checks, and lab session status.
-              </li>
-            </ul>
-          </div>
+          {/* Material / walkthrough */}
+          <section id="materi" className="scroll-mt-28 bg-[#1c1f2a]/40 border border-white/[0.08] rounded-xl p-5 md:p-6 backdrop-blur-sm shadow-md">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">Materi &amp; Walkthrough</h3>
+            {room.content.trim() ? (
+              <MarkdownContent content={room.content} />
+            ) : (
+              <p className="rounded-lg border border-dashed border-white/[0.08] bg-black/20 p-4 text-sm text-slate-400">
+                Materi untuk room ini belum ditambahkan oleh instruktur. Kerjakan task di bawah berdasarkan instruksi pada setiap task.
+              </p>
+            )}
+          </section>
 
           {/* Task lists container */}
-          <div className="flex flex-col gap-4">
+          <div id="tasks" className="flex flex-col gap-4 scroll-mt-28">
             {tasksWithStatus.map((task) => {
               const isCompleted = task.status === "completed";
               const isActive = task.status === "active";
@@ -187,12 +277,23 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
                       >
                         Go to Lab Workspace
                       </Link>
-                      <span className="px-3 py-2 bg-white/[0.02] border border-white/[0.04] text-[10px] font-mono text-slate-500 rounded flex items-center">
-                        Answer Format: {task.answerType}
+                      <span
+                        title={getAnswerFormat(task.answerType).hint}
+                        className="px-3 py-2 bg-white/[0.02] border border-white/[0.04] text-[10px] font-mono text-slate-500 rounded flex items-center"
+                      >
+                        Format jawaban: {getAnswerFormat(task.answerType).label}
                       </span>
                     </div>
                     <div className="pl-9">
-                      <TaskSubmitForm taskId={task.id} roomSlug={room.slug} answerType={task.answerType} />
+                      <TaskSubmitForm
+                        taskId={task.id}
+                        roomSlug={room.slug}
+                        answerType={task.answerType}
+                        hasHint={Boolean(task.hint)}
+                        hint={task.hint && isHintUnlocked(wrongAttemptsByTask[task.id] ?? 0) ? task.hint : null}
+                        wrongAttempts={wrongAttemptsByTask[task.id] ?? 0}
+                        hintUnlockAfter={HINT_UNLOCK_AFTER_WRONG_ATTEMPTS}
+                      />
                     </div>
                   </div>
                 );
@@ -246,6 +347,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
               
               {room.quiz ? (
                 <Link
+                  id="quiz"
                   href={`/rooms/${room.slug}/quiz`}
                   className="w-full py-2.5 bg-transparent border border-white/[0.08] hover:border-primary/40 hover:bg-primary-container/5 text-slate-300 hover:text-white text-xs font-semibold rounded transition-all duration-300 flex items-center justify-center gap-1.5"
                 >
@@ -267,13 +369,22 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
               <ProgressBar value={completionPercentage} />
             </div>
 
-            <div className="pt-4 border-t border-white/[0.04]">
+            <div className="space-y-2 pt-4 border-t border-white/[0.04]">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-slate-500 font-medium">Solved Objectives</span>
+                <span className="text-slate-500 font-medium">Task benar</span>
                 <span className="font-bold text-slate-300">
                   {completedTasksCount} / {totalTasks}
                 </span>
               </div>
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-medium">Quiz</span>
+                <span className={`font-bold ${snapshot.hasQuiz ? (snapshot.quizPassed ? "text-emerald-300" : "text-slate-300") : "text-slate-500"}`}>
+                  {snapshot.hasQuiz ? (snapshot.quizPassed ? "Lulus" : "Belum lulus") : "Tidak ada"}
+                </span>
+              </div>
+              <p className="pt-1 text-[11px] leading-relaxed text-slate-500">
+                Room selesai saat semua task benar{snapshot.hasQuiz ? " dan quiz lulus" : ""}.
+              </p>
             </div>
           </div>
 

@@ -20,7 +20,8 @@ export function getRequiredRolesForPath(pathname: string): AppRole[] | null {
     pathname.startsWith("/learning-paths") ||
     pathname.startsWith("/rooms") ||
     pathname.startsWith("/progress") ||
-    pathname.startsWith("/leaderboard")
+    pathname.startsWith("/leaderboard") ||
+    pathname.startsWith("/profile")
   ) {
     return ["STUDENT"];
   }

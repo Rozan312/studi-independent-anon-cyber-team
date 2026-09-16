@@ -50,23 +50,35 @@ export async function submitTaskAnswerAction(
       };
     }
 
-    const submission = await submitTaskAnswer(profile.id, { taskId, answer });
+    const result = await submitTaskAnswer(profile.id, { taskId, answer });
 
     if (roomSlug) {
       revalidatePath(`/rooms/${roomSlug}`);
       revalidatePath("/progress");
       revalidatePath("/leaderboard");
+      revalidatePath("/profile");
+      revalidatePath("/dashboard");
     }
 
-    return submission.isCorrect
-      ? {
-          tone: "success",
-          message: "Jawaban benar. Progress dan poin sudah disinkronkan."
-        }
-      : {
-          tone: "error",
-          message: "Jawaban belum tepat. Pelajari kembali instruksi lalu coba lagi."
-        };
+    if (result.isCorrect) {
+      const progressNote = result.progressPercentage === 100 ? "Room selesai." : `Progress room sekarang ${result.progressPercentage ?? 0}%.`;
+      return {
+        tone: "success",
+        message: `Jawaban benar. Poin dan progress sudah dicatat. ${progressNote}`
+      };
+    }
+
+    let message = `Jawaban belum tepat (percobaan salah ke-${result.wrongAttempts}).`;
+
+    if (result.hasHint) {
+      message += result.hintUnlocked
+        ? " Hint sudah terbuka di bawah kolom jawaban."
+        : ` Hint terbuka setelah ${result.hintUnlockAfter} percobaan salah.`;
+    } else {
+      message += " Baca kembali materi dan instruksi task, lalu coba lagi.";
+    }
+
+    return { tone: "error", message };
   } catch (error) {
     return toActionError(error);
   }

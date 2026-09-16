@@ -39,13 +39,13 @@ function SubmitButton() {
   );
 }
 
-export function RoomBuilderForm({ paths }: { paths: LearningPathOption[] }) {
+export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathOption[]; defaultPathId?: string | null }) {
   const [state, formAction] = useFormState(createInstructorRoomAction, initialState);
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [taskCount, setTaskCount] = useState(2);
 
-  const selectedPath = useMemo(() => paths[0], [paths]);
+  const selectedPath = useMemo(() => paths.find((path) => path.id === defaultPathId) ?? paths[0], [paths, defaultPathId]);
 
   function updateTitle(value: string) {
     setTitle(value);
@@ -55,7 +55,7 @@ export function RoomBuilderForm({ paths }: { paths: LearningPathOption[] }) {
   if (paths.length === 0) {
     return (
       <div className="glass-panel rounded-xl p-6 text-sm text-slate-400">
-        Belum ada learning path published. Buat atau publish learning path dulu sebelum membuat room.
+        Belum ada learning path. Buat learning path dulu di menu Learning Path Manager sebelum membuat room.
       </div>
     );
   }

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { logoutUser, loginUser, registerUser, requestPasswordReset, resetPassword } from "@/lib/services/auth-service";
 import { isLocalAuthEnabled } from "@/lib/auth/local-session-core";
+import { resolveNextPath } from "@/lib/auth/safe-redirect";
 
 function formValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -17,7 +18,7 @@ export async function registerAction(formData: FormData) {
     username: formValue(formData, "username")
   });
 
-  redirect(isLocalAuthEnabled() ? "/dashboard" : "/login?registered=1");
+  redirect(isLocalAuthEnabled() ? resolveNextPath(formValue(formData, "next")) : "/login?registered=1");
 }
 
 export async function loginAction(formData: FormData) {
@@ -27,7 +28,9 @@ export async function loginAction(formData: FormData) {
     password: formValue(formData, "password")
   });
 
-  redirect("/dashboard");
+  // `next` diisi middleware saat user belum login mengakses halaman terproteksi.
+  // Nilainya divalidasi agar hanya path relatif internal yang dipakai.
+  redirect(resolveNextPath(formValue(formData, "next")));
 }
 
 export async function logoutAction() {

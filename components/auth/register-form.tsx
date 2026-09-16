@@ -27,7 +27,7 @@ function validateRegister(form: HTMLFormElement, isLocalAuth: boolean): string |
   return null;
 }
 
-export function RegisterForm({ isLocalAuth }: { isLocalAuth: boolean }) {
+export function RegisterForm({ isLocalAuth, nextPath = null }: { isLocalAuth: boolean; nextPath?: string | null }) {
   const [notice, setNotice] = useState<AuthNoticeState>(null);
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -41,6 +41,7 @@ export function RegisterForm({ isLocalAuth }: { isLocalAuth: boolean }) {
   return (
     <>
       <form action={registerAction} className="glass-panel mt-6 space-y-4 rounded-lg p-6" noValidate onSubmit={handleSubmit}>
+        {nextPath ? <input type="hidden" name="next" value={nextPath} /> : null}
         <AuthNotice notice={notice} />
         <label className="block text-sm">
           Full name

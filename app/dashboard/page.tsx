@@ -6,9 +6,32 @@ import { ProgressBar } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { listPublishedLearningPaths, getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
-import { getGlobalLeaderboard } from "@/lib/services/leaderboard-service";
+import { getGlobalLeaderboard, getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
+import { getLearningStreak } from "@/lib/services/activity-service";
+import { PageNotice } from "@/components/ui/page-notice";
 
 export const dynamic = "force-dynamic";
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function firstValue(params: SearchParams, key: string) {
+  const value = params[key];
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function buildDashboardNotice(params: SearchParams) {
+  const error = firstValue(params, "error");
+
+  if (error === "forbidden") {
+    return {
+      tone: "warning" as const,
+      title: "Akses ditolak",
+      message: "Halaman yang diminta membutuhkan role lebih tinggi. Anda dialihkan ke dashboard."
+    };
+  }
+
+  return null;
+}
 
 function formatRelativeTime(date: Date) {
   const now = new Date();
@@ -24,9 +47,10 @@ function formatRelativeTime(date: Date) {
   return `${diffDays}d ago`;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams = {} }: { searchParams?: SearchParams }) {
   const profile = await requireRole(["STUDENT"]);
-  
+  const notice = buildDashboardNotice(searchParams);
+
   // Parallel fetch operations
   const [
     paths,
@@ -37,7 +61,9 @@ export default async function DashboardPage() {
     allCompletedRooms,
     pathsWithRooms,
     recentSubmissions,
-    recentProgress
+    recentProgress,
+    standing,
+    streak
   ] = await Promise.all([
     listPublishedLearningPaths(),
     prisma.userRoomProgress.findMany({
@@ -75,13 +101,15 @@ export default async function DashboardPage() {
       include: { room: true },
       orderBy: { updatedAt: "desc" },
       take: 3
-    })
+    }),
+    getUserLeaderboardStanding(profile.id),
+    getLearningStreak(profile.id)
   ]);
 
   const completedRoomsCount = allCompletedRooms.length;
   const activeRoom = progressRows[0];
   const activeProgress = activeRoom?.progressPercentage ?? 0;
-  const totalPoints = leaderboard.find((row) => row.user?.id === profile.id)?.points ?? 0;
+  const totalPoints = standing.points;
 
   // Calculate dynamic completed paths
   const completedRoomIds = new Set(allCompletedRooms.map((r) => r.roomId));
@@ -127,6 +155,8 @@ export default async function DashboardPage() {
       subtitle="Track learning progress, continue safe labs, and review platform announcements."
       role={profile.role}
     >
+      {notice ? <PageNotice tone={notice.tone} title={notice.title} message={notice.message} className="mb-6" /> : null}
+
       {/* Welcome Area */}
       <section className="relative rounded-xl border border-white/[0.08] bg-[#1c1f2a]/70 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 glass-panel overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none" />
@@ -164,8 +194,13 @@ export default async function DashboardPage() {
           <div className="flex items-start justify-between mb-2">
             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">Streak</span>
           </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">12<span className="text-sm font-normal text-slate-400 ml-1">days</span></h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Streak</p>
+          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">
+            {streak.streakDays}
+            <span className="text-sm font-normal text-slate-400 ml-1">{streak.streakDays === 1 ? "day" : "days"}</span>
+          </h3>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            {streak.streakDays > 0 ? "Current Streak" : `No streak yet · ${streak.activeDays} active days`}
+          </p>
         </div>
         {/* Stat Card 3 */}
         <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-purple-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md">
@@ -180,8 +215,10 @@ export default async function DashboardPage() {
           <div className="flex items-start justify-between mb-2">
             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Rank</span>
           </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">{totalPoints > 1000 ? "Top 5%" : "Top 20%"}</h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Rank</p>
+          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">{standing.rank ? `#${standing.rank}` : "-"}</h3>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+            {standing.rank ? `Rank of ${standing.totalRanked} learners` : "Unranked · earn points first"}
+          </p>
         </div>
         {/* Stat Card 5 */}
         <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-blue-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md col-span-2 md:col-span-1 lg:col-span-1">
@@ -264,6 +301,10 @@ export default async function DashboardPage() {
                   className="block bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] overflow-hidden hover:border-blue-500/40 transition-all duration-300 group hover:-translate-y-1 shadow-lg"
                 >
                   <div className="h-32 bg-[#0f131d] relative overflow-hidden">
+                    {path.coverImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img alt={path.title} src={path.coverImageUrl} className="absolute inset-0 h-full w-full object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-80" />
+                    ) : (
                     <Image
                       alt={path.title}
                       className="object-cover opacity-50 transition-opacity duration-300 group-hover:opacity-75"
@@ -271,6 +312,7 @@ export default async function DashboardPage() {
                       fill
                       sizes="(min-width: 768px) 50vw, 100vw"
                     />
+                    )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#1c1f2a] to-transparent" />
                     <div className="absolute bottom-3 left-3">
                       <span className="px-2 py-0.5 rounded bg-black/60 border border-white/[0.08] text-[9px] font-bold uppercase tracking-wider text-slate-300 backdrop-blur-md">
@@ -333,7 +375,7 @@ export default async function DashboardPage() {
                           {room.title}
                         </p>
                         <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider">
-                          {isCompleted ? "Completed" : isRoomActive ? `In Progress (${activeProgress}%)` : "Locked"}
+                          {isCompleted ? "Completed" : isRoomActive ? `In Progress (${activeProgress}%)` : "Not started"}
                         </p>
                       </Link>
                     </div>

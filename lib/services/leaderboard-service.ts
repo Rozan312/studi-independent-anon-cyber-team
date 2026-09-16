@@ -103,3 +103,29 @@ export async function getClassLeaderboard(classId: string, limit = 25) {
     points: row._sum.points ?? 0
   }));
 }
+
+/**
+ * Posisi user pada leaderboard global. Rank dihitung dari jumlah user lain
+ * yang total poinnya lebih besar (competition ranking), tanpa dibatasi top-N.
+ */
+export async function getUserLeaderboardStanding(userId: string) {
+  const rows = await prisma.leaderboardPoint.groupBy({
+    by: ["userId"],
+    _sum: { points: true }
+  });
+
+  const totals = rows.map((row) => ({ userId: row.userId, points: row._sum.points ?? 0 }));
+  const mine = totals.find((row) => row.userId === userId);
+
+  if (!mine) {
+    return { rank: null as number | null, points: 0, totalRanked: totals.length };
+  }
+
+  const higher = totals.filter((row) => row.points > mine.points).length;
+
+  return {
+    rank: higher + 1,
+    points: mine.points,
+    totalRanked: totals.length
+  };
+}

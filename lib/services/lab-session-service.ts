@@ -3,6 +3,7 @@ import "server-only";
 import { LabStatus, MachineStatus, VpnStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { labSessionCreateSchema, labSessionStatusSchema } from "@/lib/validation/platform";
+import { availabilityErrorMessage, getRoomAvailability } from "@/lib/learning/availability";
 
 export const RESPONSIBLE_LAB_USE_TEXT =
   "This lab session is a placeholder for authorized education only. Do not target real systems, do not run harmful procedures, and keep all practice inside approved training environments.";
@@ -10,11 +11,12 @@ export const RESPONSIBLE_LAB_USE_TEXT =
 export async function createLabSessionPlaceholder(userId: string, input: { roomId: string }) {
   const data = labSessionCreateSchema.parse(input);
 
-  const room = await prisma.room.findFirst({
-    where: { id: data.roomId, isPublished: true }
-  });
+  const room = await prisma.room.findUnique({ where: { id: data.roomId } });
 
-  if (!room) throw new Error("Room not found or unpublished.");
+  if (!room) throw new Error("Room not found.");
+
+  const availability = getRoomAvailability(room);
+  if (!availability.isOpen) throw new Error(availabilityErrorMessage(availability));
 
   return prisma.labSession.create({
     data: {

@@ -12,12 +12,14 @@ const studentLinks = [
   ["/learning-paths", "Learning Paths", "paths"],
   ["/rooms", "Rooms", "rooms"],
   ["/progress", "Progress", "progress"],
-  ["/leaderboard", "Leaderboard", "leaderboard"]
+  ["/leaderboard", "Leaderboard", "leaderboard"],
+  ["/profile", "Profile", "profile"]
 ];
 
 const instructorLinks = [
   ["/instructor", "Instructor Dashboard", "instructor"],
   ["/instructor/classes", "Classes", "classes"],
+  ["/instructor/paths", "Learning Path Manager", "pathEdit"],
   ["/instructor/rooms", "Instructor Rooms", "roomEdit"],
   ["/instructor/students", "Students Progress", "students"]
 ];
@@ -64,6 +66,20 @@ function NavIcon({ name }: { name: string }) {
         <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
           <path className={common} d="M8 20v-6H5v6h3ZM14 20V8h-4v12h4ZM19 20v-9h-3v9h3Z" strokeWidth="1.8" strokeLinejoin="round" />
           <path className={common} d="M12 4l.7 1.5 1.6.2-1.1 1.1.3 1.6L12 7.6l-1.5.8.3-1.6-1.1-1.1 1.6-.2L12 4Z" strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      );
+    case "profile":
+      return (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+          <path className={common} d="M12 12a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" strokeWidth="1.8" strokeLinejoin="round" />
+          <path className={common} d="M5 20a7 7 0 0 1 14 0" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "pathEdit":
+      return (
+        <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+          <path className={common} d="M6 18c5.5 0 2.5-12 8-12h3" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path className={common} d="m14 15 5-5 2 2-5 5h-2v-2Z" strokeWidth="1.8" strokeLinejoin="round" />
         </svg>
       );
     case "instructor":
@@ -140,6 +156,7 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const links = [
     ...studentLinks,
     ...(role === "INSTRUCTOR" || role === "ADMIN" ? instructorLinks : []),
@@ -154,11 +171,71 @@ export function AppShell({
     setIsSidebarCollapsed(localStorage.getItem("si-act-sidebar-collapsed") === "true");
   }, []);
 
+  // Tutup drawer mobile setiap kali route berubah.
+  useEffect(() => {
+    setIsMobileNavOpen(false);
+  }, [pathname]);
+
+  // Kunci scroll halaman dan dukung tombol Escape saat drawer terbuka.
+  useEffect(() => {
+    if (!isMobileNavOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setIsMobileNavOpen(false);
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMobileNavOpen]);
+
   function toggleSidebar() {
     setIsSidebarCollapsed((current) => {
       const next = !current;
       localStorage.setItem("si-act-sidebar-collapsed", String(next));
       return next;
+    });
+  }
+
+  function closeMobileNav() {
+    setIsMobileNavOpen(false);
+  }
+
+  function renderNavLinks(collapsed: boolean, onNavigate?: () => void) {
+    return links.map(([href, label, marker]) => {
+      const isActive = href === activeHref;
+      return (
+        <Link
+          key={href}
+          href={href}
+          onClick={onNavigate}
+          title={collapsed ? label : undefined}
+          aria-current={isActive ? "page" : undefined}
+          className={`group flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-all duration-200 ${
+            isActive
+              ? "border-primary-container/30 bg-primary-container/10 text-primary glow-active font-semibold"
+              : "border-transparent text-slate-400 hover:border-slate-800 hover:bg-white/[0.03] hover:text-slate-100"
+          }`}
+        >
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`flex h-7 w-7 items-center justify-center rounded-md border text-[10px] font-black transition-colors ${
+                isActive ? "border-primary/30 bg-primary-container/10 text-primary" : "border-slate-800 bg-black/20 text-slate-500 group-hover:text-slate-300"
+              }`}
+            >
+              <NavIcon name={marker} />
+            </span>
+            <span className={`whitespace-nowrap transition-all duration-300 ${collapsed ? "w-0 overflow-hidden opacity-0" : "w-40 opacity-100"}`}>{label}</span>
+          </div>
+          <span className={`h-1.5 w-1.5 rounded-full transition-all ${isActive ? "scale-125 bg-primary" : "bg-transparent group-hover:bg-slate-700"}`} />
+        </Link>
+      );
     });
   }
 
@@ -197,42 +274,8 @@ export function AppShell({
         </div>
 
         {/* Navigation links */}
-        <nav className="flex-grow space-y-1 overflow-y-auto pr-1">
-          {links.map(([href, label, marker]) => {
-            const isActive = href === activeHref;
-            return (
-              <Link
-                key={href}
-                href={href}
-                title={isSidebarCollapsed ? label : undefined}
-                className={`group flex items-center justify-between rounded-lg border px-3 py-2.5 text-sm transition-all duration-200 ${
-                  isActive
-                    ? "border-primary-container/30 bg-primary-container/10 text-primary glow-active font-semibold"
-                    : "border-transparent text-slate-400 hover:border-slate-800 hover:bg-white/[0.03] hover:text-slate-100"
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className={`flex h-7 w-7 items-center justify-center rounded-md border text-[10px] font-black transition-colors ${
-                      isActive
-                        ? "border-primary/30 bg-primary-container/10 text-primary"
-                        : "border-slate-800 bg-black/20 text-slate-500 group-hover:text-slate-300"
-                    }`}
-                  >
-                    <NavIcon name={marker} />
-                  </span>
-                  <span className={`whitespace-nowrap transition-all duration-300 ${isSidebarCollapsed ? "w-0 overflow-hidden opacity-0" : "w-40 opacity-100"}`}>
-                    {label}
-                  </span>
-                </div>
-                <span
-                  className={`h-1.5 w-1.5 rounded-full transition-all ${
-                    isActive ? "scale-125 bg-primary" : "bg-transparent group-hover:bg-slate-700"
-                  }`}
-                />
-              </Link>
-            );
-          })}
+        <nav className="flex-grow space-y-1 overflow-y-auto pr-1" aria-label="Navigasi utama">
+          {renderNavLinks(isSidebarCollapsed)}
         </nav>
 
         {/* Action / Logout */}
@@ -256,6 +299,27 @@ export function AppShell({
       <main className={`flex min-h-screen flex-col transition-[padding] duration-300 ease-out ${isSidebarCollapsed ? "lg:pl-20" : "lg:pl-72"}`}>
         {/* Header toolbar */}
         <header className="sticky top-0 z-20 border-b border-slate-800/80 bg-[#0a0e17]/80 px-4 py-4 backdrop-blur-xl sm:px-6">
+          {/* Mobile top bar: brand + menu button (sidebar desktop tersembunyi di bawah lg) */}
+          <div className="mb-4 flex items-center justify-between lg:hidden">
+            <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
+              <BrandMark collapsed />
+              <span className="truncate text-sm font-bold tracking-tight text-primary">Anon Cyber Team</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => setIsMobileNavOpen(true)}
+              aria-label="Buka menu navigasi"
+              aria-expanded={isMobileNavOpen}
+              aria-controls="mobile-navigation"
+              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-700 bg-white/[0.03] px-3 py-2 text-xs font-bold text-slate-200 transition hover:border-primary/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" aria-hidden="true">
+                <path className="stroke-current" d="M4 7h16M4 12h16M4 17h16" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              Menu
+            </button>
+          </div>
+
           <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <div className="flex items-center gap-2.5">
@@ -286,6 +350,54 @@ export function AppShell({
         {/* Content body */}
         <div className="flex-grow mx-auto w-full max-w-7xl p-4 sm:p-6 transition-all duration-300">{children}</div>
       </main>
+
+      {/* Mobile navigation drawer */}
+      {isMobileNavOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu navigasi">
+          <button type="button" aria-label="Tutup menu" onClick={closeMobileNav} className="absolute inset-0 h-full w-full bg-black/60 backdrop-blur-sm" />
+          <aside
+            id="mobile-navigation"
+            className="absolute inset-y-0 left-0 flex w-[min(20rem,85vw)] flex-col border-r border-slate-800 bg-[#0c0f17] p-5 shadow-2xl"
+          >
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <Link href="/dashboard" onClick={closeMobileNav} className="flex min-w-0 items-center gap-3">
+                <BrandMark />
+                <div className="min-w-0">
+                  <span className="block truncate text-sm font-bold tracking-tight text-primary">Anon Cyber Team</span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Controlled Intelligence</span>
+                </div>
+              </Link>
+              <button
+                type="button"
+                onClick={closeMobileNav}
+                aria-label="Tutup menu"
+                className="rounded-lg border border-slate-800 px-2.5 py-1.5 text-xs font-bold text-slate-300 transition hover:bg-white/[0.05] hover:text-white"
+              >
+                Tutup
+              </button>
+            </div>
+
+            <div className="mb-4 flex items-center gap-2">
+              <StatusPill tone={role === "ADMIN" ? "warning" : role === "INSTRUCTOR" ? "primary" : "success"}>{role ?? "PUBLIC_ACCESS"}</StatusPill>
+            </div>
+
+            <nav className="flex-grow space-y-1 overflow-y-auto pr-1" aria-label="Navigasi mobile">
+              {renderNavLinks(false, closeMobileNav)}
+            </nav>
+
+            <div className="mt-auto border-t border-slate-800/60 pt-4">
+              <form action={logoutAction}>
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-slate-800 bg-white/[0.02] px-3 py-2.5 text-xs font-semibold text-slate-300 transition-all hover:bg-white/[0.06] hover:text-white"
+                  type="submit"
+                >
+                  Logout Session
+                </button>
+              </form>
+            </div>
+          </aside>
+        </div>
+      ) : null}
     </div>
   );
 }

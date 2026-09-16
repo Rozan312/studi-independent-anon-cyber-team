@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { Card, SectionHeader, StatusPill } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
 import { listPublishedRooms } from "@/lib/services/room-service";
+import { describeAvailability, getRoomAvailability } from "@/lib/learning/availability";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +33,24 @@ export default async function RoomsPage() {
             if (isBeginner) difficultyTone = "success";
             else if (isMedium) difficultyTone = "warning";
 
+            const availability = getRoomAvailability(room);
+            const showSchedule = availability.isScheduled || !availability.isOpen;
+            const scheduleTone = availability.state === "open" ? "primary" : availability.state === "upcoming" ? "warning" : "danger";
+
             return (
               <Link
                 key={room.id}
                 href={`/rooms/${room.slug}`}
-                className="group block bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] overflow-hidden hover:border-blue-500/40 transition-all duration-300 group hover:-translate-y-1 shadow-lg backdrop-blur-md"
+                className={`group block bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] overflow-hidden hover:border-blue-500/40 transition-all duration-300 group hover:-translate-y-1 shadow-lg backdrop-blur-md ${
+                  availability.isOpen ? "" : "opacity-75 saturate-50"
+                }`}
               >
                 {/* Visual Cover Banner */}
                 <div className="h-36 bg-[#0f131d] relative overflow-hidden">
+                  {room.coverImageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img alt={room.title} src={room.coverImageUrl} className="absolute inset-0 h-full w-full object-cover opacity-60 transition-opacity duration-300 group-hover:opacity-80" />
+                  ) : (
                   <Image
                     alt={room.title}
                     className="object-cover opacity-50 transition-opacity duration-300 group-hover:opacity-75"
@@ -47,6 +58,7 @@ export default async function RoomsPage() {
                     fill
                     sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
                   />
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1c1f2a] to-transparent" />
                   
                   {/* Category capsule */}
@@ -60,6 +72,13 @@ export default async function RoomsPage() {
                   <div className="absolute top-3 right-3">
                     <StatusPill tone={difficultyTone}>{room.difficulty}</StatusPill>
                   </div>
+
+                  {/* Availability schedule */}
+                  {showSchedule ? (
+                    <div className="absolute bottom-3 right-3">
+                      <StatusPill tone={scheduleTone}>{describeAvailability(availability)}</StatusPill>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="p-5 flex flex-col justify-between min-h-[220px]">
@@ -97,7 +116,7 @@ export default async function RoomsPage() {
 
                     {/* Open Room Button action */}
                     <div className="mt-4 w-full rounded-lg border border-white/[0.08] group-hover:border-primary/40 bg-white/[0.02] group-hover:bg-primary-container/10 py-2.5 text-center text-xs font-semibold text-slate-300 group-hover:text-white transition-all duration-300 shadow-md">
-                      Open Room
+                      {availability.state === "upcoming" ? "Belum dibuka" : availability.state === "closed" ? "Sudah ditutup" : "Open Room"}
                     </div>
                   </div>
                 </div>

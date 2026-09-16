@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Card, StatusPill } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
+import { hasRoleAccess } from "@/lib/auth/rbac";
+import { getRoomAvailability } from "@/lib/learning/availability";
 import { RESPONSIBLE_LAB_USE_TEXT, getLatestLabSessionForRoom } from "@/lib/services/lab-session-service";
 import { getRoomBySlug } from "@/lib/services/room-service";
 
@@ -11,6 +13,11 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
   const profile = await requireRole(["STUDENT"]);
   const room = await getRoomBySlug(params.slug);
   if (!room) notFound();
+
+  // Room yang belum dibuka atau sudah ditutup hanya bisa dipreview instruktur/admin.
+  if (!getRoomAvailability(room).isOpen && !hasRoleAccess(profile.role, ["INSTRUCTOR"])) {
+    redirect(`/rooms/${room.slug}`);
+  }
 
   const session = await getLatestLabSessionForRoom(profile.id, room.id);
 

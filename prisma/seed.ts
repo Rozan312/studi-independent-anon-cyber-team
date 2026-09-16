@@ -1,4 +1,5 @@
 import { PrismaClient, Role, AnswerType, AnnouncementAudience, ClassMemberRole, LeaderboardSourceType, ProgressStatus, LabStatus } from "@prisma/client";
+import { roomContentBySlug, taskHintsByRoomSlug } from "./seed-content";
 
 const prisma = new PrismaClient();
 
@@ -141,8 +142,8 @@ const rooms: RoomSeed[] = [
       },
       {
         title: "Map request and response responsibilities",
-        description: "Choose the concept that best describes data sent from a browser to a server.",
-        answerType: AnswerType.MULTIPLE_CHOICE,
+        description: "Choose the concept that best describes data sent from a browser to a server: request, response, or status code. Type the term you choose.",
+        answerType: AnswerType.TEXT,
         expectedAnswer: "request",
         points: 25
       }
@@ -245,8 +246,8 @@ const rooms: RoomSeed[] = [
       },
       {
         title: "Recognize account protection",
-        description: "Choose the control that adds a second verification factor.",
-        answerType: AnswerType.MULTIPLE_CHOICE,
+        description: "Choose the control that adds a second verification factor: multi-factor authentication, password reuse, or shared accounts. Type the term you choose.",
+        answerType: AnswerType.TEXT,
         expectedAnswer: "multi-factor authentication",
         points: 30
       }
@@ -710,6 +711,7 @@ async function seedLearningPathsAndRooms() {
         estimatedMinutes: roomSeed.estimatedMinutes,
         points: roomSeed.points,
         orderIndex: roomSeed.orderIndex,
+        content: roomContentBySlug[roomSeed.slug] ?? "",
         isPublished: true
       },
       create: {
@@ -722,6 +724,7 @@ async function seedLearningPathsAndRooms() {
         estimatedMinutes: roomSeed.estimatedMinutes,
         points: roomSeed.points,
         orderIndex: roomSeed.orderIndex,
+        content: roomContentBySlug[roomSeed.slug] ?? "",
         isPublished: true
       }
     });
@@ -738,6 +741,8 @@ async function seedLearningPathsAndRooms() {
           orderIndex: index + 1,
           answerType: task.answerType,
           expectedAnswer: task.expectedAnswer,
+          acceptedAnswers: taskHintsByRoomSlug[roomSeed.slug]?.[task.title]?.acceptedAnswers ?? [],
+          hint: taskHintsByRoomSlug[roomSeed.slug]?.[task.title]?.hint ?? null,
           points: task.points
         }
       });
@@ -755,7 +760,7 @@ async function seedLearningPathsAndRooms() {
             explanation: question.explanation,
             orderIndex: questionIndex + 1,
             options: {
-              create: question.options
+              create: question.options.map((option, optionIndex) => ({ ...option, orderIndex: optionIndex + 1 }))
             }
           }))
         }

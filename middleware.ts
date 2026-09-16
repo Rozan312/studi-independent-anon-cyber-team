@@ -95,6 +95,7 @@ export const config = {
     "/rooms/:path*",
     "/progress/:path*",
     "/leaderboard/:path*",
+    "/profile/:path*",
     "/instructor/:path*",
     "/admin/:path*"
   ]
