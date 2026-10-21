@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { Figure, ProgressBar, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { Stamp, StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
+import { CompletionMark } from "@/components/paper/completion";
 import { TaskSubmitForm } from "@/components/rooms/task-submit-form";
 import { requireRole } from "@/lib/auth/guards";
 import { getRoomBySlug } from "@/lib/services/room-service";
@@ -19,20 +19,21 @@ import { hasRoleAccess } from "@/lib/auth/rbac";
 import { describeAvailability, formatScheduleDate, getRoomAvailability, type RoomAvailability } from "@/lib/learning/availability";
 import { formatDayMonth, formatNumber, formatShortDate } from "@/lib/format/date";
 import { earnablePoints } from "@/lib/learning/points";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
 /** Stempel room yang baru selesai (15 menit terakhir) dihentakkan sekali. */
-const FRESH_STAMP_MS = 15 * 60 * 1000;
+const FRESH_COMPLETION_MS = 15 * 60 * 1000;
 
 /** Stempel status ketersediaan; null bila room terbuka tanpa batas akhir. */
-function availabilityStamp(availability: RoomAvailability) {
+function availabilityTag(availability: RoomAvailability) {
   if (availability.state === "upcoming" && availability.opensAt) {
-    return <StateStamp tone="amber">Opens {formatDayMonth(availability.opensAt)}</StateStamp>;
+    return <StateTag tone="amber">Opens {formatDayMonth(availability.opensAt)}</StateTag>;
   }
-  if (availability.state === "closed") return <StateStamp tone="red">Closed</StateStamp>;
-  if (availability.state === "draft") return <StateStamp tone="muted">Draft</StateStamp>;
-  if (availability.closesAt) return <StateStamp tone="amber">Closes {formatDayMonth(availability.closesAt)}</StateStamp>;
+  if (availability.state === "closed") return <StateTag tone="red">Closed</StateTag>;
+  if (availability.state === "draft") return <StateTag tone="muted">Draft</StateTag>;
+  if (availability.closesAt) return <StateTag tone="amber">Closes {formatDayMonth(availability.closesAt)}</StateTag>;
   return null;
 }
 
@@ -72,18 +73,13 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
 
         <section className="sheet p-5 sm:p-6" aria-labelledby="room-schedule-title">
           <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            {room.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={room.coverImageUrl} alt="" className="h-24 w-24 shrink-0 rounded-lg border border-line bg-well object-cover" />
-            ) : (
-              <PathRosette seed={room.learningPath.slug} size={96} />
-            )}
+            <EntityLogo name={room.title} src={room.logoUrl} size="xl" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <h2 id="room-schedule-title" className="text-lg font-bold text-ink">
                   Schedule
                 </h2>
-                {availabilityStamp(availability)}
+                {availabilityTag(availability)}
               </div>
               <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-2">
                 <span>{room.learningPath.title}</span>
@@ -158,7 +154,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
 
   const now = new Date();
   const completedAt = snapshot.isComplete ? roomProgress?.completedAt ?? null : null;
-  const freshCompletion = completedAt ? now.getTime() - completedAt.getTime() < FRESH_STAMP_MS : false;
+  const freshCompletion = completedAt ? now.getTime() - completedAt.getTime() < FRESH_COMPLETION_MS : false;
 
   // Map tasks linearly: Completed -> First incomplete is Active -> Rest are Locked
   let foundActive = false;
@@ -178,7 +174,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
     return { ...task, status };
   });
 
-  const scheduleStamp = availabilityStamp(availability);
+  const scheduleTag = availabilityTag(availability);
 
   return (
     <AppShell title={room.title} subtitle={room.description} role={profile.role}>
@@ -279,9 +275,9 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
                               {task.title}
                             </h3>
                             {isCompleted ? (
-                              <StateStamp tone="green">Solved</StateStamp>
+                              <StateTag tone="green" icon="check">Solved</StateTag>
                             ) : isLocked ? (
-                              <StateStamp tone="muted">Locked</StateStamp>
+                              <StateTag tone="muted" icon="lock">Locked</StateTag>
                             ) : null}
                           </div>
 
@@ -332,14 +328,12 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
         <aside className="space-y-5 lg:col-span-4" aria-label="Room details">
           <section className="sheet p-5" aria-labelledby="room-progress-title">
             {snapshot.isComplete ? (
-              <div className="mb-5 flex justify-center pt-1">
-                <Stamp
-                  tone="violet"
-                  top="Passed"
-                  title={room.title}
-                  bottom={completedAt ? formatShortDate(completedAt) : undefined}
-                  strike={freshCompletion}
-                />
+              <div className="mb-5 flex items-center gap-3 rounded-lg border border-violet/25 bg-violet-soft px-3 py-2.5">
+                <CompletionMark kind="room" fresh={freshCompletion} />
+                <div className="min-w-0">
+                  <p className="font-semibold text-ink">Room passed</p>
+                  {completedAt ? <p className="text-sm text-ink-2">{formatShortDate(completedAt)}</p> : null}
+                </div>
               </div>
             ) : null}
 
@@ -418,7 +412,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
               <Figure className="p-4" label="Tasks" value={totalTasks} note={room.quiz ? "plus 1 quiz" : "No quiz"} />
             </div>
             <div className="flex items-center gap-3 border-t border-line-soft p-4">
-              <PathRosette seed={room.learningPath.slug} size={40} />
+              <EntityLogo name={room.learningPath.title} src={room.learningPath.logoUrl} size="md" />
               <div className="min-w-0">
                 <p className="field-label">Learning path</p>
                 <Link href={`/learning-paths/${room.learningPath.slug}`} className="text-link text-sm">
@@ -427,9 +421,9 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
                 <p className="mt-0.5 text-xs text-ink-3">{room.category}</p>
               </div>
             </div>
-            {scheduleStamp ? (
+            {scheduleTag ? (
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-soft p-4">
-                {scheduleStamp}
+                {scheduleTag}
                 <span className="text-xs text-ink-3">{describeAvailability(availability)}</span>
               </div>
             ) : null}

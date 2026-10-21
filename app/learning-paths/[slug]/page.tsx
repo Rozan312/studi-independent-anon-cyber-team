@@ -2,14 +2,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { StateStamp } from "@/components/paper/stamp";
+import { ProgressRing } from "@/components/paper/progress-ring";
+import { StateTag } from "@/components/paper/state-tag";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatDayMonth, formatNumber, formatShortDate } from "@/lib/format/date";
 import { getRoomAvailability } from "@/lib/learning/availability";
 import { getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
 import { earnablePoints } from "@/lib/learning/points";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,7 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
     total === 0
       ? "No rooms are published in this path yet."
       : done === total
-        ? "Every room in this path carries your stamp."
+        ? "You passed every room in this path."
         : `${done} of ${total} ${roomNoun} passed. Work through them in order so each idea builds on the last.`;
 
   return (
@@ -71,14 +72,12 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
           <img src={path.coverImageUrl} alt="" className="h-32 w-full border-b border-line object-cover sm:h-44" />
         ) : null}
         <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-7">
-          <PathRosette
-            seed={path.slug}
+          <ProgressRing
+            segments={rooms.map((row) => (row.userProgress?.status === "COMPLETED" ? "done" : row.room.id === nextRoomId ? "next" : "todo"))}
             size={184}
-            progress={total > 0 ? done / total : 0}
             label={`${done}/${total}`}
             sublabel={roomNoun}
             title={`${path.title}: ${done} of ${total} ${roomNoun} completed`}
-            animate
             className="mx-auto h-36 w-36 sm:mx-0 sm:h-[184px] sm:w-[184px]"
           />
           <div className="min-w-0 flex-1">
@@ -135,14 +134,7 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
                     }`}
                   >
                     <span className="figure w-7 shrink-0 text-center text-lg font-bold text-ink-3">{index + 1}</span>
-                    {room.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={room.coverImageUrl}
-                        alt=""
-                        className="hidden h-12 w-16 shrink-0 rounded-md border border-line-soft object-cover sm:block"
-                      />
-                    ) : null}
+                    <EntityLogo name={room.title} src={room.logoUrl} size="md" className="hidden sm:inline-flex" />
                     <div className="min-w-0 flex-1">
                       <span className="block font-semibold leading-snug text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                         {room.title}
@@ -161,13 +153,13 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
                         </>
                       ) : !availability.isOpen ? (
                         <>
-                          <StateStamp tone={availability.state === "upcoming" ? "amber" : "red"}>
+                          <StateTag tone={availability.state === "upcoming" ? "amber" : "red"}>
                             {availability.state === "upcoming" && availability.opensAt
                               ? `Opens ${formatDayMonth(availability.opensAt)}`
                               : availability.state === "draft"
                                 ? "Draft"
                                 : "Closed"}
-                          </StateStamp>
+                          </StateTag>
                           {percentage > 0 ? <span className="text-xs text-ink-3">{percentage}% done</span> : null}
                         </>
                       ) : (

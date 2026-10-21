@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, StatusPill } from "@/components/card";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
@@ -198,7 +198,7 @@ export default async function AdminPage() {
                       {item.isPublished ? (
                         <StatusPill tone="success">Published</StatusPill>
                       ) : (
-                        <StateStamp tone="muted">Draft</StateStamp>
+                        <StateTag tone="muted">Draft</StateTag>
                       )}
                       <span>{AUDIENCE_LABEL[item.audience] ?? item.audience}</span>
                       <span aria-hidden="true">·</span>

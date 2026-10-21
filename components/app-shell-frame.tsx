@@ -327,12 +327,11 @@ export function AppShellFrame({
 
   return (
     <div className="min-h-screen bg-paper">
-      {/* Rail desktop: kertas cetak pelangi dengan tepi perforasi. */}
+      {/* Rail desktop: gradasi iris dengan grid titik halus. */}
       <aside
-        className={`perforated fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] duration-300 ease-out lg:flex ${
+        className={`digital-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] duration-300 ease-out lg:flex ${
           collapsed ? "w-[76px]" : "w-64"
         }`}
-        style={{ backgroundImage: "var(--iris)" }}
       >
         <Link
           href="/dashboard"
@@ -403,8 +402,7 @@ export function AppShellFrame({
           <aside
             ref={drawerRef}
             id="mobile-navigation"
-            className="perforated absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-line shadow-lift"
-            style={{ backgroundImage: "var(--iris)" }}
+            className="digital-surface absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-line shadow-lift"
           >
             <div className="flex items-center justify-between gap-3 px-5 pb-5 pt-4">
               <span className="flex items-center gap-2.5">

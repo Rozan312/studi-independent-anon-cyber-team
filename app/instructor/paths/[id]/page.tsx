@@ -2,8 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { LearningPathForm } from "@/components/instructor/learning-path-form";
 import { PublishToggleForm } from "@/components/instructor/publish-toggle-form";
 import { panelClass } from "@/components/instructor/form-styles";
@@ -14,6 +13,7 @@ import { formatShortDate } from "@/lib/format/date";
 import { canManageContent, getLearningPathForEditor, listRoomsOutsidePath } from "@/lib/services/content-service";
 import { describeAvailability, getRoomAvailability } from "@/lib/learning/availability";
 import { PathRoomsEditor } from "@/components/instructor/path-rooms-editor";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -91,10 +91,10 @@ export default async function InstructorPathEditorPage({
       ) : null}
 
       <section className="sheet flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:p-6" aria-label="Path summary">
-        <PathRosette seed={path.slug} size={104} title={`${path.title} emblem`} className="mx-auto sm:mx-0" />
+        <EntityLogo name={path.title} src={path.logoUrl} size="xl" className="mx-auto sm:mx-0" />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            {path.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateStamp tone="muted">Draft</StateStamp>}
+            {path.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateTag tone="muted">Draft</StateTag>}
             <span className="text-sm text-ink-3">Updated {formatShortDate(path.updatedAt)}</span>
           </div>
           {path.description ? <p className="mt-2 line-clamp-2 max-w-2xl text-sm text-ink-2">{path.description}</p> : null}
@@ -146,7 +146,8 @@ export default async function InstructorPathEditorPage({
               category: path.category,
               difficulty: path.difficulty,
               estimatedHours: path.estimatedHours,
-              coverImageUrl: path.coverImageUrl
+              coverImageUrl: path.coverImageUrl,
+              logoUrl: path.logoUrl
             }}
           />
         </section>

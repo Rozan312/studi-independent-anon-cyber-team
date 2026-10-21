@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ActionMessage, type ActionMessageState } from "@/components/ui/action-message";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { Stamp } from "@/components/paper/stamp";
+import { CompletionMark } from "@/components/paper/completion";
 
 interface Option {
   id: string;
@@ -188,15 +188,8 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
       <div className="mx-auto flex max-w-3xl flex-col gap-5">
         <section className="sheet" aria-labelledby="quiz-result-title">
           <div className="flex flex-col items-center gap-6 p-5 text-center sm:flex-row sm:items-center sm:p-7 sm:text-left">
-            <Stamp
-              tone={passed ? "green" : "red"}
-              shape="round"
-              top="Quiz"
-              title={`${attemptResult.score}%`}
-              bottom={passed ? "Passed" : "Retry"}
-              strike={passed}
-              className="sm:ml-1"
-            />
+            {/* Lulus: cukup angka skornya. Belum lulus: ikon retry, skornya disebut di teks. */}
+            <CompletionMark kind={passed ? "quiz-pass" : "quiz-retry"} score={attemptResult.score} size="lg" className="sm:ml-1" />
             <div className="min-w-0 flex-1">
               <h2
                 id="quiz-result-title"

@@ -21,6 +21,7 @@ export type RoomMetadataValues = {
   points: number;
   orderIndex: number;
   coverImageUrl: string | null;
+  logoUrl: string | null;
   /** ISO string atau null; dikonversi ke zona waktu tampilan di form. */
   availableFrom: string | null;
   availableUntil: string | null;
@@ -144,11 +145,10 @@ export function RoomMetadataForm({
         <textarea id={fieldId("description")} name="description" rows={3} defaultValue={room.description} className={inputClass} disabled={disabled} />
       </Field>
 
-      <ImageUploadField
-        initialValue={room.coverImageUrl}
-        help="Shown on room cards and at the top of the room."
-        disabled={disabled}
-      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ImageUploadField name="logoUrl" label="Logo" initialValue={room.logoUrl} help="Optional. A square image shown next to the room name. Without one, the initials of the name are used." disabled={disabled} />
+        <ImageUploadField initialValue={room.coverImageUrl} help="Optional. A wide banner shown at the top of the room's side column." disabled={disabled} />
+      </div>
 
       <fieldset className="rounded-lg border border-line p-4">
         <legend className="px-1 text-sm font-semibold text-ink">Schedule</legend>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, StatusPill } from "@/components/card";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { PublishToggleForm } from "@/components/instructor/publish-toggle-form";
 import { toggleRoomPublishAction } from "@/lib/actions/content-actions";
 import { requireRole } from "@/lib/auth/guards";
@@ -26,8 +26,8 @@ function ScheduleCell({ isPublished, availability }: { isPublished: boolean; ava
     if (closesAt) return <span className="text-ink-3">Until {formatDayMonth(closesAt)}</span>;
     return <span className="text-ink-3">No schedule</span>;
   }
-  if (state === "upcoming" && opensAt) return <StateStamp tone="amber">{`Opens ${formatDayMonth(opensAt)}`}</StateStamp>;
-  if (state === "closed") return <StateStamp tone="red">Closed</StateStamp>;
+  if (state === "upcoming" && opensAt) return <StateTag tone="amber">{`Opens ${formatDayMonth(opensAt)}`}</StateTag>;
+  if (state === "closed") return <StateTag tone="red">Closed</StateTag>;
   if (closesAt) return <span className="text-ink-2">Until {formatDayMonth(closesAt)}</span>;
   return <span className="text-ink-3">Always open</span>;
 }
@@ -112,7 +112,7 @@ export default async function InstructorRoomsPage() {
                         {room.learningPath.isPublished ? null : <p className="mt-0.5 text-xs text-ink-3">Path is a draft</p>}
                       </td>
                       <td className={bodyCell}>
-                        {room.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateStamp tone="muted">Draft</StateStamp>}
+                        {room.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateTag tone="muted">Draft</StateTag>}
                       </td>
                       <td className={`${bodyCell} whitespace-nowrap`} title={room.isPublished ? describeAvailability(availability) : undefined}>
                         <ScheduleCell isPublished={room.isPublished} availability={availability} />

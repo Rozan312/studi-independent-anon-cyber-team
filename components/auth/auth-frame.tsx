@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { PathRosette } from "@/components/paper/rosette";
+import { CircuitField } from "@/components/paper/circuit";
 
 /**
  * Bingkai halaman publik dan auth (tanpa AppShell).
- * Kiri: panel kertas iris berperforasi dengan logo, nama, dan rosette guilloche komunitas sebagai cetakan dekoratif.
+ * Kiri: panel iris bergrid titik dengan logo, nama, dan bidang jalur sirkuit sebagai latar dekoratif.
  * Kanan: satu lembar kertas berisi judul halaman (h1) dan formulirnya.
- * Di layar kecil panel menyusut menjadi pita atas yang ringkas; potongan rosette tetap terlihat di tepi kanan.
+ * Di layar kecil panel menyusut menjadi pita atas yang ringkas (tanpa bidang sirkuit).
  */
 export function AuthFrame({
   title,
@@ -33,15 +33,10 @@ export function AuthFrame({
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[minmax(360px,5fr)_minmax(0,7fr)]">
       <aside
-        className="relative overflow-hidden border-b border-line lg:perforated lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r"
-        style={{ backgroundImage: "var(--iris)" }}
+        className="digital-surface relative overflow-hidden border-b border-line lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r"
       >
-        {/* Rosette komunitas: cetakan guilloche yang meluber keluar tepi, bukan widget. Tanpa title, jadi dekoratif. */}
-        <PathRosette
-          seed="anon-cyber-team"
-          size={420}
-          className="pointer-events-none absolute inset-y-0 -right-12 my-auto h-40 w-40 opacity-80 lg:-bottom-20 lg:-right-20 lg:top-auto lg:my-0 lg:h-[420px] lg:w-[420px]"
-        />
+        {/* Jalur sirkuit di bagian bawah panel, memudar ke atas agar logo dan teks tetap bersih. */}
+        <CircuitField className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-[60%] w-full [mask-image:linear-gradient(to_top,black_40%,transparent)] lg:block" />
         <div className="relative px-4 py-4 sm:px-6 lg:px-12 lg:pt-14 xl:px-16 xl:pt-16">
           {brandHref ? (
             <Link href={brandHref} aria-label="Anon Cyber Team home" className={brandClass}>

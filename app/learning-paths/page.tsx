@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { listPublishedLearningPaths } from "@/lib/services/learning-path-service";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -60,23 +60,7 @@ export default async function LearningPathsPage() {
                     href={`/learning-paths/${path.slug}`}
                     className="group flex h-full gap-4 p-5 transition-colors hover:bg-well md:flex-col md:gap-0 md:p-6"
                   >
-                    {path.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={path.coverImageUrl}
-                        alt=""
-                        className="h-20 w-20 shrink-0 rounded-lg border border-line object-cover md:h-[88px] md:w-[88px]"
-                      />
-                    ) : (
-                      <PathRosette
-                        seed={path.slug}
-                        size={88}
-                        progress={total > 0 ? done / total : undefined}
-                        label={total > 0 ? `${done}/${total}` : undefined}
-                        title={total > 0 ? progressTitle : undefined}
-                        className="h-20 w-20 md:h-[88px] md:w-[88px]"
-                      />
-                    )}
+                    <EntityLogo name={path.title} src={path.logoUrl} size="lg" />
 
                     <div className="flex min-w-0 flex-1 flex-col md:mt-4">
                       <h2 className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink [text-wrap:balance] group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
@@ -92,7 +76,7 @@ export default async function LearningPathsPage() {
                         {complete ? <StatusPill tone="done">Complete</StatusPill> : null}
                       </p>
 
-                      {path.coverImageUrl && total > 0 ? (
+                      {total > 0 ? (
                         <div className="mt-3">
                           <p className="mb-1.5 text-xs text-ink-3">
                             {done} of {total} {roomNoun} passed

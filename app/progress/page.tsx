@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { PassportPage, type PassportEntry } from "@/components/paper/passport-page";
+import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { getLearningStreak } from "@/lib/services/activity-service";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +22,7 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`) {
   return `${formatNumber(count)} ${count === 1 ? singular : pluralForm}`;
 }
 
-type PassportRow = PassportEntry & { at: Date };
+type CompletionRow = CompletionEntry & { at: Date };
 
 export default async function ProgressPage() {
   const profile = await requireRole(["STUDENT"]);
@@ -51,7 +51,7 @@ export default async function ProgressPage() {
     }),
     prisma.learningPath.findMany({
       where: { isPublished: true },
-      select: { id: true, slug: true, title: true, difficulty: true, rooms: { where: { isPublished: true }, select: { id: true } } }
+      select: { id: true, slug: true, title: true, difficulty: true, logoUrl: true, rooms: { where: { isPublished: true }, select: { id: true } } }
     }),
     // Agregat seluruh riwayat agar angka tidak terpotong oleh batas 100 attempt di atas.
     prisma.userQuizAttempt.count({ where: { userId: profile.id, completedAt: { not: null } } }),
@@ -74,10 +74,10 @@ export default async function ProgressPage() {
   // Pembilang dan penyebut memakai himpunan yang sama: room terbit di path yang terbit.
   const publishedRoomIds = new Set(publishedPaths.flatMap((path) => path.rooms.map((room) => room.id)));
   const publishedRoomTotal = publishedRoomIds.size;
-  const stampedPublishedRooms = completedRows.filter((row) => publishedRoomIds.has(row.roomId)).length;
+  const completedPublishedRooms = completedRows.filter((row) => publishedRoomIds.has(row.roomId)).length;
 
-  // Dinding stempel: room selesai (violet) dan quiz lulus (hijau), terbaru dulu.
-  const stamps: PassportRow[] = [
+  // Riwayat selesai: room lulus (centang) dan quiz lulus (skor), terbaru dulu.
+  const completions: CompletionRow[] = [
     ...completedRows.map((row) => {
       const at = row.completedAt ?? row.updatedAt;
       return { id: `room-${row.id}`, at, kind: "room" as const, title: row.room.title, date: formatShortDate(at) };
@@ -88,9 +88,9 @@ export default async function ProgressPage() {
         id: `quiz-${attempt.id}`,
         at,
         kind: "quiz-pass" as const,
-        title: `${attempt.score}%`,
-        date: formatShortDate(at),
-        caption: attempt.quiz.room.title
+        title: attempt.quiz.room.title,
+        score: attempt.score,
+        date: formatShortDate(at)
       };
     })
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
@@ -108,14 +108,14 @@ export default async function ProgressPage() {
     });
 
   return (
-    <AppShell title="Progress" subtitle="Your learning passport: every room you've passed, every quiz, and where each path stands." role={profile.role}>
+    <AppShell title="Progress" subtitle="Every room you've passed, every quiz score, and where each path stands." role={profile.role}>
       <section className="sheet overflow-hidden" aria-label="Your numbers">
         <div className="grid grid-cols-2 gap-px bg-line-soft lg:grid-cols-4">
           <Figure className="bg-sheet p-4 sm:p-5" label="Points" value={formatNumber(standing.points)} note={standing.rank ? `Rank #${standing.rank}` : "Earn points to rank"} />
           <Figure
             className="bg-sheet p-4 sm:p-5"
-            label="Rooms stamped"
-            value={formatNumber(stampedPublishedRooms)}
+            label="Rooms completed"
+            value={formatNumber(completedPublishedRooms)}
             note={`of ${formatNumber(publishedRoomTotal)} published`}
           />
           <Figure
@@ -134,21 +134,21 @@ export default async function ProgressPage() {
         </div>
       </section>
 
-      <section className="sheet mt-5 p-4 sm:p-6" aria-label="Stamps">
+      <section className="sheet mt-5 p-4 sm:p-6" aria-label="Completed">
         <SectionHeader
-          title="Stamps"
+          title="Completed"
           description={
             attemptsCapped
               ? `Every passed room, plus the quizzes passed in your latest ${ATTEMPT_LIMIT} attempts, most recent first.`
               : "Every passed room and quiz, most recent first."
           }
         />
-        {stamps.length > 0 ? (
-          <PassportPage entries={stamps} />
+        {completions.length > 0 ? (
+          <CompletionList entries={completions} />
         ) : (
           <EmptyState
-            title="No stamps yet"
-            message="Your first stamp lands here when you finish a room or pass a quiz."
+            title="Nothing completed yet"
+            message="Finished rooms and passed quizzes show up here."
             action={
               <Link href="/learning-paths" className="text-link text-sm">
                 Choose a learning path
@@ -256,7 +256,7 @@ export default async function ProgressPage() {
             {pathRows.map(({ path, total, done }) => (
               <li key={path.id}>
                 <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
-                  <PathRosette seed={path.slug} size={44} progress={total ? done / total : 0} />
+                  <EntityLogo name={path.title} src={path.logoUrl} size="md" />
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                       {path.title}

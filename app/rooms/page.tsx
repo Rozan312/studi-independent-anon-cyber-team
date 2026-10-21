@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { listPublishedRooms } from "@/lib/services/room-service";
 import { getRoomAvailability } from "@/lib/learning/availability";
 import { formatDayMonth, formatNumber } from "@/lib/format/date";
 import { earnablePoints } from "@/lib/learning/points";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -67,13 +67,13 @@ export default async function RoomsPage() {
                   const progress = progressByRoom.get(room.id);
                   const percentage = progress?.progressPercentage ?? 0;
 
-                  let stamp: React.ReactNode = null;
+                  let stateTag: React.ReactNode = null;
                   if (availability.state === "upcoming" && availability.opensAt) {
-                    stamp = <StateStamp tone="amber">Opens {formatDayMonth(availability.opensAt)}</StateStamp>;
+                    stateTag = <StateTag tone="amber">Opens {formatDayMonth(availability.opensAt)}</StateTag>;
                   } else if (availability.state === "closed") {
-                    stamp = <StateStamp tone="red">Closed</StateStamp>;
+                    stateTag = <StateTag tone="red">Closed</StateTag>;
                   } else if (availability.state === "open" && availability.closesAt) {
-                    stamp = <StateStamp tone="amber">Closes {formatDayMonth(availability.closesAt)}</StateStamp>;
+                    stateTag = <StateTag tone="amber">Closes {formatDayMonth(availability.closesAt)}</StateTag>;
                   }
 
                   return (
@@ -82,16 +82,7 @@ export default async function RoomsPage() {
                         href={`/rooms/${room.slug}`}
                         className="group flex gap-4 px-5 py-4 transition-colors hover:bg-well sm:items-center sm:px-6"
                       >
-                        {room.coverImageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={room.coverImageUrl}
-                            alt=""
-                            className="h-14 w-14 shrink-0 rounded-lg border border-line bg-well object-cover"
-                          />
-                        ) : (
-                          <PathRosette seed={room.learningPath.slug} size={56} />
-                        )}
+                        <EntityLogo name={room.title} src={room.logoUrl} size="lg" className="!h-14 !w-14" />
 
                         <div className="grid grid-cols-1 min-w-0 flex-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center sm:gap-6">
                           <div className="min-w-0">
@@ -99,7 +90,7 @@ export default async function RoomsPage() {
                               <span className="font-semibold leading-snug text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                                 {room.title}
                               </span>
-                              {stamp}
+                              {stateTag}
                             </div>
                             <p className="mt-0.5 truncate text-sm text-ink-3">{room.learningPath.title}</p>
                             <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-2">

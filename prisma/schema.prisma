@@ -105,6 +105,7 @@ model LearningPath {
   difficulty     String
   estimatedHours Int
   coverImageUrl  String?
+  logoUrl        String?
   createdById    String?  @db.Uuid
   isPublished    Boolean  @default(false)
   createdAt      DateTime @default(now())
@@ -129,6 +130,7 @@ model Room {
   content          String             @default("")
   contentFormat    ContentFormat      @default(MARKDOWN)
   coverImageUrl    String?
+  logoUrl          String?
   createdById      String?            @db.Uuid
   isPublished      Boolean            @default(false)
   availableFrom    DateTime?

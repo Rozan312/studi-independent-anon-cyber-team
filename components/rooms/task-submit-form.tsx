@@ -5,7 +5,6 @@ import { useFormState } from "react-dom";
 import { submitTaskAnswerAction, type LearningActionState } from "@/lib/actions/learning-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { Stamp } from "@/components/paper/stamp";
 import { helpClass, inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 import { getAnswerFormat } from "@/lib/learning/answer-format";
 
@@ -68,12 +67,6 @@ export function TaskSubmitForm({
         tabIndex={succeeded ? -1 : undefined}
         className={succeeded ? "flex flex-col items-start gap-4 focus:outline-none sm:flex-row sm:items-center" : undefined}
       >
-        {succeeded ? (
-          // Stempel dekoratif: pesan di sebelahnya sudah menyatakan "Correct".
-          <span aria-hidden="true" className="ml-1 inline-flex">
-            <Stamp tone="green" shape="round" size="sm" top="Task" title="Correct" strike />
-          </span>
-        ) : null}
         <div role="status" aria-live="polite" aria-atomic="true" className={succeeded ? "min-w-0 flex-1" : undefined}>
           {succeeded ? (
             <p className="flex items-start gap-2 rounded-lg border border-green/30 bg-green-soft px-3 py-2 text-sm leading-snug text-ink">

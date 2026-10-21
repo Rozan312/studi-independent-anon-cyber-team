@@ -30,7 +30,13 @@ const config: Config = {
         violet: { DEFAULT: token("violet"), soft: token("violet-soft") },
         green: { DEFAULT: token("green"), soft: token("green-soft") },
         red: { DEFAULT: token("red"), soft: token("red-soft") },
-        amber: { DEFAULT: token("amber"), soft: token("amber-soft") }
+        amber: { DEFAULT: token("amber"), soft: token("amber-soft") },
+        tile: {
+          indigo: token("tile-indigo"),
+          "indigo-ink": token("tile-indigo-ink"),
+          teal: token("tile-teal"),
+          "teal-ink": token("tile-teal-ink")
+        }
       },
       fontFamily: {
         sans: ["var(--font-archivo)", "ui-sans-serif", "system-ui", "sans-serif"],

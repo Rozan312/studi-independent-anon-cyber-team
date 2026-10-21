@@ -87,7 +87,8 @@ const PATH_FIELDS: FieldLabels = {
     category: "Category",
     difficulty: "Difficulty",
     estimatedHours: "Estimated hours",
-    coverImageUrl: "Cover image"
+    coverImageUrl: "Cover image",
+    logoUrl: "Logo"
   }
 };
 
@@ -103,6 +104,7 @@ const ROOM_FIELDS: FieldLabels = {
     points: "Points",
     orderIndex: "Position in path",
     coverImageUrl: "Cover image",
+    logoUrl: "Logo",
     availableFrom: "Opening time",
     availableUntil: "Closing time"
   }
@@ -192,6 +194,7 @@ export async function createLearningPathAction(_state: ContentActionState, formD
       difficulty: text(formData, "difficulty"),
       estimatedHours: integer(formData, "estimatedHours"),
       coverImageUrl: text(formData, "coverImageUrl"),
+      logoUrl: text(formData, "logoUrl"),
       isPublished: bool(formData, "isPublished")
     });
 
@@ -215,7 +218,8 @@ export async function updateLearningPathAction(_state: ContentActionState, formD
       category: text(formData, "category"),
       difficulty: text(formData, "difficulty"),
       estimatedHours: integer(formData, "estimatedHours"),
-      coverImageUrl: text(formData, "coverImageUrl")
+      coverImageUrl: text(formData, "coverImageUrl"),
+      logoUrl: text(formData, "logoUrl")
     });
 
     revalidatePathPages(path.id, path.slug);
@@ -302,6 +306,7 @@ export async function updateRoomMetadataAction(_state: ContentActionState, formD
       points: integer(formData, "points"),
       orderIndex: integer(formData, "orderIndex"),
       coverImageUrl: text(formData, "coverImageUrl"),
+      logoUrl: text(formData, "logoUrl"),
       availableFrom: text(formData, "availableFrom"),
       availableUntil: text(formData, "availableUntil")
     });

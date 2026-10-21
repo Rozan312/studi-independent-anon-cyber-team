@@ -111,6 +111,7 @@ export const learningPathSchema = z.object({
   difficulty: z.string().min(2).max(40),
   estimatedHours: z.number().int().min(1).max(500),
   coverImageUrl: imageUrlSchema,
+  logoUrl: imageUrlSchema,
   isPublished: z.boolean().default(false)
 });
 
@@ -139,6 +140,7 @@ export const roomMetadataSchema = roomDraftSchema
   .extend({
     roomId: uuidSchema,
     coverImageUrl: imageUrlSchema,
+    logoUrl: imageUrlSchema,
     availableFrom: scheduleDateSchema,
     availableUntil: scheduleDateSchema
   })

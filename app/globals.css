@@ -3,8 +3,8 @@
 @tailwind utilities;
 
 /* ---------------------------------------------------------------------------
-   Token "Security Paper & Stamps": kertas sekuriti berwarna lembut, tinta intaglio,
-   cyan logo khusus untuk langkah berikutnya, tinta stempel untuk status.
+   Token tampilan terang: kertas berwarna lembut, teks tinta, motif digital (grid titik, sirkuit),
+   cyan logo khusus untuk langkah berikutnya, warna status untuk selesai/benar/ulang/terjadwal.
    Nilai berformat "R G B" agar bisa dipakai Tailwind dengan opasitas.
    --------------------------------------------------------------------------- */
 :root {
@@ -35,7 +35,13 @@
   --amber: 143 87 8;
   --amber-soft: 251 241 220;
 
-  /* Rail cetak pelangi (iris printing): cyan pucat ke periwinkle pucat. */
+  /* Kotak identitas (inisial room/path): palet sendiri agar tidak terbaca sebagai status. */
+  --tile-indigo: 231 234 248;
+  --tile-indigo-ink: 59 75 138;
+  --tile-teal: 225 241 239;
+  --tile-teal-ink: 15 106 99;
+
+  /* Gradasi iris: cyan pucat ke periwinkle pucat (rail, hero, panel login). */
   --iris: linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%);
 }
 
@@ -172,73 +178,55 @@ textarea::placeholder {
     @apply font-medium text-cyan-ink underline decoration-cyan-ink/35 underline-offset-[3px] transition-colors hover:decoration-cyan-ink;
   }
 
-  /* Tepi perforasi pada rail. */
-  .perforated {
-    position: relative;
-  }
-  .perforated::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 4px;
-    border-right: 2px dotted rgb(0 138 180 / 0.4);
-    pointer-events: none;
+  /* Permukaan digital: grid titik halus di atas gradasi iris (rail, hero, panel login). */
+  .digital-surface {
+    background-image: radial-gradient(rgb(var(--cyan-ink) / 0.13) 1px, transparent 1.3px), var(--iris);
+    background-size: 18px 18px, 100% 100%;
   }
 }
 
 /* ---------------------------------------------------------------------------
-   Stempel: tinta karet dengan tepi sedikit aus. Animasi "strike" hanya untuk stempel baru.
+   Penanda selesai: centang yang baru didapat digambar sekali.
    --------------------------------------------------------------------------- */
-.stamp {
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 3.5'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
-  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 3.5'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
-  -webkit-mask-size: 160px 160px;
-  mask-size: 160px 160px;
-}
-
-@keyframes stamp-strike {
-  0% {
-    opacity: 0;
-    transform: rotate(var(--stamp-rotate, -4deg)) scale(1.45);
-    filter: blur(1.5px);
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 1;
   }
-  55% {
-    opacity: 1;
-    transform: rotate(var(--stamp-rotate, -4deg)) scale(0.96);
-    filter: blur(0);
-  }
-  100% {
-    opacity: 1;
-    transform: rotate(var(--stamp-rotate, -4deg)) scale(1);
+  to {
+    stroke-dashoffset: 0;
   }
 }
 
-.stamp-strike {
-  animation: stamp-strike 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+.check-draw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: check-draw 460ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
 }
 
-@keyframes rosette-draw {
+@keyframes ring-in {
   from {
     opacity: 0;
-    transform: rotate(-24deg) scale(0.92);
+    transform: rotate(-30deg);
   }
   to {
     opacity: 1;
-    transform: rotate(0) scale(1);
+    transform: rotate(0);
   }
 }
 
-.rosette-in {
+.ring-in {
   transform-origin: center;
   transform-box: fill-box;
-  animation: rosette-draw 900ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: ring-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .stamp-strike,
-  .rosette-in {
+  .ring-in {
     animation: none;
+  }
+  .check-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
   }
 }
 

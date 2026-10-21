@@ -1,4 +1,4 @@
-/** Primitif bersama dunia "Security Paper & Stamps": lembar, judul seksi, label status, bilah progres, angka bersel. */
+/** Primitif bersama dunia "Security Paper": lembar, judul seksi, label status, bilah progres, angka bersel. */
 
 export function Card({
   children,
@@ -55,7 +55,7 @@ const statusToneClass: Record<StatusTone, string> = {
 export function StatusPill({ children, tone = "neutral", className = "" }: { children: React.ReactNode; tone?: StatusTone; className?: string }) {
   return (
     <span
-      className={`inline-flex items-center rounded-md border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase leading-4 tracking-[0.08em] ${statusToneClass[tone]} ${className}`}
+      className={`inline-flex items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase leading-4 tracking-[0.08em] ${statusToneClass[tone]} ${className}`}
       style={{ fontStretch: "78%" }}
     >
       {children}

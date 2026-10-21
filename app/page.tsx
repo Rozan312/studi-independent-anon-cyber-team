@@ -1,34 +1,29 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { GuillocheBand } from "@/components/paper/guilloche-band";
-import { PassportPage, type PassportEntry } from "@/components/paper/passport-page";
-import { PathRosette } from "@/components/paper/rosette";
+import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
+import { CircuitField, CircuitStrip } from "@/components/paper/circuit";
 
-/** Contoh halaman paspor untuk pengunjung. Diberi label "Example" di halaman; bukan progres siapa pun. */
-const EXAMPLE_STAMPS: PassportEntry[] = [
+/** Contoh riwayat untuk pengunjung. Diberi label "Example" di halaman; bukan progres siapa pun. */
+const EXAMPLE_COMPLETIONS: CompletionEntry[] = [
   { id: "example-room-1", kind: "room", title: "Introduction to HTTP", date: "3 Oct 2026" },
-  { id: "example-quiz-1", kind: "quiz-pass", title: "90%", date: "3 Oct 2026", caption: "Introduction to HTTP quiz" },
-  { id: "example-room-2", kind: "room", title: "Linux Command Line Basics", date: "9 Oct 2026" },
-  { id: "example-quiz-2", kind: "quiz-retry", title: "60%", date: "9 Oct 2026", caption: "Linux quiz, first try" }
+  { id: "example-quiz-1", kind: "quiz-pass", title: "Introduction to HTTP", score: 90, date: "3 Oct 2026" },
+  { id: "example-quiz-2", kind: "quiz-retry", title: "Linux Command Line Basics", score: 60, date: "9 Oct 2026" }
 ];
 
 const ROOM_STEPS = [
   { title: "Read the walkthrough", body: "Each room starts with material written by the community's instructors." },
   { title: "Answer the tasks", body: "Short practice questions. A hint unlocks after two wrong attempts." },
   { title: "Pass the quiz", body: "Check your understanding and review every question afterwards." },
-  { title: "Collect the stamp", body: "Finished rooms and quizzes are stamped into your learning passport." }
+  { title: "Track your progress", body: "Passed rooms get a check mark, quiz scores are saved, and points count toward the leaderboard." }
 ];
 
-/** Halaman depan publik: identitas komunitas, cara kerja room, contoh paspor, dan dua pintu masuk. */
+/** Halaman depan publik: identitas komunitas, cara kerja room, contoh daftar progres, dan dua pintu masuk. */
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-paper">
-      <header className="relative overflow-hidden border-b border-line" style={{ backgroundImage: "var(--iris)" }}>
-        <PathRosette
-          seed="anon-cyber-team"
-          size={520}
-          className="pointer-events-none absolute -right-52 -top-32 h-80 w-80 opacity-35 sm:-right-24 sm:opacity-60 lg:-right-10 lg:top-1/2 lg:h-[30rem] lg:w-[30rem] lg:-translate-y-1/2 lg:opacity-70"
-        />
+      <header className="digital-surface relative overflow-hidden border-b border-line">
+        {/* Jalur sirkuit di sisi kanan hero, memudar ke arah teks. */}
+        <CircuitField className="pointer-events-none absolute inset-y-0 right-0 h-full w-[70%] opacity-60 [mask-image:linear-gradient(to_left,black_35%,transparent)] sm:opacity-100 lg:w-[55%]" />
         <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-20">
           <div className="flex items-center gap-3">
             <BrandMark size={44} />
@@ -41,7 +36,7 @@ export default function HomePage() {
             </h1>
             <p className="mt-4 max-w-lg text-[1.0625rem] leading-relaxed text-ink-2">
               Learning paths made of rooms, written and run by the Anon Cyber Team community. Read, practise, pass the quiz, and
-              watch your learning passport fill with stamps.
+              see your progress add up.
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <Link href="/login" className="btn-primary min-h-11 px-6 text-[0.9375rem]">
@@ -53,7 +48,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <GuillocheBand seed="anon-cyber-team" opacity={0.45} className="relative h-5 border-t border-line-soft bg-paper/40" />
+        <CircuitStrip className="relative border-t border-line-soft bg-paper/40" />
       </header>
 
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-10 lg:pt-14">
@@ -76,18 +71,18 @@ export default function HomePage() {
           </ol>
         </section>
 
-        <section className="mt-12" aria-labelledby="passport-title">
+        <section className="mt-12" aria-labelledby="progress-example-title">
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="passport-title" className="text-xl font-bold tracking-[-0.012em] text-ink">
-              Your learning passport
+            <h2 id="progress-example-title" className="text-xl font-bold tracking-[-0.012em] text-ink">
+              Your progress, at a glance
             </h2>
             <span className="field-label rounded border border-line-strong px-1.5 py-0.5">Example</span>
           </div>
           <p className="mt-1 max-w-2xl text-[0.9375rem] text-ink-2">
-            Every member gets one. This page is an example of how it fills up; your own starts empty.
+            Passed rooms get a check, quizzes show your score, and anything to retry is marked. Your own list starts empty.
           </p>
           <div className="sheet mt-4 p-3 sm:p-4">
-            <PassportPage entries={EXAMPLE_STAMPS} next="Authentication Concepts" />
+            <CompletionList entries={EXAMPLE_COMPLETIONS} next="Authentication Concepts" />
           </div>
         </section>
 

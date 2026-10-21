@@ -2,10 +2,10 @@ import Link from "next/link";
 import { AnnouncementAudience } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { StateStamp } from "@/components/paper/stamp";
-import { GuillocheBand } from "@/components/paper/guilloche-band";
-import { PassportPage, type PassportEntry } from "@/components/paper/passport-page";
+import { ProgressRing } from "@/components/paper/progress-ring";
+import { StateTag } from "@/components/paper/state-tag";
+import { CircuitStrip } from "@/components/paper/circuit";
+import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
 import { PageNotice } from "@/components/ui/page-notice";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
@@ -16,13 +16,14 @@ import { getGlobalLeaderboard, getUserLeaderboardStanding } from "@/lib/services
 import { getLearningStreak } from "@/lib/services/activity-service";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { earnablePoints } from "@/lib/learning/points";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
-/** Stempel baru (selesai dalam 15 menit terakhir) dihentakkan sekali saat dashboard dibuka. */
-const FRESH_STAMP_MS = 15 * 60 * 1000;
+/** Penyelesaian dalam 15 menit terakhir: centangnya digambar sekali saat dashboard dibuka. */
+const FRESH_COMPLETION_MS = 15 * 60 * 1000;
 
 function firstValue(params: SearchParams, key: string) {
   const value = params[key];
@@ -51,7 +52,7 @@ function greeting(now: Date) {
   return "Good evening";
 }
 
-type PassportRow = PassportEntry & { at: Date };
+type CompletionRow = CompletionEntry & { at: Date };
 
 export default async function DashboardPage({ searchParams = {} }: { searchParams?: SearchParams }) {
   const profile = await requireRole(["STUDENT"]);
@@ -94,9 +95,9 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
 
   const completedRoomIds = new Set(completedRooms.map((row) => row.roomId));
   const publishedPaths = sortByDifficulty(publishedPathRows);
-  // "Rooms stamped" dihitung atas himpunan yang sama dengan penyebutnya: room terbit di path terbit.
+  // "Rooms completed" dihitung atas himpunan yang sama dengan penyebutnya: room terbit di path terbit.
   const publishedRoomIds = new Set(publishedPaths.flatMap((path) => path.rooms.map((room) => room.id)));
-  const stampedPublishedCount = [...completedRoomIds].filter((roomId) => publishedRoomIds.has(roomId)).length;
+  const completedPublishedCount = [...completedRoomIds].filter((roomId) => publishedRoomIds.has(roomId)).length;
 
   // Path aktif: path dari room yang terakhir disentuh; bila belum ada, path pertama yang terbit.
   const activeProgressRow = recentProgress.find((row) => row.room.learningPath.isPublished && row.room.isPublished);
@@ -142,8 +143,8 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
   const quizWaiting = !nextTask && Boolean(nextRoomDetail?.quiz) && !nextRoomDetail?.quiz?.attempts.length;
   const nextRoomPoints = nextRoom && nextRoomDetail ? earnablePoints({ points: nextRoom.points, quiz: nextRoomDetail.quiz, tasks }).total : 0;
 
-  // Paspor belajar: room selesai dan attempt quiz, terbaru dulu.
-  const passportRows: PassportRow[] = [
+  // Riwayat selesai: room lulus dan attempt quiz, terbaru dulu.
+  const completionRows: CompletionRow[] = [
     ...completedRooms.slice(0, 6).map((row) => {
       const at = row.completedAt ?? row.updatedAt;
       return { id: `room-${row.id}`, at, kind: "room" as const, title: row.room.title, date: formatShortDate(at) };
@@ -154,15 +155,15 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         id: `quiz-${attempt.id}`,
         at,
         kind: attempt.passed ? ("quiz-pass" as const) : ("quiz-retry" as const),
-        title: `${attempt.score}%`,
-        date: formatShortDate(at),
-        caption: attempt.quiz.room.title
+        title: attempt.quiz.room.title,
+        score: attempt.score,
+        date: formatShortDate(at)
       };
     })
   ]
     .sort((a, b) => b.at.getTime() - a.at.getTime())
     .slice(0, 5)
-    .map((row) => ({ ...row, strike: now.getTime() - row.at.getTime() < FRESH_STAMP_MS }));
+    .map((row) => ({ ...row, fresh: now.getTime() - row.at.getTime() < FRESH_COMPLETION_MS }));
 
   const pathRows = publishedPaths
     .map((path) => {
@@ -179,7 +180,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
 
   const firstName = profile.fullName.split(" ")[0] || profile.username;
   const subtitle = activePath
-    ? `${activePath.path.title} · ${activePath.completedRooms} of ${activePath.totalRooms} ${activePath.totalRooms === 1 ? "room" : "rooms"} stamped`
+    ? `${activePath.path.title} · ${activePath.completedRooms} of ${activePath.totalRooms} ${activePath.totalRooms === 1 ? "room" : "rooms"} completed`
     : "Pick a learning path to start your first room.";
 
   return (
@@ -189,18 +190,18 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Langkah berikutnya */}
         <section className="sheet flex flex-col overflow-hidden" aria-labelledby="next-step-title">
-          {activePath ? <GuillocheBand seed={activePath.path.slug} className="h-5 border-b border-line-soft bg-paper/60" /> : null}
+          {activePath ? <CircuitStrip className="border-b border-line-soft bg-paper/60" /> : null}
           <div className="flex flex-1 flex-col gap-6 p-5 sm:flex-row sm:items-start sm:p-7">
           {activePath ? (
             <>
-              <PathRosette
-                seed={activePath.path.slug}
+              <ProgressRing
+                segments={pathRooms.map((room) =>
+                  room.userProgress[0]?.status === "COMPLETED" ? "done" : room.id === nextRoom?.id ? "next" : "todo"
+                )}
                 size={200}
-                progress={activePath.totalRooms ? activePath.completedRooms / activePath.totalRooms : 0}
                 label={`${activePath.completedRooms}/${activePath.totalRooms}`}
-                sublabel="rooms"
+                sublabel={activePath.totalRooms === 1 ? "room" : "rooms"}
                 title={`${activePath.path.title}: ${activePath.completedRooms} of ${plural(activePath.totalRooms, "room")} completed`}
-                animate
                 className="mx-auto h-40 w-40 sm:mx-0 sm:h-[200px] sm:w-[200px]"
               />
               <div className="min-w-0 flex-1 sm:pt-3">
@@ -220,11 +221,11 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
                       <span aria-hidden="true">·</span>
                       <span>{nextRoom.estimatedMinutes} min</span>
                       {nextRoomAvailability && !nextRoomAvailability.isOpen ? (
-                        <StateStamp tone={nextRoomAvailability.state === "upcoming" ? "amber" : "red"} className="ml-1">
+                        <StateTag tone={nextRoomAvailability.state === "upcoming" ? "amber" : "red"} className="ml-1">
                           {nextRoomAvailability.state === "upcoming" && nextRoomAvailability.opensAt
                             ? `Opens ${formatDayMonth(nextRoomAvailability.opensAt)}`
                             : "Closed"}
-                        </StateStamp>
+                        </StateTag>
                       ) : null}
                     </p>
 
@@ -233,7 +234,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
                         <p className="text-sm font-semibold text-cyan-ink">
                           {nextTask ? `Task ${nextTaskIndex + 1} of ${tasks.length}` : "Quiz"}
                         </p>
-                        <p className="mt-0.5 text-[0.9375rem] text-ink">{nextTask ? nextTask.title : "All tasks answered. Pass the quiz to stamp this room."}</p>
+                        <p className="mt-0.5 text-[0.9375rem] text-ink">{nextTask ? nextTask.title : "All tasks answered. Pass the quiz to complete this room."}</p>
                       </div>
                     ) : null}
 
@@ -270,7 +271,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
                     <h2 id="next-step-title" className="text-2xl font-bold leading-tight text-ink">
                       {activePath.path.title} is complete
                     </h2>
-                    <p className="mt-1.5 text-ink-2">Every room in this path carries your stamp. Choose the next path to keep your streak going.</p>
+                    <p className="mt-1.5 text-ink-2">You passed every room in this path. Choose the next path to keep your streak going.</p>
                     <div className="mt-5">
                       <Link href="/learning-paths" className="btn-primary">
                         Choose next path
@@ -345,8 +346,8 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
               />
               <Figure
                 className="border-r border-line-soft p-4"
-                label="Rooms stamped"
-                value={stampedPublishedCount}
+                label="Rooms completed"
+                value={completedPublishedCount}
                 note={`of ${publishedRoomIds.size} published`}
               />
               <Figure
@@ -391,22 +392,22 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
       </div>
 
       {/* Paspor belajar */}
-      <section className="sheet mt-5 p-5 sm:p-6" aria-labelledby="passport-title">
+      <section className="sheet mt-5 p-5 sm:p-6" aria-labelledby="completed-title">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <h2 id="passport-title" className="text-lg font-bold text-ink">
-              Learning passport
+            <h2 id="completed-title" className="text-lg font-bold text-ink">
+              Completed
             </h2>
-            <p className="mt-0.5 text-sm text-ink-2">Every finished room and quiz leaves a stamp here.</p>
+            <p className="mt-0.5 text-sm text-ink-2">Rooms you&apos;ve passed and your latest quiz scores.</p>
           </div>
           <Link href="/progress" className="text-link text-sm">
             Full record
           </Link>
         </div>
         <div className="mt-4">
-          <PassportPage entries={passportRows} next={nextRoom?.title} seed={activePath?.path.slug} />
-          {passportRows.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-3">Your first stamp lands here when you finish a room or pass a quiz.</p>
+          <CompletionList entries={completionRows} next={nextRoom?.title} />
+          {completionRows.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-3">Finished rooms and quiz scores show up here.</p>
           ) : null}
         </div>
       </section>
@@ -427,7 +428,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
               {pathRows.map(({ path, total, done }) => (
                 <li key={path.id}>
                   <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
-                    <PathRosette seed={path.slug} size={44} progress={total ? done / total : 0} />
+                    <EntityLogo name={path.title} src={path.logoUrl} size="md" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                         {path.title}

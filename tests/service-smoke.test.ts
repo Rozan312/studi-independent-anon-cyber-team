@@ -419,6 +419,17 @@ async function main() {
     const inOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+    // Logo room: URL media internal tersimpan, string kosong menghapusnya, URL tidak valid ditolak.
+    const logoUrl = `/api/media/${randomUUID()}`;
+    const withLogo = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl, availableFrom: "", availableUntil: "" });
+    assert.equal(withLogo.logoUrl, logoUrl, "an uploaded room logo is stored");
+    const withoutLogo = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "", availableFrom: "", availableUntil: "" });
+    assert.equal(withoutLogo.logoUrl, null, "clearing the logo falls back to the name initials");
+    await assert.rejects(
+      updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "javascript:alert(1)", availableFrom: "", availableUntil: "" }),
+      (error: unknown) => error instanceof ZodError
+    );
+
     const upcomingRoom = await updateRoomMetadata(authorA, { ...baseMetadata, availableFrom: inOneDay, availableUntil: "" });
     assert.equal(upcomingRoom.content, "# Walkthrough\n\nDiubah admin.", "metadata update must not wipe material content");
     await assert.rejects(submitTaskAnswer(scheduler.id, { taskId: remainingTask.id, answer: "read" }), /opens on/);

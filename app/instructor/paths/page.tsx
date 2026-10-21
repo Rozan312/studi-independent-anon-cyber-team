@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { LearningPathForm } from "@/components/instructor/learning-path-form";
 import { PublishToggleForm } from "@/components/instructor/publish-toggle-form";
 import { panelClass } from "@/components/instructor/form-styles";
@@ -10,6 +9,7 @@ import { toggleLearningPathPublishAction } from "@/lib/actions/content-actions";
 import { requireRole } from "@/lib/auth/guards";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { canManageContent, listLearningPathsForManagement } from "@/lib/services/content-service";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,7 @@ export default async function InstructorPathsPage() {
 
                 return (
                   <li key={path.id} className="flex flex-wrap items-center gap-x-4 gap-y-3 py-3.5">
-                    <PathRosette seed={path.slug} size={48} />
+                    <EntityLogo name={path.title} src={path.logoUrl} size="md" />
                     <div className="min-w-0 flex-1 basis-56">
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                         <Link
@@ -63,7 +63,7 @@ export default async function InstructorPathsPage() {
                         >
                           {path.title}
                         </Link>
-                        {path.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateStamp tone="muted">Draft</StateStamp>}
+                        {path.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateTag tone="muted">Draft</StateTag>}
                       </div>
                       <p className="mt-0.5 text-sm text-ink-3">
                         {roomCount} {roomCount === 1 ? "room" : "rooms"} · {path.category} · {path.difficulty} · {path.estimatedHours} h

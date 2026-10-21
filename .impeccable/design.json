@@ -1,67 +1,364 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T00:00:00Z",
+  "generatedAt": "2026-10-21T12:00:00Z",
   "title": "Design System: Anon Cyber Team",
   "extensions": {
     "colorMeta": {
-      "paper": { "role": "neutral", "displayName": "Security Paper", "canonical": "rgb(243 247 248)", "tonalRamp": ["#494A4A", "#7A7C7C", "#AAADAE", "#ECF3F5", "#F3F7F8", "#FAFBFC", "#FCFDFD", "#FEFEFE"] },
-      "sheet": { "role": "neutral", "displayName": "Sheet White", "canonical": "rgb(252 253 253)" },
-      "well": { "role": "neutral", "displayName": "Well", "canonical": "rgb(236 243 245)" },
-      "line": { "role": "neutral", "displayName": "Hairline", "canonical": "rgb(204 220 225)", "tonalRamp": ["#3D4244", "#666E70", "#96AFB8", "#CCDCE1", "#DFE8EB", "#E8EFF2", "#F2F6F8", "#FAFCFC"] },
-      "line-soft": { "role": "neutral", "displayName": "Soft Hairline", "canonical": "rgb(223 232 235)" },
-      "line-strong": { "role": "neutral", "displayName": "Strong Rule", "canonical": "rgb(150 175 184)" },
-      "ink": { "role": "neutral", "displayName": "Intaglio Ink", "canonical": "rgb(16 22 31)", "tonalRamp": ["#050709", "#0B0F16", "#10161F", "#3A4750", "#5C6A72", "#93969A", "#C3C5C7", "#E7E8E9"] },
-      "ink-2": { "role": "neutral", "displayName": "Slate Ink", "canonical": "rgb(58 71 80)" },
-      "ink-3": { "role": "neutral", "displayName": "Faded Ink", "canonical": "rgb(92 106 114)" },
-      "cyan": { "role": "primary", "displayName": "Logo Cyan", "canonical": "rgb(0 194 245)", "tonalRamp": ["#003A4A", "#006C8A", "#00AEDE", "#00C2F5", "#4CD4F8", "#8CE4FA", "#BFF0FC", "#DEF4FB"] },
-      "cyan-hover": { "role": "primary", "displayName": "Pressed Cyan", "canonical": "rgb(0 174 222)" },
-      "cyan-soft": { "role": "primary", "displayName": "Cyan Wash", "canonical": "rgb(222 244 251)" },
-      "cyan-ink": { "role": "primary", "displayName": "Deep Cyan Ink", "canonical": "rgb(0 108 138)", "tonalRamp": ["#002029", "#003645", "#004C61", "#006C8A", "#4C98AD", "#8CBDCA", "#BFDAE2", "#E6F0F3"] },
-      "violet": { "role": "secondary", "displayName": "Passport Violet", "canonical": "rgb(90 61 176)", "tonalRamp": ["#1B1235", "#2D1E58", "#3F2B7B", "#5A3DB0", "#8C77C8", "#B5A8DB", "#D6CEEB", "#EDE9F9"] },
-      "violet-soft": { "role": "secondary", "displayName": "Violet Wash", "canonical": "rgb(237 233 249)" },
-      "green": { "role": "secondary", "displayName": "Approval Green", "canonical": "rgb(38 115 69)", "tonalRamp": ["#0B2315", "#133A22", "#1B5030", "#267345", "#679D7D", "#9DC0AB", "#C9DCD0", "#E4F2E9"] },
-      "green-soft": { "role": "secondary", "displayName": "Green Wash", "canonical": "rgb(228 242 233)" },
-      "red": { "role": "secondary", "displayName": "Serial Red", "canonical": "rgb(196 48 40)", "tonalRamp": ["#3B0E0C", "#621814", "#89221C", "#C43028", "#D66E68", "#E4A29E", "#F0CBC9", "#FBE9E7"] },
-      "red-soft": { "role": "secondary", "displayName": "Red Wash", "canonical": "rgb(251 233 231)" },
-      "amber": { "role": "secondary", "displayName": "Schedule Amber", "canonical": "rgb(143 87 8)", "tonalRamp": ["#2B1A02", "#482C04", "#643D06", "#8F5708", "#B18952", "#CDB390", "#E3D5C1", "#FBF1DC"] },
-      "amber-soft": { "role": "secondary", "displayName": "Amber Wash", "canonical": "rgb(251 241 220)" },
-      "code-surface": { "role": "neutral", "displayName": "Code Night", "canonical": "#17222b", "tonalRamp": ["#070A0D", "#0C1116", "#10181E", "#17222B", "#5D646B", "#979CA0", "#C5C8CA", "#E8E9EA"] },
-      "code-text": { "role": "neutral", "displayName": "Code Night Text", "canonical": "#e4edf1" }
+      "paper": {
+        "role": "neutral",
+        "displayName": "Security Paper",
+        "canonical": "rgb(243 247 248)",
+        "tonalRamp": [
+          "#494A4A",
+          "#7A7C7C",
+          "#AAADAE",
+          "#ECF3F5",
+          "#F3F7F8",
+          "#FAFBFC",
+          "#FCFDFD",
+          "#FEFEFE"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet White",
+        "canonical": "rgb(252 253 253)"
+      },
+      "well": {
+        "role": "neutral",
+        "displayName": "Well",
+        "canonical": "rgb(236 243 245)"
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "rgb(204 220 225)",
+        "tonalRamp": [
+          "#3D4244",
+          "#666E70",
+          "#96AFB8",
+          "#CCDCE1",
+          "#DFE8EB",
+          "#E8EFF2",
+          "#F2F6F8",
+          "#FAFCFC"
+        ]
+      },
+      "line-soft": {
+        "role": "neutral",
+        "displayName": "Soft Hairline",
+        "canonical": "rgb(223 232 235)"
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Rule",
+        "canonical": "rgb(150 175 184)"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Intaglio Ink",
+        "canonical": "rgb(16 22 31)",
+        "tonalRamp": [
+          "#050709",
+          "#0B0F16",
+          "#10161F",
+          "#3A4750",
+          "#5C6A72",
+          "#93969A",
+          "#C3C5C7",
+          "#E7E8E9"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Slate Ink",
+        "canonical": "rgb(58 71 80)"
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Faded Ink",
+        "canonical": "rgb(92 106 114)"
+      },
+      "cyan": {
+        "role": "primary",
+        "displayName": "Logo Cyan",
+        "canonical": "rgb(0 194 245)",
+        "tonalRamp": [
+          "#003A4A",
+          "#006C8A",
+          "#00AEDE",
+          "#00C2F5",
+          "#4CD4F8",
+          "#8CE4FA",
+          "#BFF0FC",
+          "#DEF4FB"
+        ]
+      },
+      "cyan-hover": {
+        "role": "primary",
+        "displayName": "Pressed Cyan",
+        "canonical": "rgb(0 174 222)"
+      },
+      "cyan-soft": {
+        "role": "primary",
+        "displayName": "Cyan Wash",
+        "canonical": "rgb(222 244 251)"
+      },
+      "cyan-ink": {
+        "role": "primary",
+        "displayName": "Deep Cyan Ink",
+        "canonical": "rgb(0 108 138)",
+        "tonalRamp": [
+          "#002029",
+          "#003645",
+          "#004C61",
+          "#006C8A",
+          "#4C98AD",
+          "#8CBDCA",
+          "#BFDAE2",
+          "#E6F0F3"
+        ]
+      },
+      "violet": {
+        "role": "secondary",
+        "displayName": "Completion Violet",
+        "canonical": "rgb(90 61 176)",
+        "tonalRamp": [
+          "#1B1235",
+          "#2D1E58",
+          "#3F2B7B",
+          "#5A3DB0",
+          "#8C77C8",
+          "#B5A8DB",
+          "#D6CEEB",
+          "#EDE9F9"
+        ]
+      },
+      "violet-soft": {
+        "role": "secondary",
+        "displayName": "Violet Wash",
+        "canonical": "rgb(237 233 249)"
+      },
+      "green": {
+        "role": "secondary",
+        "displayName": "Approval Green",
+        "canonical": "rgb(38 115 69)",
+        "tonalRamp": [
+          "#0B2315",
+          "#133A22",
+          "#1B5030",
+          "#267345",
+          "#679D7D",
+          "#9DC0AB",
+          "#C9DCD0",
+          "#E4F2E9"
+        ]
+      },
+      "green-soft": {
+        "role": "secondary",
+        "displayName": "Green Wash",
+        "canonical": "rgb(228 242 233)"
+      },
+      "red": {
+        "role": "secondary",
+        "displayName": "Serial Red",
+        "canonical": "rgb(196 48 40)",
+        "tonalRamp": [
+          "#3B0E0C",
+          "#621814",
+          "#89221C",
+          "#C43028",
+          "#D66E68",
+          "#E4A29E",
+          "#F0CBC9",
+          "#FBE9E7"
+        ]
+      },
+      "red-soft": {
+        "role": "secondary",
+        "displayName": "Red Wash",
+        "canonical": "rgb(251 233 231)"
+      },
+      "amber": {
+        "role": "secondary",
+        "displayName": "Schedule Amber",
+        "canonical": "rgb(143 87 8)",
+        "tonalRamp": [
+          "#2B1A02",
+          "#482C04",
+          "#643D06",
+          "#8F5708",
+          "#B18952",
+          "#CDB390",
+          "#E3D5C1",
+          "#FBF1DC"
+        ]
+      },
+      "amber-soft": {
+        "role": "secondary",
+        "displayName": "Amber Wash",
+        "canonical": "rgb(251 241 220)"
+      },
+      "code-surface": {
+        "role": "neutral",
+        "displayName": "Code Night",
+        "canonical": "#17222b",
+        "tonalRamp": [
+          "#070A0D",
+          "#0C1116",
+          "#10181E",
+          "#17222B",
+          "#5D646B",
+          "#979CA0",
+          "#C5C8CA",
+          "#E8E9EA"
+        ]
+      },
+      "code-text": {
+        "role": "neutral",
+        "displayName": "Code Night Text",
+        "canonical": "#e4edf1"
+      }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "Signed-out home hero only; 2.25rem rising to 3rem at sm." },
-      "headline": { "displayName": "Headline", "purpose": "One page title per screen (shell header, auth frame); 2rem at lg. No eyebrow above it." },
-      "title": { "displayName": "Title", "purpose": "Section headers on sheets." },
-      "figure": { "displayName": "Figure", "purpose": "Counters in ruled cells; tabular and lining numerals." },
-      "body": { "displayName": "Body", "purpose": "Interface text." },
-      "reading": { "displayName": "Reading", "purpose": "Room material, identical in editor and student view; text colour #1d2933." },
-      "label": { "displayName": "Field Label", "purpose": "Condensed uppercase label directly above a data value; faded ink." },
-      "serial": { "displayName": "Serial", "purpose": "Member ID and passport cell numbers, in serial red." },
-      "code": { "displayName": "Code", "purpose": "JetBrains Mono for inline code and code blocks only." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Signed-out home hero only; 2.25rem rising to 3rem at sm."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "One page title per screen (shell header, auth frame); 2rem at lg. No eyebrow above it."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headers on sheets."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Counters in ruled cells and a passed quiz's score mark; tabular and lining numerals."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Interface text."
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "Room material, identical in editor and student view; text colour #1d2933."
+      },
+      "label": {
+        "displayName": "Field Label",
+        "purpose": "Condensed uppercase label directly above a data value; faded ink."
+      },
+      "serial": {
+        "displayName": "Serial",
+        "purpose": "Member ID numbers on the member card and profile, in serial red."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "JetBrains Mono for inline code and code blocks only."
+      }
     },
     "shadows": [
-      { "name": "sheet", "value": "0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)", "purpose": "Every sheet and the active nav item: a sheet lying on paper." },
-      { "name": "lift", "value": "0 10px 30px -12px rgb(16 22 31 / 0.22), 0 2px 6px rgb(16 22 31 / 0.06)", "purpose": "Floating layers only (mobile navigation drawer)." },
-      { "name": "input-inset", "value": "inset 0 1px 1px rgb(16 22 31 / 0.04)", "purpose": "Text fields, pressed into the sheet." },
-      { "name": "focus", "value": "outline: 2px solid rgb(0 108 138); outline-offset: 2px", "purpose": "Global focus-visible ring in deep cyan ink." },
-      { "name": "input-focus", "value": "border-color: rgb(0 108 138); box-shadow: 0 0 0 2px rgb(0 194 245 / 0.35)", "purpose": "Focused text field." }
+      {
+        "name": "sheet",
+        "value": "0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)",
+        "purpose": "Every sheet and the active nav item: a sheet lying on paper."
+      },
+      {
+        "name": "lift",
+        "value": "0 10px 30px -12px rgb(16 22 31 / 0.22), 0 2px 6px rgb(16 22 31 / 0.06)",
+        "purpose": "Floating layers only (mobile navigation drawer)."
+      },
+      {
+        "name": "input-inset",
+        "value": "inset 0 1px 1px rgb(16 22 31 / 0.04)",
+        "purpose": "Text fields, pressed into the sheet."
+      },
+      {
+        "name": "focus",
+        "value": "outline: 2px solid rgb(0 108 138); outline-offset: 2px",
+        "purpose": "Global focus-visible ring in deep cyan ink."
+      },
+      {
+        "name": "input-focus",
+        "value": "border-color: rgb(0 108 138); box-shadow: 0 0 0 2px rgb(0 194 245 / 0.35)",
+        "purpose": "Focused text field."
+      }
     ],
     "motion": [
-      { "name": "control-transition", "value": "150ms ease-out", "purpose": "Button and input colour changes; active press of 1px." },
-      { "name": "rail-transition", "value": "300ms ease-out", "purpose": "Rail collapse width and main padding." },
-      { "name": "progress-fill", "value": "width 500ms ease-out", "purpose": "Progress bar fill." },
-      { "name": "stamp-strike", "value": "520ms cubic-bezier(0.16, 1, 0.3, 1); scale 1.45 with 1.5px blur, to 0.96, settling at 1", "purpose": "Only for a completion that just happened. Disabled under prefers-reduced-motion." },
-      { "name": "rosette-in", "value": "900ms cubic-bezier(0.16, 1, 0.3, 1); rotate -24deg and scale 0.92 to rest", "purpose": "Rosette entry draw. Disabled under prefers-reduced-motion." }
+      {
+        "name": "control-transition",
+        "value": "150ms ease-out",
+        "purpose": "Button and input colour changes; active press of 1px."
+      },
+      {
+        "name": "rail-transition",
+        "value": "300ms ease-out",
+        "purpose": "Rail collapse width and main padding."
+      },
+      {
+        "name": "progress-fill",
+        "value": "width 500ms ease-out",
+        "purpose": "Progress bar fill."
+      },
+      {
+        "name": "check-draw",
+        "value": "460ms cubic-bezier(0.16, 1, 0.3, 1) 120ms delay; stroke-dashoffset 1 to 0 on a pathLength=1 check",
+        "purpose": "A passed room's check draws in once, only for a completion that just happened. Under prefers-reduced-motion the check shows already drawn."
+      },
+      {
+        "name": "rosette-in",
+        "value": "900ms cubic-bezier(0.16, 1, 0.3, 1); rotate -24deg and scale 0.92 to rest",
+        "purpose": "Path progress rosette entry draw. Disabled under prefers-reduced-motion."
+      }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" },
-      { "name": "lg", "value": "1024px", "purpose": "Rail appears (256px, collapsible to 76px); below it, top bar plus drawer." }
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Rail appears (256px, collapsible to 76px); below it, top bar plus drawer."
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "purpose": "Completion list flows to three columns."
+      }
     ],
     "gradients": [
-      { "name": "iris", "value": "linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%)", "purpose": "Navigation rail, signed-out hero, and auth panel only." }
+      {
+        "name": "iris",
+        "value": "linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%)",
+        "purpose": "Navigation rail, signed-out hero, and auth panel only."
+      }
     ],
-    "artworkInks": ["#0088B4", "#5A3DB0", "#267345", "#B23A48", "#8F5708", "#2F5FA8", "#0F7C7C"]
+    "artworkInks": [
+      "#0088B4",
+      "#5A3DB0",
+      "#267345",
+      "#B23A48",
+      "#8F5708",
+      "#2F5FA8",
+      "#0F7C7C"
+    ],
+    "identityTints": {
+      "source": "components/paper/entity-logo.tsx",
+      "tints": [
+        "cyan-soft / cyan-ink",
+        "violet-soft / violet",
+        "green-soft / green",
+        "amber-soft / amber",
+        "well / ink-2"
+      ],
+      "purpose": "Initials tile fill and text, chosen deterministically from the name. Identity only, never state."
+    }
   },
   "components": [
     {
@@ -116,17 +413,17 @@
       "name": "Status Pill",
       "kind": "chip",
       "refersTo": "status-pill",
-      "description": "Small condensed-caps state tag in a stamp ink with its wash.",
+      "description": "Small condensed-caps status label in a status colour with its wash; never wraps.",
       "html": "<span class=\"ds-pill ds-pill-success\">Solved</span> <span class=\"ds-pill ds-pill-done\">Completed</span> <span class=\"ds-pill\">Example</span>",
-      "css": ".ds-pill { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 0.375rem; border: 1px solid rgb(var(--line, 204 220 225)); background: rgb(var(--well, 236 243 245)); color: rgb(var(--ink-2, 58 71 80)); font: 600 0.6875rem/1rem Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 78%; letter-spacing: 0.08em; text-transform: uppercase; } .ds-pill-success { border-color: rgb(var(--green, 38 115 69) / 0.25); background: rgb(var(--green-soft, 228 242 233)); color: rgb(var(--green, 38 115 69)); } .ds-pill-done { border-color: rgb(var(--violet, 90 61 176) / 0.25); background: rgb(var(--violet-soft, 237 233 249)); color: rgb(var(--violet, 90 61 176)); }"
+      "css": ".ds-pill { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 0.375rem; border: 1px solid rgb(var(--line, 204 220 225)); background: rgb(var(--well, 236 243 245)); color: rgb(var(--ink-2, 58 71 80)); font: 600 0.6875rem/1rem Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 78%; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; } .ds-pill-success { border-color: rgb(var(--green, 38 115 69) / 0.25); background: rgb(var(--green-soft, 228 242 233)); color: rgb(var(--green, 38 115 69)); } .ds-pill-done { border-color: rgb(var(--violet, 90 61 176) / 0.25); background: rgb(var(--violet-soft, 237 233 249)); color: rgb(var(--violet, 90 61 176)); }"
     },
     {
-      "name": "State Stamp",
+      "name": "State Tag",
       "kind": "chip",
-      "refersTo": "state-stamp",
-      "description": "Inline rubber-stamp tag that keeps closed, scheduled, and draft items visible.",
-      "html": "<span class=\"ds-state-stamp ds-amber\" style=\"transform: rotate(-2deg)\">Opens 24 Oct</span> <span class=\"ds-state-stamp ds-red\" style=\"transform: rotate(2deg)\">Closed</span>",
-      "css": ".ds-state-stamp { display: inline-flex; align-items: center; padding: 2px 6px; border-radius: 5px; border: 1.5px solid currentColor; font: 700 0.6875rem/1 Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 74%; letter-spacing: 0.1em; text-transform: uppercase; } .ds-amber { color: rgb(var(--amber, 143 87 8)); } .ds-red { color: rgb(var(--red, 196 48 40)); }"
+      "refersTo": "state-tag",
+      "description": "Flat, upright inline tag that keeps closed, scheduled, draft, solved, and locked states visible.",
+      "html": "<span class=\"ds-tag ds-tag-amber\">Opens 24 Oct</span> <span class=\"ds-tag ds-tag-red\">Closed</span> <span class=\"ds-tag ds-tag-green\"><svg viewBox=\"0 0 16 16\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"m3.5 8.5 3 3 6-7\"/></svg>Solved</span> <span class=\"ds-tag\"><svg viewBox=\"0 0 16 16\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4.5 7.5h7v6h-7Zm1.5 0V5.5a2 2 0 0 1 4 0v2\"/></svg>Locked</span>",
+      "css": ".ds-tag { display: inline-flex; flex-shrink: 0; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 0.375rem; border: 1px solid rgb(var(--line, 204 220 225)); background: rgb(var(--well, 236 243 245)); color: rgb(var(--ink-2, 58 71 80)); font: 600 0.75rem/1rem Archivo, ui-sans-serif, system-ui, sans-serif; white-space: nowrap; } .ds-tag-amber { border-color: rgb(var(--amber, 143 87 8) / 0.25); background: rgb(var(--amber-soft, 251 241 220)); color: rgb(var(--amber, 143 87 8)); } .ds-tag-red { border-color: rgb(var(--red, 196 48 40) / 0.25); background: rgb(var(--red-soft, 251 233 231)); color: rgb(var(--red, 196 48 40)); } .ds-tag-green { border-color: rgb(var(--green, 38 115 69) / 0.25); background: rgb(var(--green-soft, 228 242 233)); color: rgb(var(--green, 38 115 69)); }"
     },
     {
       "name": "Sheet with Figure Cells",
@@ -137,51 +434,92 @@
       "css": ".ds-sheet { display: grid; grid-template-columns: 1fr 1fr; border-radius: 0.75rem; border: 1px solid rgb(var(--line, 204 220 225)); background: rgb(var(--sheet, 252 253 253)); box-shadow: 0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03); overflow: hidden; } .ds-figure { padding: 20px; } .ds-figure + .ds-figure { border-left: 1px solid rgb(var(--line, 204 220 225)); } .ds-label { margin: 0; font: 600 0.6875rem/1rem Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 72%; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(var(--ink-3, 92 106 114)); } .ds-value { margin: 6px 0 0; font: 700 1.75rem/1 Archivo, ui-sans-serif, system-ui, sans-serif; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; color: rgb(var(--ink, 16 22 31)); } .ds-unit { margin-left: 4px; font-size: 0.875rem; font-weight: 600; color: rgb(var(--ink-2, 58 71 80)); } .ds-note { margin: 6px 0 0; font: 400 0.75rem/1.4 Archivo, ui-sans-serif, system-ui, sans-serif; color: rgb(var(--ink-3, 92 106 114)); }"
     },
     {
-      "name": "Passed Stamp",
+      "name": "Completion List",
       "kind": "custom",
-      "refersTo": "stamp",
-      "description": "Rubber stamp struck into the learning passport on completion; violet for a passed room, double frame, tilted, worn mask.",
-      "html": "<span class=\"ds-stamp\" style=\"transform: rotate(-4deg)\"><span class=\"ds-stamp-outer\"><span class=\"ds-stamp-inner\"><span class=\"ds-stamp-top\">Passed</span><span class=\"ds-stamp-title\">Introduction to HTTP</span><span class=\"ds-stamp-bottom\">3 Oct 2026</span></span></span></span>",
-      "css": ".ds-stamp { display: inline-flex; color: rgb(var(--violet, 90 61 176)); animation: ds-strike 520ms cubic-bezier(0.16, 1, 0.3, 1) both; -webkit-mask-image: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 3.5'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>\"); mask-image: url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 3.5'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>\"); -webkit-mask-size: 160px 160px; mask-size: 160px 160px; } .ds-stamp-outer { display: flex; width: 9.75rem; min-height: 5.75rem; padding: 8px 10px; border: 2.5px solid currentColor; border-radius: 10px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 74%; text-transform: uppercase; text-align: center; line-height: 1.25; } .ds-stamp-inner { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 4px 6px; border: 1px solid currentColor; border-radius: 6px; } .ds-stamp-top, .ds-stamp-bottom { font-size: 0.625rem; font-weight: 700; letter-spacing: 0.16em; } .ds-stamp-bottom { font-weight: 600; letter-spacing: 0.1em; white-space: nowrap; } .ds-stamp-title { font-size: 0.95rem; font-weight: 800; letter-spacing: 0.03em; text-wrap: balance; overflow-wrap: break-word; } @keyframes ds-strike { 0% { opacity: 0; transform: rotate(-4deg) scale(1.45); filter: blur(1.5px); } 55% { opacity: 1; transform: rotate(-4deg) scale(0.96); filter: blur(0); } 100% { opacity: 1; transform: rotate(-4deg) scale(1); } } @media (prefers-reduced-motion: reduce) { .ds-stamp { animation: none; } }"
+      "refersTo": "completion-mark",
+      "description": "Direct completion marks: violet check for a passed room (drawn in once when fresh), green score for a passed quiz, red retry icon, dashed circle for up next.",
+      "html": "<ul class=\"ds-clist\"><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-room\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"ds-check-draw\"><path d=\"m5 12.5 4.5 4.5L19 7.5\" pathLength=\"1\"/></svg></span></span><span><span class=\"ds-ctitle\">Introduction to HTTP</span><span class=\"ds-cdetail\">Room passed · 3 Oct 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark-score\">85%</span></span><span><span class=\"ds-ctitle\">Linux Fundamentals</span><span class=\"ds-cdetail\">Quiz passed · 1 Oct 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-retry\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7\"/></svg></span></span><span><span class=\"ds-ctitle\">Networking Basics</span><span class=\"ds-cdetail\">Quiz scored 40% · try again · 28 Sep 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-next\"></span></span><span><span class=\"ds-ctitle ds-ctitle-next\">Authentication Concepts</span><span class=\"ds-cdetail\">Up next</span></span></li></ul>",
+      "css": ".ds-clist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; column-gap: 24px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-crow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgb(var(--line-soft, 223 232 235)); } .ds-cslot { display: flex; width: 48px; flex-shrink: 0; justify-content: center; } .ds-mark { display: inline-flex; width: 40px; height: 40px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9999px; } .ds-mark-room { background: rgb(var(--violet, 90 61 176)); color: rgb(var(--sheet, 252 253 253)); } .ds-mark-retry { background: rgb(var(--red-soft, 251 233 231)); color: rgb(var(--red, 196 48 40)); } .ds-mark-next { border: 2px dashed rgb(var(--line-strong, 150 175 184)); } .ds-mark-score { min-width: 40px; text-align: center; font-size: 1.125rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; color: rgb(var(--green, 38 115 69)); } .ds-ctitle { display: block; font-weight: 600; line-height: 1.375; color: rgb(var(--ink, 16 22 31)); } .ds-ctitle-next { color: rgb(var(--ink-2, 58 71 80)); } .ds-cdetail { display: block; margin-top: 2px; font-size: 0.875rem; color: rgb(var(--ink-3, 92 106 114)); } .ds-check-draw path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ds-check-draw 460ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards; } @keyframes ds-check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-check-draw path { animation: none; stroke-dashoffset: 0; } }"
+    },
+    {
+      "name": "Entity Logo",
+      "kind": "custom",
+      "refersTo": "entity-logo",
+      "description": "Square identity tile beside a room or path name: uploaded logo, or tinted initials by default.",
+      "html": "<span class=\"ds-elogo ds-elogo-cyan\" aria-hidden=\"true\">IH</span> <span class=\"ds-elogo ds-elogo-violet\" aria-hidden=\"true\">LF</span> <span class=\"ds-elogo ds-elogo-amber\" aria-hidden=\"true\">NE</span> <span class=\"ds-elogo ds-elogo-neutral\" aria-hidden=\"true\">WS</span>",
+      "css": ".ds-elogo { display: inline-flex; width: 44px; height: 44px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 0.5rem; border: 1px solid; font: 700 0.875rem/1 Archivo, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.02em; user-select: none; } .ds-elogo-cyan { background: rgb(var(--cyan-soft, 222 244 251)); color: rgb(var(--cyan-ink, 0 108 138)); border-color: rgb(var(--cyan-ink, 0 108 138) / 0.2); } .ds-elogo-violet { background: rgb(var(--violet-soft, 237 233 249)); color: rgb(var(--violet, 90 61 176)); border-color: rgb(var(--violet, 90 61 176) / 0.2); } .ds-elogo-amber { background: rgb(var(--amber-soft, 251 241 220)); color: rgb(var(--amber, 143 87 8)); border-color: rgb(var(--amber, 143 87 8) / 0.2); } .ds-elogo-neutral { background: rgb(var(--well, 236 243 245)); color: rgb(var(--ink-2, 58 71 80)); border-color: rgb(var(--line, 204 220 225)); }"
     }
   ],
   "narrative": {
-    "northStar": "The Learning Passport",
-    "overview": "Every member's learning is an official, security-printed record. The ground is cool security paper, content sits on whiter sheets ruled with hairlines, text is crisp intaglio ink, and the app rail is iris-printed (pale cyan fading to pale periwinkle) with a dotted perforation edge. Completion does not arrive as a confetti toast or a glowing badge: it arrives as a rubber stamp struck into a visa-page passport, slightly rotated, edges worn by a noise mask.\n\nThe system is calm and dense rather than decorative. Ornament is confined to the security-printing vocabulary, and each ornament carries information. A guilloche rosette, generated deterministically from a learning path's slug, is both that path's emblem and its progress ring. Stamp inks are state colours. Counters sit in ruled, fixed cells with tabular figures so numbers never shift. The one bright colour, the logo's cyan with an ink outline, marks the member's next step and nothing else.\n\nThe world rejects both category defaults: the near-black console with neon accents and glowing cards, and the white SaaS LMS with blue buttons and thumbnail tiles. Instructors and admins work in the same paper-and-ink system, with denser ruled tables.",
+    "northStar": "The Security-Paper Record",
+    "overview": "Every member's learning is a calm, official record on security paper. The ground is cool security paper, content sits on whiter sheets ruled with hairlines, text is crisp intaglio ink, and the app rail is iris-printed (pale cyan fading to pale periwinkle) with a dotted perforation edge. Progress is stated plainly: a passed room gets a violet check, a passed quiz shows its score in green, a quiz to retry shows a red retry icon. A check that was just earned draws itself in once; nothing else celebrates.\n\nThe system is calm and dense rather than decorative. Ornament is confined to the security-printing vocabulary, and the ornament that remains carries information: a guilloche rosette, generated deterministically from a learning path's slug, is the progress ring of the active path, and guilloche bands edge the hero and the Continue sheet. Rooms and paths are identified by an uploaded logo or, by default, a tinted tile with the initials of their name. Status colours carry state. Counters sit in ruled, fixed cells with tabular figures so numbers never shift. The one bright colour, the logo's cyan with an ink outline, marks the member's next step and nothing else.\n\nThe world rejects both category defaults, the near-black console with neon accents and glowing cards and the white SaaS LMS with blue buttons and thumbnail tiles, and it rejects decorative badges and rubber stamps. Instructors and admins work in the same paper-and-ink system, with denser ruled tables.",
     "keyCharacteristics": [
       "Light, cool paper ground; whiter sheets; hairline rules; whisper-level shadows.",
       "One reserved accent (logo cyan, ink outlined) for the next step and primary action.",
-      "Stamp inks (violet, green, red, amber) carry state only.",
-      "Generative guilloche (rosettes, bands) as emblem and progress, never as filler.",
-      "Archivo throughout, with its width axis used for condensed field labels and stamps; JetBrains Mono only for code.",
-      "Nothing vanishes: closed, scheduled, and draft items stay visible and wear a stamped state."
+      "Status colours (violet, green, red, amber) carry state only.",
+      "Completion is a direct mark: a check, a score, or a retry icon.",
+      "Rooms and paths wear their logo or an initials tile; guilloche is reserved for the path progress ring and edge bands.",
+      "Archivo throughout, with its width axis used for condensed field labels and status pills; JetBrains Mono only for code.",
+      "Nothing vanishes: closed, scheduled, and draft items stay visible and carry a flat state tag."
     ],
     "rules": [
-      { "name": "The Next-Step Cyan Rule", "body": "Logo cyan fills only the member's next step and the primary action of a view, and it always wears the ink outline. Links use deep cyan ink, never the bright fill colour as text.", "section": "colors" },
-      { "name": "The Stamp Ink Rule", "body": "Violet means completed, green means correct, red means retry, closed, or error, amber means scheduled. Do not use a stamp ink for decoration, and do not let two inks share a meaning.", "section": "colors" },
-      { "name": "The Artwork Ink Rule", "body": "Path rosettes and guilloche bands draw from their own seeded ink set (`#0088B4`, `#5A3DB0`, `#267345`, `#B23A48`, `#8F5708`, `#2F5FA8`, `#0F7C7C`). In catalogs, these are the only colours that tell one path from another.", "section": "colors" },
-      { "name": "The Labels-Are-Data Rule", "body": "Condensed caps label a value, a field, or a state. They never sit above a heading as an eyebrow or kicker.", "section": "typography" },
-      { "name": "The Fixed Cell Rule", "body": "Every counter (points, streak, rank, scores, percentages) is set in tabular figures so values never shift width when they change.", "section": "typography" },
-      { "name": "The Paper Depth Rule", "body": "A sheet is a hairline border plus the sheet shadow. No glows, no coloured shadows, no hard offset shadows; lift is reserved for things that float above the page.", "section": "elevation" }
+      {
+        "name": "The Next-Step Cyan Rule",
+        "body": "Logo cyan fills only the member's next step and the primary action of a view, and it always wears the ink outline. Links use deep cyan ink, never the bright fill colour as text.",
+        "section": "colors"
+      },
+      {
+        "name": "The Status Colour Rule",
+        "body": "Violet means completed, green means correct, red means retry, closed, or error, amber means scheduled. Do not use a status colour to signal anything else, and do not let two colours share a meaning.",
+        "section": "colors"
+      },
+      {
+        "name": "The Identity Tile Rule",
+        "body": "Rooms and paths are told apart by their uploaded logo or, by default, an initials tile whose tint is chosen deterministically from the name among a dedicated identity palette: cyan soft, tile indigo (#E7EAF8 with #3B4B8A initials), tile teal (#E1F1EF with #0F6A63 initials), and the neutral well. Status colours are never used for tiles, so a tile can never be read as a state; state always rides on a mark, tag, or pill beside the name.",
+        "section": "colors"
+      },
+      {
+        "name": "The Artwork Ink Rule",
+        "body": "Path rosettes and guilloche bands draw from their own seeded ink set (`#0088B4`, `#5A3DB0`, `#267345`, `#B23A48`, `#8F5708`, `#2F5FA8`, `#0F7C7C`), never from the status tokens.",
+        "section": "colors"
+      },
+      {
+        "name": "The Labels-Are-Data Rule",
+        "body": "Condensed caps label a value, a field, or a state. They never sit above a heading as an eyebrow or kicker.",
+        "section": "typography"
+      },
+      {
+        "name": "The Fixed Cell Rule",
+        "body": "Every counter (points, streak, rank, scores, percentages) is set in tabular figures so values never shift width when they change.",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper Depth Rule",
+        "body": "A sheet is a hairline border plus the sheet shadow. No glows, no coloured shadows, no hard offset shadows; lift is reserved for things that float above the page.",
+        "section": "elevation"
+      }
     ],
     "dos": [
       "**Do** reserve the logo-cyan fill with a 1.5px ink outline for the single next-step or primary action in a view; use the secondary paper button for everything else.",
-      "**Do** express state with the stamp inks: violet completed, green correct, red retry, closed, or error, amber scheduled.",
-      "**Do** keep closed, scheduled, and draft items visible and give them a state stamp instead of hiding them.",
-      "**Do** show a learning path through its seeded rosette, and let that rosette carry the path's progress.",
+      "**Do** express state with the status colours: violet completed, green correct, red retry, closed, or error, amber scheduled.",
+      "**Do** show completion directly: a violet check for a passed room, the green score for a passed quiz, a red retry icon for a quiz to retake.",
+      "**Do** keep closed, scheduled, and draft items visible and give them a flat state tag instead of hiding them.",
+      "**Do** lead every room and path name with its entity logo: the uploaded logo, or the initials tile by default.",
+      "**Do** let the seeded rosette carry the active path's progress on the dashboard and path page.",
       "**Do** set every counter in tabular figures inside ruled cells, with a condensed caps label above the value.",
       "**Do** build surfaces as sheet white on security paper with 1px hairlines and the sheet shadow (`0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)`).",
-      "**Do** play the stamp strike only for a completion that just happened, and keep it off under reduced motion.",
+      "**Do** play the check draw only for a completion that just happened, and show the finished check under reduced motion.",
       "**Do** keep the editor and the student view on the same material typography."
     ],
     "donts": [
       "**Don't** turn the app chrome into a near-black console with neon accents and glowing cards; the only dark surface is the code block.",
-      "**Don't** build a white SaaS LMS look with blue buttons and thumbnail tiles; paths are identified by rosettes, not cover images.",
+      "**Don't** build a white SaaS LMS look with blue buttons and thumbnail tiles; rooms and paths are identified by a small square logo or initials tile.",
+      "**Don't** reintroduce rubber stamps, rotated tags, badge or cube shapes, or passport and visa framing; completion is a check, a score, or a retry icon.",
       "**Don't** put a condensed caps label above a heading as an eyebrow or kicker.",
-      "**Don't** use stamp inks or logo cyan as decoration, gradient fills, or glows; the iris gradient belongs to the rail, the signed-out hero, and the auth panel only.",
+      "**Don't** use status colours or logo cyan as decoration, gradient fills, or glows; the iris gradient belongs to the rail, the signed-out hero, and the auth panel only.",
       "**Don't** use hard offset shadows or coloured shadows; lift is only for floating layers.",
       "**Don't** use JetBrains Mono outside code, or draw icons with text glyphs; icons are stroked inline SVG.",
-      "**Don't** truncate stamp titles with an ellipsis; let the stamp grow."
+      "**Don't** let a status pill or state tag wrap onto two lines."
     ]
   }
 }

@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
@@ -9,7 +8,8 @@ import { formatScheduleDate } from "@/lib/learning/availability";
 import { getLearningStreak } from "@/lib/services/activity-service";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 import { memberSerial } from "@/lib/format/member";
-import { PassportPage, type PassportEntry } from "@/components/paper/passport-page";
+import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +29,7 @@ const roomStatusLabel: Record<string, { label: string; tone: "done" | "neutral" 
   NOT_STARTED: { label: "Not started", tone: "neutral" }
 };
 
-type RecentStamp = PassportEntry & { at: Date };
+type RecentCompletion = CompletionEntry & { at: Date };
 
 const thClass = "field-label border-b border-line px-3 py-2.5";
 
@@ -114,8 +114,8 @@ export default async function ProfilePage() {
   const quizPoints = pointsMap.get("QUIZ_COMPLETION") ?? 0;
   const adjustmentPoints = pointsMap.get("MANUAL_ADJUSTMENT") ?? 0;
 
-  // Stempel terbaru: room selesai dan quiz lulus dari data yang sudah dimuat.
-  const recentStamps: RecentStamp[] = [
+  // Riwayat selesai terbaru: room lulus dan quiz lulus dari data yang sudah dimuat.
+  const recentCompletions: RecentCompletion[] = [
     ...progressRows
       .filter((row) => row.status === "COMPLETED")
       .map((row) => {
@@ -130,9 +130,9 @@ export default async function ProfilePage() {
           id: `quiz-${row.id}`,
           at,
           kind: "quiz-pass" as const,
-          title: `${row.score}%`,
-          date: formatShortDate(at),
-          caption: row.quiz.room.title
+          title: row.quiz.room.title,
+          score: row.score,
+          date: formatShortDate(at)
         };
       })
   ]
@@ -159,7 +159,7 @@ export default async function ProfilePage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.avatarUrl} alt={`Photo of ${profile.fullName}`} className="h-[140px] w-[140px] rounded-lg border border-line object-cover" />
               ) : (
-                <PathRosette seed={profile.id} size={140} title={`Member emblem for ${profile.fullName}`} />
+                <EntityLogo name={profile.fullName} size="xl" className="!h-[140px] !w-[140px] !rounded-xl !text-4xl" />
               )}
             </div>
             <dl className="grid min-w-0 flex-1 grid-cols-1 gap-x-6 gap-y-4 border-line-soft sm:grid-cols-2 sm:border-l sm:pl-6">
@@ -209,7 +209,7 @@ export default async function ProfilePage() {
             note={standing.rank ? `of ${plural(standing.totalRanked, "member")}` : "Earn points to rank"}
           />
           <Figure className="bg-sheet p-4" label="Streak" value={streak.streakDays} unit={streak.streakDays === 1 ? "day" : "days"} />
-          <Figure className="bg-sheet p-4" label="Rooms stamped" value={completedRooms} />
+          <Figure className="bg-sheet p-4" label="Rooms completed" value={completedRooms} />
           <Figure
             className="bg-sheet p-4"
             label="Correct answers"
@@ -225,17 +225,17 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Recent stamps">
+      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Recently completed">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-ink">Recent stamps</h2>
+          <h2 className="text-lg font-bold text-ink">Recently completed</h2>
           <Link href="/progress" className="text-link text-sm">
             Full record
           </Link>
         </div>
         <div className="mt-4">
-          <PassportPage entries={recentStamps} />
-          {recentStamps.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-3">Your first stamp lands here when you finish a room or pass a quiz.</p>
+          <CompletionList entries={recentCompletions} />
+          {recentCompletions.length === 0 ? (
+            <p className="mt-3 text-sm text-ink-3">Finished rooms and passed quizzes show up here.</p>
           ) : null}
         </div>
       </section>

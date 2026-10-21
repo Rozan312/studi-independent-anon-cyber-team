@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { SectionHeader, StatusPill } from "@/components/card";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { MaterialEditor } from "@/components/instructor/material-editor";
 import { PublishToggleForm } from "@/components/instructor/publish-toggle-form";
 import { QuizEditor } from "@/components/instructor/quiz-editor";
@@ -34,14 +34,14 @@ const sectionClass = `${panelClass} scroll-mt-6 xl:scroll-mt-16`;
 
 /** Status terbit + stempel jadwal (terjadwal/ditutup) agar status room tidak pernah hilang dari pandangan. */
 function RoomStateMarks({ isPublished, availability }: { isPublished: boolean; availability: RoomAvailability }) {
-  if (!isPublished) return <StateStamp tone="muted">Draft</StateStamp>;
+  if (!isPublished) return <StateTag tone="muted">Draft</StateTag>;
   return (
     <>
       <StatusPill tone="success">Published</StatusPill>
       {availability.state === "upcoming" && availability.opensAt ? (
-        <StateStamp tone="amber">{`Opens ${formatDayMonth(availability.opensAt)}`}</StateStamp>
+        <StateTag tone="amber">{`Opens ${formatDayMonth(availability.opensAt)}`}</StateTag>
       ) : null}
-      {availability.state === "closed" ? <StateStamp tone="red">Closed</StateStamp> : null}
+      {availability.state === "closed" ? <StateTag tone="red">Closed</StateTag> : null}
     </>
   );
 }
@@ -176,6 +176,7 @@ export default async function InstructorRoomEditorPage({
               points: room.points,
               orderIndex: room.orderIndex,
               coverImageUrl: room.coverImageUrl,
+              logoUrl: room.logoUrl,
               availableFrom: room.availableFrom ? room.availableFrom.toISOString() : null,
               availableUntil: room.availableUntil ? room.availableUntil.toISOString() : null
             }}

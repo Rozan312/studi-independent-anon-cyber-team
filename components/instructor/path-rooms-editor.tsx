@@ -7,7 +7,7 @@ import { addRoomToPathAction, moveRoomInPathAction } from "@/lib/actions/content
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { EmptyState, StatusPill } from "@/components/card";
-import { StateStamp, type StampTone } from "@/components/paper/stamp";
+import { StateTag, type StateTone } from "@/components/paper/state-tag";
 import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
 
 export type PathRoomItem = {
@@ -32,7 +32,7 @@ export type CandidateRoomItem = {
 };
 
 /** Warna stempel jadwal dari teks describeAvailability: "Closed since…" merah, selain itu amber (terjadwal). */
-function scheduleTone(label: string): StampTone {
+function scheduleTone(label: string): StateTone {
   return label.startsWith("Closed") ? "red" : "amber";
 }
 
@@ -77,7 +77,7 @@ function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFi
               {room.title}
             </Link>
             <StatusPill tone={room.isPublished ? "success" : "neutral"}>{room.isPublished ? "Published" : "Draft"}</StatusPill>
-            {room.scheduleLabel ? <StateStamp tone={scheduleTone(room.scheduleLabel)}>{room.scheduleLabel}</StateStamp> : null}
+            {room.scheduleLabel ? <StateTag tone={scheduleTone(room.scheduleLabel)}>{room.scheduleLabel}</StateTag> : null}
           </div>
           <p className="mt-0.5 text-sm text-ink-3">
             {room.taskCount} {room.taskCount === 1 ? "task" : "tasks"} ·{" "}

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { PageNotice } from "@/components/ui/page-notice";
 import { requireRole } from "@/lib/auth/guards";
 import { hasRoleAccess } from "@/lib/auth/rbac";
@@ -68,7 +68,7 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
               <h2 id="lab-target-title" className="text-lg font-bold text-ink">
                 Target
               </h2>
-              <StateStamp tone="muted">Not connected</StateStamp>
+              <StateTag tone="muted">Not connected</StateTag>
             </div>
             <p className="mt-1 text-sm text-ink-2">The training target will open here once a lab machine is connected to this room.</p>
             <div className="mt-4 flex min-h-[220px] flex-col items-center justify-center rounded-lg border border-dashed border-line-strong bg-well px-5 py-10 text-center">
@@ -129,7 +129,7 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
               <h2 id="lab-session-title" className="font-semibold text-ink">
                 Session record
               </h2>
-              <StateStamp tone="muted">Placeholder</StateStamp>
+              <StateTag tone="muted">Placeholder</StateTag>
             </div>
             <dl className="grid grid-cols-2 border-t border-line-soft">
               {sessionFields.map((field, index) => (

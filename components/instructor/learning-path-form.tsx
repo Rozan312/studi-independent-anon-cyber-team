@@ -17,6 +17,7 @@ export type LearningPathFormValues = {
   difficulty: string;
   estimatedHours: number;
   coverImageUrl: string | null;
+  logoUrl: string | null;
 };
 
 const difficultyOptions = ["Beginner", "Intermediate", "Advanced"];
@@ -163,11 +164,10 @@ export function LearningPathForm({
         />
       </Field>
 
-      <ImageUploadField
-        initialValue={path?.coverImageUrl}
-        help="Optional. Without an image, the path's rosette is used as its emblem."
-        disabled={disabled}
-      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <ImageUploadField name="logoUrl" label="Logo" initialValue={path?.logoUrl} help="Optional. A square image shown next to the path name. Without one, the initials of the name are used." disabled={disabled} />
+        <ImageUploadField initialValue={path?.coverImageUrl} help="Optional. A wide banner shown at the top of the path page." disabled={disabled} />
+      </div>
 
       {mode === "create" ? (
         <label className="flex items-center gap-2.5 text-sm text-ink">

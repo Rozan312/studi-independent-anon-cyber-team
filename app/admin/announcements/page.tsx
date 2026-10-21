@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, StatusPill } from "@/components/card";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { AnnouncementCreateForm, AnnouncementEditForm } from "@/components/admin/announcement-forms";
 import { requireRole } from "@/lib/auth/guards";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
@@ -59,7 +59,7 @@ export default async function AdminAnnouncementsPage() {
                       {announcement.isPublished ? (
                         <StatusPill tone="success">Published</StatusPill>
                       ) : (
-                        <StateStamp tone="muted">Draft</StateStamp>
+                        <StateTag tone="muted">Draft</StateTag>
                       )}
                       <StatusPill tone="neutral">{AUDIENCE_LABEL[announcement.audience] ?? announcement.audience}</StatusPill>
                       <span>

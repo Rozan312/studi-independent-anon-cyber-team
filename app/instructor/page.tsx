@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { PathRosette } from "@/components/paper/rosette";
-import { StateStamp } from "@/components/paper/stamp";
+import { StateTag } from "@/components/paper/state-tag";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatDayMonth, formatNumber, formatRelativeTime } from "@/lib/format/date";
 import { getRoomAvailability, type RoomScheduleFields } from "@/lib/learning/availability";
 import { getInstructorClasses, getStudentProgress } from "@/lib/services/instructor-service";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -28,16 +28,16 @@ function editedLabel(date: Date, now: Date) {
 
 /** Status terbit dan jadwal sebuah room: Draft tetap terlihat, room terjadwal/ditutup memakai stempel. */
 function RoomStateMarks({ room, now }: { room: RoomScheduleFields; now: Date }) {
-  if (!room.isPublished) return <StateStamp tone="muted">Draft</StateStamp>;
+  if (!room.isPublished) return <StateTag tone="muted">Draft</StateTag>;
 
   const availability = getRoomAvailability(room, now);
   return (
     <>
       <StatusPill tone="success">Published</StatusPill>
       {availability.state === "upcoming" && availability.opensAt ? (
-        <StateStamp tone="amber">{`Opens ${formatDayMonth(availability.opensAt)}`}</StateStamp>
+        <StateTag tone="amber">{`Opens ${formatDayMonth(availability.opensAt)}`}</StateTag>
       ) : null}
-      {availability.state === "closed" ? <StateStamp tone="red">Closed</StateStamp> : null}
+      {availability.state === "closed" ? <StateTag tone="red">Closed</StateTag> : null}
     </>
   );
 }
@@ -51,7 +51,7 @@ export default async function InstructorPage() {
     getStudentProgress(profile.id),
     // Ringkasan konten (baca saja): semua path, room yang terakhir diubah, dan jumlah room.
     prisma.learningPath.findMany({
-      select: { id: true, title: true, slug: true, isPublished: true, updatedAt: true, _count: { select: { rooms: true } } },
+      select: { id: true, title: true, slug: true, logoUrl: true, isPublished: true, updatedAt: true, _count: { select: { rooms: true } } },
       orderBy: { updatedAt: "desc" }
     }),
     prisma.room.findMany({
@@ -62,7 +62,7 @@ export default async function InstructorPage() {
         availableFrom: true,
         availableUntil: true,
         updatedAt: true,
-        coverImageUrl: true,
+        logoUrl: true,
         learningPath: { select: { title: true, slug: true } },
         _count: { select: { tasks: true } }
       },
@@ -141,12 +141,7 @@ export default async function InstructorPage() {
                     href={`/instructor/rooms/${room.id}`}
                     className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well"
                   >
-                    {room.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={room.coverImageUrl} alt="" className="h-10 w-10 shrink-0 rounded-md border border-line object-cover" />
-                    ) : (
-                      <PathRosette seed={room.learningPath.slug} size={40} />
-                    )}
+                    <EntityLogo name={room.title} src={room.logoUrl} size="sm" className="!h-10 !w-10" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                         {room.title}
@@ -185,7 +180,7 @@ export default async function InstructorPage() {
               {paths.slice(0, 6).map((path) => (
                 <li key={path.id}>
                   <Link href={`/instructor/paths/${path.id}`} className="group flex items-center gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-well">
-                    <PathRosette seed={path.slug} size={40} />
+                    <EntityLogo name={path.title} src={path.logoUrl} size="sm" className="!h-10 !w-10" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
                         {path.title}
@@ -194,7 +189,7 @@ export default async function InstructorPage() {
                         {path._count.rooms} {path._count.rooms === 1 ? "room" : "rooms"}
                       </span>
                     </span>
-                    {path.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateStamp tone="muted">Draft</StateStamp>}
+                    {path.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateTag tone="muted">Draft</StateTag>}
                   </Link>
                 </li>
               ))}
