@@ -208,7 +208,7 @@ Prompt awal yang bisa dipakai:
 - Semua action memanggil `requireRole(["INSTRUCTOR"])` lalu meneruskan profil sebagai `actor`. Service memeriksa `canManageContent(actor, createdById)` sebelum menulis; pelanggaran melempar `ContentAccessError` yang ditampilkan sebagai pesan form.
 - `getRoomForEditor()` mengembalikan `expectedAnswer` dan `QuizOption.isCorrect` karena hanya dipakai halaman instruktur. Jalur student (`getRoomBySlug`, `getQuizByRoomSlug`) tetap menyembunyikan kunci jawaban.
 - Task dan pertanyaan quiz dinomori ulang (`orderIndex` 1..n) setiap kali dipindah atau dihapus. `QuizOption.orderIndex` menjaga urutan opsi; `updateQuizQuestion()` mengganti seluruh opsi dalam satu transaksi.
-- `Room.content` adalah Markdown (maks 60.000 karakter) yang dirender `components/content/markdown-content.tsx` (react-markdown + remark-gfm, tanpa HTML mentah). Editor menyediakan preview client-side dengan komponen yang sama.
+- `Room.content` disimpan bersama `Room.contentFormat` (`MARKDOWN` untuk data lama/seed, `HTML` untuk hasil editor visual). Sejak 21 Oktober 2026 editor materi adalah TipTap (lihat bagian 14); rendering ke student memakai `components/content/room-material.tsx`.
 
 ### Media
 
@@ -240,3 +240,27 @@ Prompt awal yang bisa dipakai:
 - `moveRoomInPath()` menukar urutan dua room bertetangga dan menomori ulang 1..n. Hak yang diperlukan adalah hak kelola atas path (bukan setiap room), karena penomoran ulang menyentuh semua room di path itu.
 - UI: `components/instructor/path-rooms-editor.tsx` di halaman `/instructor/paths/[id]` menampilkan daftar modul dengan tombol Naik/Turun, dropdown room dari path lain (`listRoomsOutsidePath()`; room milik instruktur lain tampil tetapi tidak bisa dipilih), dan tautan ke Room Builder dengan `pathId` terisi.
 - Field "Urutan di path" pada form metadata room tetap ada untuk mengatur angka secara manual; penomoran ulang dari editor path akan menimpanya.
+
+## 14. Editor Materi Visual dan Sanitasi HTML (ditambahkan 21 Oktober 2026)
+
+```text
+/instructor/rooms/[id]  (server)
+  roomMaterialToEditorHtml(content, contentFormat)   -> HTML bersih (Markdown lama dikonversi unified/remark)
+  -> MaterialEditor (client form) -> RichTextEditor (TipTap) -> hidden input content + contentFormat=HTML
+  -> updateRoomContentAction -> updateRoomContent -> prepareRichHtmlForStorage (sanitize + kosongkan bila hampa)
+
+/rooms/[slug]  (server)
+  RoomMaterial -> renderRoomMaterialHtml(content, contentFormat) -> sanitize + bungkus tabel -> dangerouslySetInnerHTML
+```
+
+- `lib/content/rich-text.ts` (server-only) adalah satu-satunya tempat sanitasi. Allowlist tag, atribut, kelas, dan gaya mengikuti output TipTap; gaya inline dibatasi ke `color`/`background-color` (hex, rgb, rgba), `font-size` 8-96 px, `font-family` (huruf, angka, spasi, koma, kutip, tanda hubung), `text-align`, serta `width`/`min-width` px untuk tabel. `img` hanya `/api/media/<uuid>` atau `https://`. Link http(s) diberi `target=_blank` dan `rel=noopener noreferrer nofollow`. Checkbox daftar centang selalu `disabled` di tampilan student.
+- `lib/content/rich-text-config.ts` berisi konstanta bersama client dan server (font, ukuran, palet, validasi URL). Tambah opsi baru di sini, lalu pastikan polanya lolos allowlist di `rich-text.ts` (tes "Rich text material" di smoke test memeriksa format utama tetap utuh).
+- `components/content/room-material.tsx` adalah satu-satunya sink `dangerouslySetInnerHTML` untuk materi. Jangan merender `Room.content` di tempat lain tanpa melewati `renderRoomMaterialHtml`.
+- `components/editor/rich-text-editor.tsx` memakai `immediatelyRender: false` untuk SSR Next.js, `useEditorState` untuk status toolbar (TipTap 3 tidak re-render tiap transaksi), dan `handlePaste`/`handleDrop` untuk upload gambar. Item daftar centang di editor dirender lewat node view tanpa atribut `data-type`, sehingga CSS memakai selektor `ul[data-type="taskList"] > li`.
+- Isi editor kosong (`<p></p>`) disimpan sebagai string kosong agar indikator "Materi kosong/ada" tetap akurat.
+- Satu-satunya jalur aplikasi yang menulis `Room.content` adalah `updateRoomContent()` (kolom `content` dihapus dari `roomDraftSchema`, sehingga Room Builder dan `POST/PATCH /api/instructor/rooms` tidak bisa menulis materi). Seed dan backfill menulis Markdown dengan `contentFormat = MARKDOWN` eksplisit.
+- `markdownToHtml()` memakai `remark-rehype` dengan `allowDangerousHtml` lalu plugin `rehypeLegacyMarkdownCompat` yang mengubah node `raw` menjadi teks (perilaku react-markdown lama), mengganti gambar tak diizinkan dengan link, memetakan task list GFM ke markup TipTap, membuka `<p><img></p>`, dan membuang baris baru di akhir blok kode. Sanitizer memetakan `h5/h6` ke `h4`, `align` sel tabel ke `text-align`, dan `font-size` pt ke px; spasi beruntun di luar kode disimpan sebagai `&nbsp;`.
+- `prepareRichHtmlForStorage()` membuang paragraf kosong di akhir dokumen (dari TrailingNode) secara linear; jangan ganti dengan regex bertingkat karena berisiko backtracking kuadratik pada input besar.
+- `renderRoomMaterialHtml()` menambah penyesuaian khusus tampilan: pembungkus `.table-scroll`, penggandaan `<br>` di akhir blok agar baris kosong terlihat seperti di editor, dan label `sr-only` "Selesai:/Belum:" untuk checkbox.
+- Editor: `transformPastedHTML` memakai `lib/content/paste-normalize.ts`; `handlePaste` hanya mengunggah bila clipboard benar-benar berisi gambar saja (`isPureImagePaste`); `onCreate` mengirim transaksi kosong sebelum mengambil baseline agar paragraf penutup otomatis tidak dianggap perubahan. Setelah simpan, `MaterialEditor` membandingkan struktur dokumen (`generateJSON`) antara yang dikirim dan yang tersimpan, dan hanya menyelaraskan editor bila server benar-benar membuang sesuatu.
+- Review terstruktur 21 Oktober 2026 (keamanan, kesetiaan format, integrasi React/TipTap, data, tampilan) menghasilkan 33 temuan: 32 terkonfirmasi verifikator dan sudah diperbaiki, 1 sudah tertutup oleh perubahan sebelumnya. Fuzzing keamanan tidak menemukan bypass XSS pada sanitizer.

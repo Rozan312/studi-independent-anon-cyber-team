@@ -492,6 +492,100 @@ async function main() {
     const outside = await listRoomsOutsidePath(secondPath.id);
     assert.equal(outside.some((room) => room.id === extraRoom.id), false);
 
+    // -----------------------------------------------------------------------
+    // Rich text material: sanitization, Markdown conversion, HTML storage
+    // -----------------------------------------------------------------------
+    const { sanitizeRichHtml, markdownToHtml, renderRoomMaterialHtml, isRichHtmlEmpty, prepareRichHtmlForStorage } = await import("@/lib/content/rich-text");
+
+    const formatted =
+      '<h2 style="text-align: center">Judul</h2><p><strong>B</strong> <em>I</em> <u>U</u> <s>S</s> <sup>2</sup><sub>2</sub> ' +
+      '<span style="font-family: Georgia, serif; font-size: 24px; color: #f87171">gaya</span> ' +
+      '<mark data-color="rgba(250, 204, 21, 0.35)" style="background-color: rgba(250, 204, 21, 0.35); color: inherit">stabilo</mark></p>' +
+      '<ul data-type="taskList"><li data-checked="true" data-type="taskItem"><label><input type="checkbox" checked="checked"><span></span></label><div><p>ok</p></div></li></ul>' +
+      '<table style="min-width: 75px"><colgroup><col style="min-width: 25px"></colgroup><tbody><tr><th colspan="1" rowspan="1"><p>H</p></th></tr></tbody></table>' +
+      '<img src="/api/media/a5e06387-ed12-4c47-8359-e16c904fa4a6" alt="g">';
+    const cleanFormatted = sanitizeRichHtml(formatted);
+    for (const fragment of [
+      "text-align:center",
+      "<u>U</u>",
+      "<s>S</s>",
+      "<sup>2</sup>",
+      "<sub>2</sub>",
+      "font-family:Georgia, serif",
+      "font-size:24px",
+      "color:#f87171",
+      'data-color="rgba(250, 204, 21, 0.35)"',
+      'data-type="taskList"',
+      'data-checked="true"',
+      'disabled="disabled"',
+      "<th",
+      'src="/api/media/a5e06387-ed12-4c47-8359-e16c904fa4a6"'
+    ]) {
+      assert.ok(cleanFormatted.includes(fragment), `sanitizer must keep editor formatting: ${fragment}`);
+    }
+
+    const hostile = sanitizeRichHtml(
+      '<script>alert(1)</script><img src=x onerror=alert(1)><img src="javascript:alert(1)"><img src="data:image/png;base64,AAA">' +
+        '<img src="http://insecure.test/a.png"><a href="javascript:alert(1)">j</a><a href="//evil.test">p</a>' +
+        '<iframe src="https://x.test"></iframe><svg onload=alert(1)></svg><p onclick="x" style="background:url(javascript:alert(1))">p</p>' +
+        '<span style="font-size: 9999px; color: expression(alert(1))">big</span><style>body{}</style><input type="text">' +
+        '<mark data-color="red;background:url(x)">m</mark>'
+    );
+    for (const forbidden of ["<script", "onerror", "javascript:", "data:image", "http://insecure", "//evil", "<iframe", "<svg", "onclick", "url(", "9999px", "expression", "<style", 'type="text"', "red;background"]) {
+      assert.equal(hostile.toLowerCase().includes(forbidden), false, `sanitizer must strip: ${forbidden}`);
+    }
+
+    const converted = markdownToHtml("# Judul\n\n**tebal** dan `kode`\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\n<script>alert(1)</script>");
+    assert.ok(converted.includes("<h1>Judul</h1>"));
+    assert.ok(converted.includes("<strong>tebal</strong>"));
+    assert.ok(converted.includes("<table>"));
+    assert.equal(converted.includes("<script"), false);
+    assert.equal(isRichHtmlEmpty("<p></p><p> </p>"), true);
+    assert.equal(isRichHtmlEmpty('<p><img src="/api/media/a5e06387-ed12-4c47-8359-e16c904fa4a6"></p>'), false);
+
+    const savedHtml = await updateRoomContent(authorA, {
+      roomId: contentRoom.id,
+      contentFormat: "HTML",
+      content: '<p><strong>Halo</strong> <span style="color: #4ade80">dunia</span></p><script>alert(1)</script><img src=x onerror=alert(1)>'
+    });
+    assert.equal(savedHtml.contentFormat, "HTML");
+    assert.equal(savedHtml.content.includes("<script"), false);
+    assert.equal(savedHtml.content.includes("onerror"), false);
+    assert.ok(savedHtml.content.includes("<strong>Halo</strong>"));
+    assert.ok(renderRoomMaterialHtml(savedHtml.content, savedHtml.contentFormat).includes("color:#4ade80"));
+
+    const emptied = await updateRoomContent(authorA, { roomId: contentRoom.id, contentFormat: "HTML", content: "<p></p>" });
+    assert.equal(emptied.content, "", "an empty editor must be stored as empty content");
+
+    await assert.rejects(
+      updateRoomContent(authorB, { roomId: contentRoom.id, contentFormat: "HTML", content: "<p>x</p>" }),
+      (error: unknown) => error instanceof ContentAccessError
+    );
+
+    // Legacy Markdown fidelity and display parity
+    const legacy = markdownToHtml(
+      "Payload a <script>x</script> b\n\n##### Kecil\n\n| a | b |\n|:-:|--:|\n| 1 | 2 |\n\n- [x] selesai\n- [ ] belum\n\n" +
+        "![s](/api/media/a5e06387-ed12-4c47-8359-e16c904fa4a6)\n\n![luar](http://example.test/a.png)\n\n```bash\nls -la\n```"
+    );
+    assert.ok(legacy.includes("&lt;script&gt;"), "raw HTML in Markdown must stay visible as text");
+    assert.equal(legacy.includes("<script"), false);
+    assert.ok(legacy.includes("<h4>Kecil</h4>"), "h5/h6 map to h4");
+    assert.ok(legacy.includes('style="text-align:center"'), "GFM column alignment is kept");
+    assert.ok(legacy.includes('<ul data-type="taskList">') && legacy.includes('data-checked="true"'), "GFM task lists map to TipTap markup");
+    assert.equal(/<p>\s*<img/.test(legacy), false, "image-only paragraphs are unwrapped");
+    assert.ok(legacy.includes('href="http://example.test/a.png"'), "unsupported images become links instead of disappearing");
+    assert.ok(legacy.includes("ls -la</code>"), "code blocks lose the trailing newline");
+
+    const stored = prepareRichHtmlForStorage('<p><span style="font-size: 14pt">pt</span> a    b</p><p>baris<br></p><p></p><p></p>');
+    assert.ok(stored.includes("font-size:19px"), "pt font sizes convert to px");
+    assert.ok(stored.includes("a    b"), "runs of spaces survive as non-breaking spaces");
+    assert.equal(/<p><\/p>$/.test(stored), false, "trailing empty paragraphs are not stored");
+    const displayed = renderRoomMaterialHtml(stored, "HTML");
+    assert.ok(displayed.includes("<br /><br /></p>"), "a trailing hard break stays visible for students");
+    assert.ok(
+      renderRoomMaterialHtml('<table><tbody><tr><td><p>c</p></td></tr></tbody></table>', "HTML").includes('<div class="table-scroll"><table')
+    );
+
     console.log("service-smoke.test.ts passed");
   } finally {
     if (learningPathId) {

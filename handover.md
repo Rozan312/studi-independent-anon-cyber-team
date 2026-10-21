@@ -14,8 +14,8 @@ Dokumen ini adalah panduan serah terima untuk developer/kolaborator berdasarkan 
 - Folder pada Mac pemilik: `/Users/macbook/studi-independent-anon-cyber-team`.
 - Website lokal: http://localhost:3000
 - Tujuan: menyediakan learning path, room, tugas, kuis, progress, leaderboard, dan pengelolaan pembelajaran berdasarkan role.
-- Status: fondasi aplikasi plus ekosistem konten (authoring path/room/task/quiz, upload media, jadwal room, profil student) yang berjalan di lingkungan lokal. Belum boleh dianggap siap produksi tanpa validasi autentikasi, deployment, dan pengujian lanjutan. Ringkasan pekerjaan terakhir ada di bagian 12.
-- Pembaruan terakhir: 16 September 2026.
+- Status: fondasi aplikasi plus ekosistem konten (authoring path/room/task/quiz dengan editor materi visual, upload media, jadwal room, profil student) yang berjalan di lingkungan lokal. Belum boleh dianggap siap produksi tanpa validasi autentikasi, deployment, dan pengujian lanjutan. Ringkasan pekerjaan terakhir ada di bagian 12.
+- Pembaruan terakhir: 21 Oktober 2026 (editor materi visual, lihat bagian 13).
 
 ## 2. Teknologi dan Arsitektur
 
@@ -30,7 +30,7 @@ Versi berikut mengikuti rentang dependency di `package.json`; versi instalasi di
 | ORM | Prisma 6 |
 | Auth | Supabase Auth atau mode development lokal |
 | Validasi | Zod 3 |
-| Materi | Markdown dirender dengan react-markdown dan remark-gfm |
+| Materi | Editor visual TipTap 3 (seperti pengolah kata), disimpan sebagai HTML tersanitasi (sanitize-html); materi lama Markdown dikonversi dengan unified/remark |
 | Media upload | Disk lokal `storage/uploads` (provider `lib/storage/local-storage.ts`), metadata di tabel `MediaAsset` |
 | Pengujian service | tsx dan Node assert |
 
@@ -53,7 +53,7 @@ Dalam mode Supabase, identitas berasal dari Supabase Auth dan `Profile.id` mengi
 | Instruktur | `/instructor`, `/instructor/classes`, `/instructor/students` | Ringkasan kelas dan peserta |
 | Profile | `/profile` | Identitas akun dan rekam jejak: poin, rank, streak, riwayat task dan quiz, progress room |
 | Learning Path Manager | `/instructor/paths`, `/instructor/paths/[id]` | Membuat, mengedit, dan publish learning path; menyusun modul: memasukkan room yang sudah ada, mengurutkan room, dan membuat room baru di path itu |
-| Room builder dan editor | `/instructor/rooms`, `/instructor/rooms/new`, `/instructor/rooms/[id]` | Membuat room, lalu mengelola metadata, materi Markdown dengan upload gambar, task, quiz, dan publish |
+| Room builder dan editor | `/instructor/rooms`, `/instructor/rooms/new`, `/instructor/rooms/[id]` | Membuat room, lalu mengelola metadata, materi dengan editor visual (font, ukuran, warna, stabilo, perataan, daftar, tabel, link, gambar), task, quiz, dan publish |
 | Admin | `/admin`, `/admin/users`, `/admin/platform`, `/admin/announcements` | Ringkasan platform, ubah role, kelola pengumuman |
 
 Role: `STUDENT`, `INSTRUCTOR`, `ADMIN`, dengan hierarki akses admin di atas instruktur dan student. Akun baru default ke student.
@@ -251,7 +251,7 @@ Semua butir di bawah sudah ada di kode, diuji manual di browser lokal (desktop d
 ### Ekosistem konten untuk instruktur dan admin
 
 - Learning Path Manager (`/instructor/paths`, `/instructor/paths/[id]`): buat, edit, cover, publish, dan komposisi modul (memasukkan room yang sudah ada, mengurutkan, membuat room baru di path itu).
-- Editor room (`/instructor/rooms/[id]`): metadata dengan cover dan jadwal kemunculan; materi Markdown dengan toolbar, upload gambar, dan preview; task dengan jawaban alternatif dan hint serta pengurutan; quiz dengan pertanyaan dan opsi; publish. Room Builder mengarahkan ke editor setelah menyimpan.
+- Editor room (`/instructor/rooms/[id]`): metadata dengan cover dan jadwal kemunculan; materi dengan editor visual (lihat bagian 13); task dengan jawaban alternatif dan hint serta pengurutan; quiz dengan pertanyaan dan opsi; publish. Room Builder mengarahkan ke editor setelah menyimpan.
 - Upload media: `POST /api/media` dan `GET /api/media/[id]`, penyimpanan disk lokal `storage/uploads` lewat provider `lib/storage/local-storage.ts`, metadata di tabel `MediaAsset`.
 - Kepemilikan konten: `Room.createdById` dan `LearningPath.createdById`; instruktur hanya mengubah miliknya atau konten tanpa pemilik, admin bebas.
 - Cover tampil di daftar learning path, detail path, daftar room, hero room, dan dashboard.
@@ -269,7 +269,7 @@ Semua butir di bawah sudah ada di kode, diuji manual di browser lokal (desktop d
 ### Perubahan teknis
 
 - Migration baru: `20260916032324_content_authoring_and_media`, `20260916032645_quiz_option_order`, `20260916035755_task_hints_and_accepted_answers`, `20260916041212_room_availability_window`.
-- Dependency baru: `react-markdown`, `remark-gfm`.
+- Dependency baru: `remark-gfm` (react-markdown sempat dipakai lalu diganti editor visual pada 21 Oktober 2026, lihat bagian 13).
 - Script baru: `npm run prisma:backfill-content` (non-destruktif).
 - Variabel opsional: `UPLOAD_DIR` (folder upload), `NEXT_PUBLIC_TIME_ZONE` (zona waktu tampilan jadwal, default `Asia/Jakarta`).
 - `PATCH /api/rooms` kini hanya menerima `roomId` dan menghitung ulang progress; persentase dari client tidak diterima.
@@ -294,3 +294,21 @@ Semua butir di bawah sudah ada di kode, diuji manual di browser lokal (desktop d
 7. Autosave draft materi, preview room draft, pustaka media untuk hapus atau pakai ulang gambar.
 8. Badge dan sertifikat per path.
 9. Sebelum publik: Supabase Auth, pembatasan laju submit, unique constraint dan transaksi poin, object storage untuk media, tes browser otomatis, Compose untuk aplikasi.
+
+## 13. Editor Materi Visual (21 Oktober 2026)
+
+Editor materi room di `/instructor/rooms/[id]` bagian **Materi** kini editor visual seperti pengolah kata (TipTap 3), menggantikan textarea Markdown.
+
+- **Toolbar**: urungkan/ulangi; gaya paragraf (Teks normal, Judul 1-4); jenis font (Default, Arial, Verdana, Trebuchet MS, Georgia, Times New Roman, Courier New); ukuran font 12-48 px; tebal, miring, garis bawah, coret, superskrip, subskrip, kode inline; warna teks dan stabilo (palet yang terbaca di tema gelap); hapus format; rata kiri/tengah/kanan/kiri-kanan; daftar berpoin, bernomor, dan centang beserta indentasi; kutipan, blok kode, garis pemisah; link; gambar; tabel dengan baris/kolom/gabung sel/baris judul.
+- **Gambar**: tombol gambar, tempel (paste), atau seret-lepas langsung ke editor; diunggah ke `/api/media` (PNG, JPEG, GIF, WebP, maks 5 MB). Posisi seret tetap tepat walau instruktur terus mengetik selama upload.
+- **Tempel dari Word/Excel/Google Docs**: tabel dan teks ditempel sebagai konten (bukan gambar pratinjau Office); ukuran pt/em/rem dikonversi ke px; teks hitam dan latar putih dibuang agar terbaca di tema gelap; gambar lokal Word diganti catatan untuk diunggah ulang.
+- **Ponsel**: perintah yang jarang dipakai (superskrip, subskrip, kode, indentasi, kutipan, blok kode, garis) dikumpulkan di menu **Lainnya**; pengaturan tabel ada di menu **Tabel** agar isi tidak bergeser.
+- **Simpan**: tombol Simpan materi atau Ctrl/⌘+S (Ctrl/⌘+Shift+S tetap untuk coret). Status "ada perubahan yang belum disimpan" ditampilkan; browser dan link di dalam aplikasi meminta konfirmasi sebelum meninggalkan halaman dengan perubahan belum tersimpan. Bila server membuang format yang tidak didukung, editor otomatis diselaraskan dengan versi tersimpan dan memberi tahu instruktur.
+- **Penyimpanan**: HTML di `Room.content` dengan `Room.contentFormat = HTML`. Server menyaring HTML dengan allowlist ketat (`lib/content/rich-text.ts`) saat disimpan dan saat ditampilkan; script, event handler, `javascript:`, iframe, URL CSS, dan gambar dari luar `/api/media` atau https dibuang.
+- **Materi lama**: room dengan `contentFormat = MARKDOWN` (seed dan data lama) tetap tampil, dan otomatis dikonversi saat dibuka di editor: teks tag ditampilkan apa adanya seperti dulu, daftar centang GFM menjadi daftar centang editor, judul 5-6 menjadi Judul 4, perataan kolom tabel dipertahankan, dan gambar dari alamat http/relatif diganti link agar tidak hilang. Klik Simpan sekali untuk menyimpannya sebagai HTML.
+- Seed dan `npm run prisma:backfill-content` selalu menulis `contentFormat = MARKDOWN`; backfill hanya mengisi room Markdown yang kosong, jadi tidak menimpa materi yang dikosongkan lewat editor. API lama `POST/PATCH /api/instructor/rooms` tidak lagi menerima kolom materi.
+- **Tampilan student** memakai CSS yang sama dengan editor (`.prose-cyber`), sehingga hasilnya sama dengan yang dilihat instruktur. Tabel lebar bisa digulir horizontal di ponsel.
+- Dependency baru: `@tiptap/*` 3.32, `sanitize-html`, `unified`, `remark-parse`, `remark-rehype`, `rehype-stringify`. `react-markdown` dihapus.
+- Migration baru: `20261021023000_room_content_format`.
+- Verifikasi 21 Oktober 2026: `npm run typecheck`, `npm run lint`, `npm test` (termasuk tes sanitasi, konversi Markdown lama, dan penyimpanan HTML) lolos; alur editor diuji manual di browser desktop dan ukuran ponsel (format teks, tabel, daftar centang, tempel dari Word, simpan dengan Ctrl/⌘+S, tampilan student). Review terstruktur lima dimensi menghasilkan 33 temuan; 32 terkonfirmasi dan sudah diperbaiki, 1 sudah tertutup sebelumnya.
+- Belum dikerjakan untuk editor: autosave draft, riwayat versi materi, pustaka media (hapus/pakai ulang gambar), dan navigasi panah di toolbar.

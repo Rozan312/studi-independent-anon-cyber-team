@@ -178,3 +178,210 @@ input::placeholder {
   background: rgba(255, 255, 255, 0.04);
   color: #f1f5f9;
 }
+
+/* ---------------------------------------------------------------------------
+   Rich text: format tambahan dari editor visual (berlaku di editor dan tampilan student)
+   --------------------------------------------------------------------------- */
+.prose-cyber u {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-cyber s,
+.prose-cyber del {
+  text-decoration: line-through;
+}
+.prose-cyber sub,
+.prose-cyber sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+.prose-cyber sup { top: -0.5em; }
+.prose-cyber sub { bottom: -0.25em; }
+.prose-cyber em { font-style: italic; }
+.prose-cyber mark {
+  background-color: rgba(250, 204, 21, 0.35);
+  color: inherit;
+  border-radius: 0.2em;
+  padding: 0 0.12em;
+}
+/* Warna teks pilihan instruktur dan warna link harus menang atas warna bawaan elemen di dalamnya. */
+.prose-cyber span[style*="color"] strong,
+.prose-cyber span[style*="color"] b,
+.prose-cyber span[style*="color"] code,
+.prose-cyber a strong,
+.prose-cyber a b {
+  color: inherit;
+}
+.prose-cyber a span[style*="color"] {
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 3px;
+}
+/* Spasi beruntun di kode inline tetap terlihat seperti di editor. */
+.prose-cyber :not(pre) > code {
+  white-space: break-spaces;
+}
+/* Token panjang (hash, URL, IP) dipatahkan seperti di editor agar tidak keluar dari kartu atau sel. */
+.prose-cyber {
+  overflow-wrap: break-word;
+}
+.prose-cyber td,
+.prose-cyber th {
+  overflow-wrap: anywhere;
+}
+/* Paragraf kosong (baris kosong di editor) tetap memberi jarak di tampilan student. */
+.prose-cyber p:empty::before {
+  content: "\00a0";
+}
+.prose-cyber li > p,
+.prose-cyber blockquote > p,
+.prose-cyber th > p,
+.prose-cyber td > p {
+  margin: 0;
+}
+.prose-cyber li > p + p,
+.prose-cyber blockquote > p + p,
+.prose-cyber td > p + p,
+.prose-cyber th > p + p {
+  margin-top: 0.5em;
+}
+.prose-cyber ol ol,
+.prose-cyber ul ul,
+.prose-cyber ol ul,
+.prose-cyber ul ol {
+  margin-top: 0.3em;
+}
+.prose-cyber ul ul { list-style: circle; }
+.prose-cyber th,
+.prose-cyber td {
+  vertical-align: top;
+}
+.prose-cyber ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.15em;
+}
+.prose-cyber ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+}
+.prose-cyber ul[data-type="taskList"] > li > label {
+  flex: 0 0 auto;
+  margin-top: 0.3em;
+  user-select: none;
+}
+.prose-cyber ul[data-type="taskList"] > li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.prose-cyber ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: #94a3b8;
+}
+.prose-cyber input[type="checkbox"] {
+  accent-color: #4d8eff;
+  width: 1em;
+  height: 1em;
+}
+
+/* ---------------------------------------------------------------------------
+   Editor visual (TipTap / ProseMirror)
+   --------------------------------------------------------------------------- */
+.rich-editor .ProseMirror {
+  outline: none;
+  min-height: 380px;
+  padding: 1.1rem 1.25rem 2rem;
+  caret-color: #4d8eff;
+  word-wrap: break-word;
+}
+.rich-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: #475569;
+  pointer-events: none;
+}
+.rich-editor .ProseMirror p:empty::before {
+  content: none;
+}
+.rich-editor .ProseMirror img {
+  cursor: default;
+}
+.rich-editor .ProseMirror img.ProseMirror-selectednode,
+.rich-editor .ProseMirror hr.ProseMirror-selectednode {
+  outline: 2px solid #4d8eff;
+  outline-offset: 2px;
+}
+.rich-editor .ProseMirror a {
+  cursor: text;
+}
+.rich-editor .ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.rich-editor .ProseMirror table {
+  display: table;
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.rich-editor .ProseMirror td,
+.rich-editor .ProseMirror th {
+  position: relative;
+  min-width: 1em;
+  box-sizing: border-box;
+}
+.rich-editor .ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(77, 142, 255, 0.18);
+  pointer-events: none;
+  z-index: 2;
+}
+.rich-editor .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #4d8eff;
+  pointer-events: none;
+}
+.rich-editor .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+.rich-editor .ProseMirror ul[data-type="taskList"] > li > label input {
+  cursor: pointer;
+}
+
+/* Tabel materi di tampilan student: lebar penuh seperti di editor, bisa digulir horizontal di layar sempit. */
+.prose-cyber .table-scroll {
+  overflow-x: auto;
+}
+.prose-cyber .table-scroll > table {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  margin: 0;
+}
+
+/* Lebar area tulis editor disamakan dengan kolom materi di halaman student (lg: 8 dari 12 kolom). */
+@media (min-width: 1024px) {
+  .rich-editor .ProseMirror {
+    max-width: calc(66.6667% + 15px);
+    margin-inline: auto;
+  }
+}
+/* Blok kode tampil sama seperti di halaman student: tidak dilipat, bisa digulir. */
+.rich-editor .ProseMirror pre {
+  white-space: pre;
+  overflow-x: auto;
+}
+/* Kursor celah (sebelum/sesudah tabel atau gambar) terlihat di latar gelap. */
+.rich-editor .ProseMirror-gapcursor::after {
+  border-top-color: #4d8eff;
+}

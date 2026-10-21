@@ -30,8 +30,7 @@ export const roomDraftSchema = z.object({
   difficulty: z.string().min(2).max(40),
   estimatedMinutes: z.number().int().min(5).max(600),
   points: z.number().int().min(0).max(10000),
-  orderIndex: z.number().int().min(0).max(10000),
-  content: z.string().max(60000).default("")
+  orderIndex: z.number().int().min(0).max(10000)
 });
 
 export const updateRoomDraftSchema = roomDraftSchema.partial().extend({
@@ -137,7 +136,6 @@ export const scheduleDateSchema = z
   .transform((value) => (value ? new Date(value) : null));
 
 export const roomMetadataSchema = roomDraftSchema
-  .omit({ content: true })
   .extend({
     roomId: uuidSchema,
     coverImageUrl: imageUrlSchema,
@@ -149,9 +147,11 @@ export const roomMetadataSchema = roomDraftSchema
     path: ["availableUntil"]
   });
 
+/** Materi room. HTML dari editor visual (disanitasi di service) atau Markdown untuk data lama/skrip. */
 export const roomContentSchema = z.object({
   roomId: uuidSchema,
-  content: z.string().max(60000)
+  content: z.string().max(200_000, "Materi terlalu panjang (maksimal 200.000 karakter)."),
+  contentFormat: z.enum(["MARKDOWN", "HTML"]).default("MARKDOWN")
 });
 
 export const publishRoomSchema = z.object({

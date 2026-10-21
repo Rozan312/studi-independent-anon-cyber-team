@@ -22,7 +22,7 @@ function computeRoomProgress(input: { taskCount: number; correctTaskCount: numbe
 async function backfillContent() {
   let filled = 0;
   for (const [slug, content] of Object.entries(roomContentBySlug)) {
-    const result = await prisma.room.updateMany({ where: { slug, content: "" }, data: { content } });
+    const result = await prisma.room.updateMany({ where: { slug, content: "", contentFormat: "MARKDOWN" }, data: { content, contentFormat: "MARKDOWN" } });
     filled += result.count;
   }
   console.log(`materi room diisi: ${filled}`);

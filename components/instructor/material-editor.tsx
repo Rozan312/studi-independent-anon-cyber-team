@@ -1,178 +1,196 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFormState } from "react-dom";
-import { updateRoomContentAction } from "@/lib/actions/content-actions";
+import { generateJSON, type Editor, type JSONContent } from "@tiptap/core";
+import { updateRoomContentAction, type MaterialActionState } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { MarkdownContent } from "@/components/content/markdown-content";
-import { ghostButtonClass, idleActionState } from "@/components/instructor/form-styles";
+import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { MAX_RICH_CONTENT_LENGTH } from "@/lib/content/rich-text-config";
 
-type UploadResponse = {
-  data?: { url: string; fileName: string };
-  error?: string;
-};
+const initialState: MaterialActionState = { tone: "idle", message: "" };
 
-const MAX_CONTENT_LENGTH = 60000;
+const LEAVE_MESSAGE = "Ada perubahan materi yang belum disimpan. Tinggalkan halaman ini dan buang perubahan?";
+
+/** Struktur dokumen tanpa paragraf kosong di akhir (ditambahkan otomatis oleh editor). */
+function documentSignature(html: string, editor: Editor) {
+  const json = generateJSON(html || "<p></p>", editor.extensionManager.extensions) as JSONContent;
+  const content = [...(json.content ?? [])];
+  while (content.length > 0) {
+    const last = content[content.length - 1];
+    if (last.type === "paragraph" && !(last.content && last.content.length > 0)) content.pop();
+    else break;
+  }
+  return JSON.stringify(content);
+}
 
 /**
- * Editor materi Markdown untuk walkthrough room. Gambar diunggah ke /api/media dan
- * disisipkan sebagai sintaks Markdown di posisi kursor.
+ * Form materi room dengan editor visual seperti pengolah kata. Isi dikirim sebagai HTML
+ * (contentFormat=HTML) dan disanitasi ulang di server sebelum disimpan.
  */
-export function MaterialEditor({ roomId, initialContent, disabled = false }: { roomId: string; initialContent: string; disabled?: boolean }) {
-  const [state, formAction] = useFormState(updateRoomContentAction, idleActionState);
-  const [content, setContent] = useState(initialContent);
-  const [showPreview, setShowPreview] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export function MaterialEditor({
+  roomId,
+  initialHtml,
+  legacyMarkdown = false,
+  disabled = false
+}: {
+  roomId: string;
+  /** HTML awal yang sudah disanitasi server (materi Markdown lama sudah dikonversi). */
+  initialHtml: string;
+  /** True bila materi di database masih berformat Markdown. */
+  legacyMarkdown?: boolean;
+  disabled?: boolean;
+}) {
+  const [state, formAction] = useFormState(updateRoomContentAction, initialState);
+  const [html, setHtml] = useState(initialHtml);
+  const [savedHtml, setSavedHtml] = useState(initialHtml);
+  const [needsFormatUpgrade, setNeedsFormatUpgrade] = useState(legacyMarkdown);
+  const [adjustedNotice, setAdjustedNotice] = useState(false);
+  const submittedHtmlRef = useRef(initialHtml);
+  const htmlRef = useRef(initialHtml);
+  const editorRef = useRef<Editor | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
-  function insertAtCursor(snippet: string) {
-    const element = textareaRef.current;
+  const isDirty = html !== savedHtml;
+  const tooLong = html.length > MAX_RICH_CONTENT_LENGTH;
 
-    if (!element) {
-      setContent((current) => current + snippet);
-      return;
-    }
+  useEffect(() => {
+    htmlRef.current = html;
+  }, [html]);
 
-    const start = element.selectionStart ?? content.length;
-    const end = element.selectionEnd ?? start;
-    const next = `${content.slice(0, start)}${snippet}${content.slice(end)}`;
-    setContent(next);
+  // Setelah simpan berhasil: jadikan isi yang tersimpan sebagai baseline. Bila server membuang format
+  // yang tidak didukung, editor diselaraskan agar instruktur melihat persis apa yang dilihat student.
+  useEffect(() => {
+    if (state.tone !== "success") return;
 
-    requestAnimationFrame(() => {
-      element.focus();
-      const position = start + snippet.length;
-      element.setSelectionRange(position, position);
-    });
-  }
+    const submitted = submittedHtmlRef.current;
+    const editor = editorRef.current;
+    const stored = state.savedContent;
+    let baseline = submitted;
+    let adjusted = false;
 
-  function wrapSelection(before: string, after = before, placeholder = "teks") {
-    const element = textareaRef.current;
-
-    if (!element) {
-      setContent((current) => `${current}${before}${placeholder}${after}`);
-      return;
-    }
-
-    const start = element.selectionStart ?? content.length;
-    const end = element.selectionEnd ?? start;
-    const selected = content.slice(start, end) || placeholder;
-    const next = `${content.slice(0, start)}${before}${selected}${after}${content.slice(end)}`;
-    setContent(next);
-
-    requestAnimationFrame(() => {
-      element.focus();
-      element.setSelectionRange(start + before.length, start + before.length + selected.length);
-    });
-  }
-
-  async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setUploading(true);
-    setUploadError(null);
-
-    try {
-      const body = new FormData();
-      body.append("file", file);
-
-      const response = await fetch("/api/media", { method: "POST", body });
-      const payload = (await response.json()) as UploadResponse;
-
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error ?? "Upload gagal.");
+    if (editor && !editor.isDestroyed && typeof stored === "string" && htmlRef.current === submitted) {
+      if (documentSignature(stored, editor) !== documentSignature(submitted, editor)) {
+        const { from, to } = editor.state.selection;
+        editor.chain().setMeta("addToHistory", false).setContent(stored, { emitUpdate: false }).run();
+        const size = editor.state.doc.content.size;
+        editor.commands.setTextSelection({ from: Math.min(from, size), to: Math.min(to, size) });
+        baseline = editor.getHTML();
+        adjusted = true;
+        setHtml(baseline);
       }
+    }
 
-      const alt = payload.data.fileName.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ") || "gambar";
-      insertAtCursor(`\n![${alt}](${payload.data.url})\n`);
-    } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Upload gagal.");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+    setSavedHtml(baseline);
+    submittedHtmlRef.current = baseline;
+    setAdjustedNotice(adjusted);
+    setNeedsFormatUpgrade(false);
+  }, [state]);
+
+  // Peringatkan sebelum meninggalkan halaman (reload, tutup tab, atau link di dalam aplikasi).
+  useEffect(() => {
+    if (!isDirty) return;
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    function handleLinkClick(event: MouseEvent) {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+      const target = event.target as HTMLElement | null;
+      if (!target || target.closest("[contenteditable='true']")) return;
+
+      const anchor = target.closest("a[href]") as HTMLAnchorElement | null;
+      if (!anchor || anchor.target === "_blank" || anchor.hasAttribute("download")) return;
+
+      const url = new URL(anchor.href, window.location.href);
+      if (url.origin !== window.location.origin) return;
+      if (url.pathname === window.location.pathname && url.search === window.location.search) return;
+
+      if (!window.confirm(LEAVE_MESSAGE)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("click", handleLinkClick, true);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("click", handleLinkClick, true);
+    };
+  }, [isDirty]);
+
+  // Editor menormalisasi HTML awal; jadikan hasil normalisasi itu baseline agar tidak dianggap berubah.
+  const handleReady = useCallback((normalized: string, editor: Editor) => {
+    editorRef.current = editor;
+    setHtml(normalized);
+    setSavedHtml(normalized);
+    submittedHtmlRef.current = normalized;
+  }, []);
+
+  const handleChange = useCallback((next: string) => {
+    setHtml(next);
+    setAdjustedNotice(false);
+  }, []);
+
+  // Ctrl/⌘+S menyimpan seperti di pengolah kata. Kombinasi dengan Shift/Alt dibiarkan untuk pintasan lain
+  // (misalnya Ctrl/⌘+Shift+S untuk coret).
+  function handleKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    if ((event.metaKey || event.ctrlKey) && !event.shiftKey && !event.altKey && event.key.toLowerCase() === "s") {
+      event.preventDefault();
+      if (!disabled && !tooLong) formRef.current?.requestSubmit();
     }
   }
-
-  const toolbarButtonClass = `${ghostButtonClass} px-2.5 py-1.5`;
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={() => {
+        submittedHtmlRef.current = html;
+      }}
+      onKeyDown={handleKeyDown}
+      className="space-y-4"
+    >
       <input type="hidden" name="roomId" value={roomId} />
+      <input type="hidden" name="contentFormat" value="HTML" />
+      <input type="hidden" name="content" value={html} />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <button type="button" className={toolbarButtonClass} disabled={disabled} onClick={() => insertAtCursor("\n## Judul bagian\n\n")}>
-          Heading
-        </button>
-        <button type="button" className={toolbarButtonClass} disabled={disabled} onClick={() => wrapSelection("**")}>
-          Bold
-        </button>
-        <button type="button" className={toolbarButtonClass} disabled={disabled} onClick={() => wrapSelection("`", "`", "perintah")}>
-          Kode inline
-        </button>
-        <button type="button" className={toolbarButtonClass} disabled={disabled} onClick={() => insertAtCursor("\n```bash\n# tulis perintah contoh di sini\n```\n")}>
-          Blok kode
-        </button>
-        <button type="button" className={toolbarButtonClass} disabled={disabled} onClick={() => insertAtCursor("\n- Langkah pertama\n- Langkah kedua\n")}>
-          List
-        </button>
-        <button type="button" className={toolbarButtonClass} disabled={disabled} onClick={() => insertAtCursor("\n> Catatan penting untuk peserta.\n")}>
-          Kutipan
-        </button>
-        <label className={`${toolbarButtonClass} ${disabled || uploading ? "pointer-events-none opacity-50" : "cursor-pointer"}`}>
-          {uploading ? "Mengunggah..." : "Upload gambar"}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png,image/jpeg,image/gif,image/webp"
-            className="hidden"
-            onChange={handleUpload}
-            disabled={disabled || uploading}
-          />
-        </label>
-        <button type="button" className={`${toolbarButtonClass} ml-auto`} onClick={() => setShowPreview((value) => !value)}>
-          {showPreview ? "Sembunyikan preview" : "Tampilkan preview"}
-        </button>
-      </div>
+      {needsFormatUpgrade ? (
+        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-100">
+          Materi ini masih tersimpan dalam format Markdown lama dan sudah dikonversi otomatis untuk diedit. Periksa hasilnya, lalu klik Simpan
+          materi agar tersimpan dalam format editor baru.
+        </p>
+      ) : null}
 
-      {uploadError ? <p className="text-xs text-rose-300">{uploadError}</p> : null}
+      <RichTextEditor initialHtml={initialHtml} onChange={handleChange} onReady={handleReady} disabled={disabled} />
 
-      <div className={`grid gap-4 ${showPreview ? "lg:grid-cols-2" : ""}`}>
-        <div>
-          <textarea
-            ref={textareaRef}
-            name="content"
-            value={content}
-            onChange={(event) => setContent(event.target.value)}
-            rows={22}
-            disabled={disabled}
-            maxLength={MAX_CONTENT_LENGTH}
-            placeholder={"# Judul materi\n\nTulis walkthrough, konsep, dan langkah praktik di sini. Gunakan tombol Upload gambar untuk menyisipkan screenshot."}
-            className="focus-ring w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-3 font-mono text-[13px] leading-relaxed text-slate-200 outline-none placeholder:text-slate-600 disabled:cursor-not-allowed disabled:opacity-60"
-          />
-          <p className="mt-1.5 text-[11px] text-slate-500">
-            {content.length.toLocaleString("id-ID")} / {MAX_CONTENT_LENGTH.toLocaleString("id-ID")} karakter. Mendukung Markdown: heading, list,
-            tabel, blok kode, gambar, dan tautan.
-          </p>
-        </div>
+      {tooLong ? (
+        <p className="text-xs text-rose-300" role="alert">
+          Materi terlalu panjang ({html.length.toLocaleString("id-ID")} dari maksimal {MAX_RICH_CONTENT_LENGTH.toLocaleString("id-ID")} karakter HTML).
+          Pecah menjadi beberapa room atau kurangi tabel besar.
+        </p>
+      ) : null}
 
-        {showPreview ? (
-          <div className="min-h-[200px] rounded-lg border border-white/[0.08] bg-black/25 p-4">
-            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Preview untuk student</p>
-            {content.trim() ? (
-              <MarkdownContent content={content} />
-            ) : (
-              <p className="text-sm text-slate-500">Belum ada materi untuk dipreview.</p>
-            )}
-          </div>
-        ) : null}
-      </div>
+      {adjustedNotice ? (
+        <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs leading-relaxed text-blue-100" role="status">
+          Sebagian format tidak didukung (misalnya gambar dari luar atau gaya yang tidak aman) dan disesuaikan saat disimpan. Editor kini
+          menampilkan versi yang dilihat student.
+        </p>
+      ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <ActionMessage state={state} />
-        <SubmitButton label="Simpan materi" disabled={disabled} />
+        <div className="space-y-1">
+          <ActionMessage state={state} />
+          <p className={`text-[11px] ${isDirty ? "text-amber-300" : "text-slate-500"}`} aria-live="polite">
+            {isDirty ? "Ada perubahan yang belum disimpan." : "Semua perubahan sudah disimpan."} Tekan Ctrl/⌘+S untuk menyimpan.
+          </p>
+        </div>
+        <SubmitButton label="Simpan materi" disabled={disabled || tooLong} />
       </div>
     </form>
   );

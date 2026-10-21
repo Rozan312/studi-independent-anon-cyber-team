@@ -11,7 +11,7 @@ import { getAnswerFormat } from "@/lib/learning/answer-format";
 import { HINT_UNLOCK_AFTER_WRONG_ATTEMPTS, isHintUnlocked } from "@/lib/learning/hints";
 import { getRoomCompletionSnapshot } from "@/lib/services/progress-service";
 import { getWrongAttemptCounts } from "@/lib/services/task-service";
-import { MarkdownContent } from "@/components/content/markdown-content";
+import { RoomMaterial } from "@/components/content/room-material";
 import { PageNotice } from "@/components/ui/page-notice";
 import { hasRoleAccess } from "@/lib/auth/rbac";
 import { describeAvailability, formatScheduleDate, getRoomAvailability } from "@/lib/learning/availability";
@@ -213,13 +213,15 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
           {/* Material / walkthrough */}
           <section id="materi" className="scroll-mt-28 bg-[#1c1f2a]/40 border border-white/[0.08] rounded-xl p-5 md:p-6 backdrop-blur-sm shadow-md">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-300 mb-4">Materi &amp; Walkthrough</h3>
-            {room.content.trim() ? (
-              <MarkdownContent content={room.content} />
-            ) : (
-              <p className="rounded-lg border border-dashed border-white/[0.08] bg-black/20 p-4 text-sm text-slate-400">
-                Materi untuk room ini belum ditambahkan oleh instruktur. Kerjakan task di bawah berdasarkan instruksi pada setiap task.
-              </p>
-            )}
+            <RoomMaterial
+              content={room.content}
+              format={room.contentFormat}
+              fallback={
+                <p className="rounded-lg border border-dashed border-white/[0.08] bg-black/20 p-4 text-sm text-slate-400">
+                  Materi untuk room ini belum ditambahkan oleh instruktur. Kerjakan task di bawah berdasarkan instruksi pada setiap task.
+                </p>
+              }
+            />
           </section>
 
           {/* Task lists container */}

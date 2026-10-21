@@ -1,4 +1,4 @@
-import { PrismaClient, Role, AnswerType, AnnouncementAudience, ClassMemberRole, LeaderboardSourceType, ProgressStatus, LabStatus } from "@prisma/client";
+import { PrismaClient, Role, AnswerType, AnnouncementAudience, ClassMemberRole, ContentFormat, LeaderboardSourceType, ProgressStatus, LabStatus } from "@prisma/client";
 import { roomContentBySlug, taskHintsByRoomSlug } from "./seed-content";
 
 const prisma = new PrismaClient();
@@ -712,6 +712,7 @@ async function seedLearningPathsAndRooms() {
         points: roomSeed.points,
         orderIndex: roomSeed.orderIndex,
         content: roomContentBySlug[roomSeed.slug] ?? "",
+        contentFormat: ContentFormat.MARKDOWN,
         isPublished: true
       },
       create: {
@@ -725,6 +726,7 @@ async function seedLearningPathsAndRooms() {
         points: roomSeed.points,
         orderIndex: roomSeed.orderIndex,
         content: roomContentBySlug[roomSeed.slug] ?? "",
+        contentFormat: ContentFormat.MARKDOWN,
         isPublished: true
       }
     });

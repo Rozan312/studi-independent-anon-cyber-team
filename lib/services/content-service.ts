@@ -1,6 +1,7 @@
 import "server-only";
 
-import { AnswerType, Role } from "@prisma/client";
+import { AnswerType, ContentFormat, Role } from "@prisma/client";
+import { prepareRichHtmlForStorage } from "@/lib/content/rich-text";
 import { prisma } from "@/lib/db/prisma";
 import {
   addQuizQuestionSchema,
@@ -332,11 +333,17 @@ export async function updateRoomMetadata(actor: ContentActor, input: unknown) {
   return prisma.room.update({ where: { id: roomId }, data });
 }
 
+/**
+ * Menyimpan materi room. HTML dari editor visual selalu disanitasi dan dikosongkan bila tidak
+ * berisi apa pun (editor kosong menghasilkan "<p></p>"), agar cek "materi ada" tetap akurat.
+ */
 export async function updateRoomContent(actor: ContentActor, input: unknown) {
-  const { roomId, content } = roomContentSchema.parse(input);
+  const { roomId, content, contentFormat } = roomContentSchema.parse(input);
   await requireManagedRoom(actor, roomId);
 
-  return prisma.room.update({ where: { id: roomId }, data: { content } });
+  const stored = contentFormat === ContentFormat.HTML ? prepareRichHtmlForStorage(content) : content.trim();
+
+  return prisma.room.update({ where: { id: roomId }, data: { content: stored, contentFormat } });
 }
 
 export async function setRoomPublished(actor: ContentActor, input: unknown) {

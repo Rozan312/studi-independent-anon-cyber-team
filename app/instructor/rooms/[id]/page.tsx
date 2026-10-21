@@ -12,6 +12,7 @@ import { PageNotice } from "@/components/ui/page-notice";
 import { toggleRoomPublishAction } from "@/lib/actions/content-actions";
 import { requireRole } from "@/lib/auth/guards";
 import { getRoomForEditor, listLearningPathsForManagement } from "@/lib/services/content-service";
+import { roomMaterialToEditorHtml } from "@/lib/content/rich-text";
 import { describeAvailability, getRoomAvailability } from "@/lib/learning/availability";
 
 export const dynamic = "force-dynamic";
@@ -131,9 +132,14 @@ export default async function InstructorRoomEditorPage({
           <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary text-glow">Materi</p>
           <h3 className="mt-1 text-lg font-semibold text-slate-100">Walkthrough dan bahan belajar</h3>
           <p className="mb-5 mt-2 text-xs leading-relaxed text-slate-400">
-            Materi ditampilkan di halaman room student sebelum daftar task. Tulis dalam Markdown dan sisipkan screenshot dengan tombol Upload gambar.
+            Materi tampil di halaman room student sebelum daftar task, dengan format dan lebar kolom yang sama seperti di editor ini. Format teks lewat toolbar seperti di pengolah kata: jenis dan ukuran font, warna, stabilo, perataan, daftar, tabel, link, dan gambar.
           </p>
-          <MaterialEditor roomId={room.id} initialContent={room.content} disabled={!canManage} />
+          <MaterialEditor
+            roomId={room.id}
+            initialHtml={roomMaterialToEditorHtml(room.content, room.contentFormat)}
+            legacyMarkdown={room.contentFormat === "MARKDOWN" && room.content.trim().length > 0}
+            disabled={!canManage}
+          />
         </section>
 
         <section id="tasks" className={panelClass}>

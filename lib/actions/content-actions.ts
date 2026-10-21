@@ -249,17 +249,21 @@ export async function updateRoomMetadataAction(_state: ContentActionState, formD
   }
 }
 
-export async function updateRoomContentAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
+/** Hasil simpan materi: menyertakan HTML yang benar-benar tersimpan agar editor bisa menyelaraskan diri. */
+export type MaterialActionState = ContentActionState & { savedContent?: string; saveId?: number };
+
+export async function updateRoomContentAction(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
   try {
     const actor = await requireRole(["INSTRUCTOR"]);
     const rawContent = formData.get("content");
     const room = await updateRoomContent(actor, {
       roomId: text(formData, "roomId"),
-      content: typeof rawContent === "string" ? rawContent.replace(/\r\n/g, "\n") : ""
+      content: typeof rawContent === "string" ? rawContent.replace(/\r\n/g, "\n") : "",
+      contentFormat: text(formData, "contentFormat") === "HTML" ? "HTML" : "MARKDOWN"
     });
 
     revalidateRoomPaths({ id: room.id, slug: room.slug });
-    return { tone: "success", message: "Materi room berhasil disimpan." };
+    return { tone: "success", message: "Materi room berhasil disimpan.", savedContent: room.content, saveId: Date.now() };
   } catch (error) {
     return fail(error, "Materi belum berhasil disimpan.");
   }
