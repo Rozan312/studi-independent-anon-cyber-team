@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeStringify from "rehype-stringify";
 import type { ContentFormat } from "@prisma/client";
-import { isAllowedImageSrc } from "@/lib/content/rich-text-config";
+import { isAllowedImageSrc, readableBackgroundColor, readableTextColor } from "@/lib/content/rich-text-config";
 
 /**
  * Pengolahan materi room di server.
@@ -290,7 +290,7 @@ function unsupportedImagesToLinks(node: HastNode): HastNode {
     const src = typeof node.properties?.src === "string" ? node.properties.src : "";
     if (!isAllowedImageSrc(src)) {
       const alt = typeof node.properties?.alt === "string" && node.properties.alt.trim() ? node.properties.alt.trim() : src;
-      return element("a", { href: src }, [textNode(`Gambar: ${alt}`)]);
+      return element("a", { href: src }, [textNode(`Image: ${alt}`)]);
     }
   }
   if (node.children) node.children = node.children.map(unsupportedImagesToLinks);
@@ -408,10 +408,66 @@ function wrapTablesForDisplay(html: string) {
   return html.replace(/<table\b/gi, '<div class="table-scroll"><table').replace(/<\/table>/gi, "</table></div>");
 }
 
+// ---------------------------------------------------------------------------
+// Pelindung keterbacaan warna di kertas terang
+// ---------------------------------------------------------------------------
+
+/**
+ * Satu deklarasi CSS dari output sanitizer ("prop:nilai", dipisah ";"). Entitas seperti &quot; di
+ * font-family memuat ";" sehingga dibaca utuh, bukan sebagai pemisah.
+ */
+const STYLE_DECLARATION_PATTERN = /([a-z-]+):((?:&[a-z0-9#]+;|[^;&])*)/gi;
+
+function guardStyleColors(style: string) {
+  const declarations: string[] = [];
+  for (const [, property, value] of Array.from(style.matchAll(STYLE_DECLARATION_PATTERN))) {
+    const name = property.toLowerCase();
+    if (name === "color" || name === "background-color") {
+      const guarded = name === "color" ? readableTextColor(value.trim()) : readableBackgroundColor(value.trim());
+      if (guarded === null) continue;
+      declarations.push(guarded === value.trim() ? `${property}:${value}` : `${property}:${guarded}`);
+      continue;
+    }
+    declarations.push(`${property}:${value}`);
+  }
+  return declarations.join(";");
+}
+
+/**
+ * Warna pilihan instruktur yang dibuat untuk tema gelap lama harus tetap terbaca di kertas terang.
+ * Dijalankan saat materi dibuka di editor DAN saat dirender untuk student (keduanya lewat
+ * roomMaterialToEditorHtml), sehingga editor menampilkan persis yang dilihat student. Isi database
+ * tidak diubah; penyesuaian ikut tersimpan hanya bila instruktur menyimpan ulang materinya.
+ *
+ * - warna teks palet lama dipetakan ke palet baru; warna teks lain yang di bawah 4,5:1 di lembar, well, atau
+ *   salah satu stabilo palet digelapkan (hue tetap), sehingga warna teks apa pun tetap terbaca di stabilo mana pun;
+ * - stabilo palet lama dipetakan ke palet baru; latar span/stabilo lain yang lebih gelap dari stabilo palet tergelap
+ *   dibuang (stabilo kembali ke kuning bawaan), sehingga pasangan warna teks + latar selalu di atas 4,5:1;
+ * - warna yang sudah terbaca tidak diubah sama sekali.
+ *
+ * Bekerja pada output sanitizeRichHtml: hanya tag <span>/<mark> asli yang disentuh (teks selalu ter-escape,
+ * jadi "<span" di dalam contoh kode tidak ikut), dan nilai pengganti dibuat sendiri (hex), bukan dari input.
+ */
+function applyReadableColors(html: string) {
+  return html.replace(/<(span|mark)\b([^>]*)>/g, (_tag, tagName: string, attributes: string) => {
+    let next = attributes.replace(/\sstyle="([^"]*)"/, (_match, style: string) => {
+      const guarded = guardStyleColors(style);
+      return guarded ? ` style="${guarded}"` : "";
+    });
+    if (tagName === "mark") {
+      next = next.replace(/\sdata-color="([^"]*)"/, (_match, color: string) => {
+        const guarded = readableBackgroundColor(color);
+        return guarded === null ? "" : ` data-color="${guarded}"`;
+      });
+    }
+    return `<${tagName}${next}>`;
+  });
+}
+
 /** HTML untuk dibuka di editor visual, apa pun format penyimpanannya (tanpa pembungkus tampilan). */
 export function roomMaterialToEditorHtml(content: string, format: ContentFormat) {
   if (!content || !content.trim()) return "";
-  return format === "HTML" ? sanitizeRichHtml(content) : markdownToHtml(content);
+  return applyReadableColors(format === "HTML" ? sanitizeRichHtml(content) : markdownToHtml(content));
 }
 
 /**
@@ -426,7 +482,7 @@ function adjustForDisplay(html: string) {
     .replace(
       /(<li data-type="taskItem" data-checked="(true|false)"><label><input[^>]*>)<span><\/span><\/label>/g,
       (_match, start: string, checked: string) =>
-        `${start.replace(/<input/, "<input aria-hidden=\"true\"")}<span class="sr-only">${checked === "true" ? "Selesai: " : "Belum: "}</span></label>`
+        `${start.replace(/<input/, "<input aria-hidden=\"true\"")}<span class="sr-only">${checked === "true" ? "Done: " : "Not done: "}</span></label>`
     );
 }
 
@@ -454,9 +510,25 @@ function stripTrailingEmptyParagraphs(html: string) {
     if (start < 0) break;
 
     const inner = output.slice(start + 3, output.length - 4);
-    if (!/^(?:\s|&nbsp;| |<br\s*\/?>)*$/i.test(inner)) break;
+    if (!/^(?:\s|&nbsp;|\u00a0|<br\s*\/?>)*$/i.test(inner)) break;
     output = output.slice(0, start).trimEnd();
   }
 
   return output;
+}
+
+/**
+ * Materi instruktur boleh memakai Heading 1–4, padahal halaman room sudah punya h1 (judul halaman dari
+ * AppShell) dan h2 per seksi (Material, Tasks, Your progress). Supaya kerangka heading untuk pembaca
+ * layar tetap benar, level heading materi digeser di bawah seksi "Material" lewat aria-level
+ * (Heading 1 → level 3, Heading 2 → level 4, …, maksimal 6).
+ *
+ * Tag aslinya dipertahankan: .prose-cyber menata h1–h4 per tag, jadi tampilan tetap sama persis dengan
+ * editor, dan isi database tidak diubah. Aman sebagai regex karena HTML berasal dari renderRoomMaterialHtml
+ * (sanitize-html meng-escape "<" di teks dan atribut, dan atribut heading hanya `style`), sehingga
+ * "<h1" hanya bisa berupa tag sungguhan.
+ */
+export function nestRichHtmlHeadings(html: string, offset: number) {
+  if (offset <= 0) return html;
+  return html.replace(/<h([1-6])(?=[\s>])/gi, (_match, level: string) => `<h${level} aria-level="${Math.min(6, Number(level) + offset)}"`);
 }

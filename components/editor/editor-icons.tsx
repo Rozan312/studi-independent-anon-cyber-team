@@ -4,7 +4,7 @@ type IconProps = { className?: string };
 
 function Svg({ children, className = "h-4 w-4" }: { children: React.ReactNode; className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className={className} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       {children}
     </svg>
   );
@@ -144,14 +144,14 @@ export const ClearFormatIcon = (p: IconProps) => (
 
 export const TextColorIcon = ({ color, className = "h-4 w-4" }: IconProps & { color?: string }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-    <path d="M7 16 12 4l5 12M8.6 12h6.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <rect x="4" y="18.5" width="16" height="3" rx="1" fill={color || "#f8fafc"} />
+    <path d="M7 16 12 4l5 12M8.6 12h6.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <rect x="4" y="18.5" width="16" height="3" rx="1" fill={color || "currentColor"} />
   </svg>
 );
 
 export const HighlightIcon = ({ color, className = "h-4 w-4" }: IconProps & { color?: string }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-    <path d="m14 4 6 6-8 8H6v-6l8-8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    <path d="m14 4 6 6-8 8H6v-6l8-8Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
     <rect x="3" y="19" width="18" height="3" rx="1" fill={color || "rgba(250, 204, 21, 0.85)"} />
   </svg>
 );

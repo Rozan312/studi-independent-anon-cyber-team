@@ -5,6 +5,8 @@ import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import type { ActionMessageState } from "@/components/ui/action-message";
+import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
+import { formatScheduleDate, getRoomAvailability } from "@/lib/learning/availability";
 import {
   ContentAccessError,
   addQuizQuestion,
@@ -76,11 +78,73 @@ function parseOptions(formData: FormData) {
     .filter((option) => option.label.length > 0);
 }
 
-function fail(error: unknown, fallback: string): ContentActionState {
+// Nama field seperti label di form, agar pesan validasi menyebut field yang terlihat instruktur.
+const PATH_FIELDS: FieldLabels = {
+  fields: {
+    title: "Title",
+    slug: "Slug",
+    description: "Description",
+    category: "Category",
+    difficulty: "Difficulty",
+    estimatedHours: "Estimated hours",
+    coverImageUrl: "Cover image"
+  }
+};
+
+const ROOM_FIELDS: FieldLabels = {
+  fields: {
+    learningPathId: "Learning path",
+    title: "Room title",
+    slug: { label: "Slug", invalid: "Slug may only contain lowercase letters, numbers, and hyphens." },
+    description: "Short description",
+    category: "Category",
+    difficulty: "Difficulty",
+    estimatedMinutes: "Estimated minutes",
+    points: "Points",
+    orderIndex: "Position in path",
+    coverImageUrl: "Cover image",
+    availableFrom: "Opening time",
+    availableUntil: "Closing time"
+  }
+};
+
+const MATERIAL_FIELDS: FieldLabels = { fields: { content: "Material" } };
+
+const TASK_FIELDS: FieldLabels = {
+  fields: {
+    title: "Task title",
+    description: "Instructions for members",
+    expectedAnswer: "Expected answer",
+    acceptedAnswers: { label: "Other accepted answers", tooBig: "Other accepted answers can have up to 10 lines." },
+    hint: "Hint",
+    points: "Points"
+  },
+  nested: { acceptedAnswers: { item: "Other accepted answer" } }
+};
+
+const QUIZ_FIELDS: FieldLabels = {
+  fields: {
+    title: "Quiz title",
+    description: "Quiz description",
+    passingScore: "Passing score"
+  }
+};
+
+const QUESTION_FIELDS: FieldLabels = {
+  fields: {
+    question: "Question",
+    explanation: "Answer explanation",
+    options: "Answer options"
+  },
+  nested: { options: { item: "Option", fields: { label: "Option text" } } }
+};
+
+/** Aksi tanpa field yang bisa diisi (publish, urutkan, hapus): error validasi berarti id/arah dari form yang usang. */
+const NO_FIELDS: FieldLabels = { fields: {} };
+
+function fail(error: unknown, fallback: string, labels: FieldLabels = NO_FIELDS): ContentActionState {
   if (error instanceof ZodError) {
-    const issue = error.issues[0];
-    const field = issue?.path?.length ? `${issue.path.join(".")}: ` : "";
-    return { tone: "error", message: `${field}${issue?.message ?? fallback}` };
+    return { tone: "error", message: zodErrorMessage(error, labels, fallback) };
   }
 
   if (error instanceof ContentAccessError) {
@@ -134,7 +198,7 @@ export async function createLearningPathAction(_state: ContentActionState, formD
     createdId = path.id;
     revalidatePathPages(path.id, path.slug);
   } catch (error) {
-    return fail(error, "Learning path belum berhasil dibuat.");
+    return fail(error, "Couldn't create the learning path.", PATH_FIELDS);
   }
 
   redirect(`/instructor/paths/${createdId}?created=1`);
@@ -155,9 +219,9 @@ export async function updateLearningPathAction(_state: ContentActionState, formD
     });
 
     revalidatePathPages(path.id, path.slug);
-    return { tone: "success", message: "Learning path berhasil disimpan." };
+    return { tone: "success", message: "Learning path saved." };
   } catch (error) {
-    return fail(error, "Learning path belum berhasil disimpan.");
+    return fail(error, "Couldn't save the learning path.", PATH_FIELDS);
   }
 }
 
@@ -172,10 +236,10 @@ export async function toggleLearningPathPublishAction(_state: ContentActionState
     revalidatePathPages(path.id, path.slug);
     return {
       tone: "success",
-      message: path.isPublished ? "Learning path dipublish dan terlihat oleh student." : "Learning path dikembalikan ke draft."
+      message: path.isPublished ? "Learning path published. Members can see it now." : "Learning path moved back to draft. Members can no longer see it."
     };
   } catch (error) {
-    return fail(error, "Status publish belum berhasil diubah.");
+    return fail(error, "Couldn't change the publish status.");
   }
 }
 
@@ -195,9 +259,9 @@ export async function addRoomToPathAction(_state: ContentActionState, formData: 
     revalidatePath(`/learning-paths/${previousPathSlug}`);
     revalidateRoomPaths({ id: room.id, slug: room.slug });
 
-    return { tone: "success", message: `Room "${room.title}" ditambahkan sebagai modul ke-${room.orderIndex} di path ini.` };
+    return { tone: "success", message: `Room "${room.title}" added to the end of this path (position ${room.orderIndex}).` };
   } catch (error) {
-    return fail(error, "Room belum berhasil ditambahkan ke path.");
+    return fail(error, "Couldn't add the room to the path.");
   }
 }
 
@@ -215,7 +279,7 @@ export async function moveRoomInPathAction(_state: ContentActionState, formData:
 
     return { tone: "idle", message: "" };
   } catch (error) {
-    return fail(error, "Urutan room belum berhasil diubah.");
+    return fail(error, "Couldn't reorder the room.");
   }
 }
 
@@ -243,9 +307,9 @@ export async function updateRoomMetadataAction(_state: ContentActionState, formD
     });
 
     revalidateRoomPaths({ id: room.id, slug: room.slug });
-    return { tone: "success", message: "Informasi room berhasil disimpan." };
+    return { tone: "success", message: "Room details saved." };
   } catch (error) {
-    return fail(error, "Informasi room belum berhasil disimpan.");
+    return fail(error, "Couldn't save the room details.", ROOM_FIELDS);
   }
 }
 
@@ -263,10 +327,23 @@ export async function updateRoomContentAction(_state: MaterialActionState, formD
     });
 
     revalidateRoomPaths({ id: room.id, slug: room.slug });
-    return { tone: "success", message: "Materi room berhasil disimpan.", savedContent: room.content, saveId: Date.now() };
+    return { tone: "success", message: "Room material saved.", savedContent: room.content, saveId: Date.now() };
   } catch (error) {
-    return fail(error, "Materi belum berhasil disimpan.");
+    return fail(error, "Couldn't save the material.", MATERIAL_FIELDS);
   }
+}
+
+/** Pesan publish yang mengikuti jadwal room: terbuka sekarang, terjadwal, atau sudah lewat tanggal tutupnya. */
+function publishedRoomMessage(room: { isPublished: boolean; availableFrom: Date | null; availableUntil: Date | null }) {
+  const availability = getRoomAvailability(room);
+
+  if (availability.state === "upcoming" && availability.opensAt) {
+    return `Room published. It opens to members on ${formatScheduleDate(availability.opensAt)}.`;
+  }
+  if (availability.state === "closed") {
+    return "Room published, but its closing time has passed, so members can't open it. Change its schedule in the room details.";
+  }
+  return "Room published. Members can open it now.";
 }
 
 export async function toggleRoomPublishAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
@@ -278,12 +355,9 @@ export async function toggleRoomPublishAction(_state: ContentActionState, formDa
     });
 
     revalidateRoomPaths({ id: room.id, slug: room.slug });
-    return {
-      tone: "success",
-      message: room.isPublished ? "Room dipublish dan bisa dibuka student." : "Room dikembalikan ke draft."
-    };
+    return { tone: "success", message: room.isPublished ? publishedRoomMessage(room) : "Room moved back to draft. Members can no longer open it." };
   } catch (error) {
-    return fail(error, "Status publish room belum berhasil diubah.");
+    return fail(error, "Couldn't change the room's publish status.");
   }
 }
 
@@ -305,9 +379,9 @@ export async function addRoomTaskAction(_state: ContentActionState, formData: Fo
     });
 
     revalidateRoomPaths(room);
-    return { tone: "success", message: "Task baru ditambahkan." };
+    return { tone: "success", message: "Task added." };
   } catch (error) {
-    return fail(error, "Task belum berhasil ditambahkan.");
+    return fail(error, "Couldn't add the task.", TASK_FIELDS);
   }
 }
 
@@ -325,9 +399,9 @@ export async function updateRoomTaskAction(_state: ContentActionState, formData:
     });
 
     revalidateRoomPaths(room, task.roomId);
-    return { tone: "success", message: "Task berhasil disimpan." };
+    return { tone: "success", message: "Task saved." };
   } catch (error) {
-    return fail(error, "Task belum berhasil disimpan.");
+    return fail(error, "Couldn't save the task.", TASK_FIELDS);
   }
 }
 
@@ -337,9 +411,9 @@ export async function deleteRoomTaskAction(_state: ContentActionState, formData:
     const task = await deleteRoomTask(actor, { taskId: text(formData, "taskId") });
 
     revalidateRoomPaths(task.room, task.roomId);
-    return { tone: "success", message: "Task dihapus beserta riwayat jawabannya." };
+    return { tone: "success", message: "Task deleted, along with its answer history." };
   } catch (error) {
-    return fail(error, "Task belum berhasil dihapus.");
+    return fail(error, "Couldn't delete the task.");
   }
 }
 
@@ -354,7 +428,7 @@ export async function moveRoomTaskAction(_state: ContentActionState, formData: F
     revalidateRoomPaths(task.room, task.roomId);
     return { tone: "idle", message: "" };
   } catch (error) {
-    return fail(error, "Urutan task belum berhasil diubah.");
+    return fail(error, "Couldn't reorder the task.");
   }
 }
 
@@ -373,9 +447,9 @@ export async function upsertQuizAction(_state: ContentActionState, formData: For
     });
 
     revalidateRoomPaths(room);
-    return { tone: "success", message: "Pengaturan quiz berhasil disimpan." };
+    return { tone: "success", message: "Quiz settings saved." };
   } catch (error) {
-    return fail(error, "Pengaturan quiz belum berhasil disimpan.");
+    return fail(error, "Couldn't save the quiz settings.", QUIZ_FIELDS);
   }
 }
 
@@ -390,9 +464,9 @@ export async function addQuizQuestionAction(_state: ContentActionState, formData
     });
 
     revalidateRoomPaths(room, text(formData, "roomId"));
-    return { tone: "success", message: "Pertanyaan ditambahkan ke quiz." };
+    return { tone: "success", message: "Question added to the quiz." };
   } catch (error) {
-    return fail(error, "Pertanyaan belum berhasil ditambahkan.");
+    return fail(error, "Couldn't add the question.", QUESTION_FIELDS);
   }
 }
 
@@ -407,9 +481,9 @@ export async function updateQuizQuestionAction(_state: ContentActionState, formD
     });
 
     revalidateRoomPaths(question.quiz.room, question.quiz.roomId);
-    return { tone: "success", message: "Pertanyaan berhasil disimpan." };
+    return { tone: "success", message: "Question saved." };
   } catch (error) {
-    return fail(error, "Pertanyaan belum berhasil disimpan.");
+    return fail(error, "Couldn't save the question.", QUESTION_FIELDS);
   }
 }
 
@@ -419,9 +493,9 @@ export async function deleteQuizQuestionAction(_state: ContentActionState, formD
     const question = await deleteQuizQuestion(actor, { questionId: text(formData, "questionId") });
 
     revalidateRoomPaths(question.quiz.room, question.quiz.roomId);
-    return { tone: "success", message: "Pertanyaan dihapus." };
+    return { tone: "success", message: "Question deleted." };
   } catch (error) {
-    return fail(error, "Pertanyaan belum berhasil dihapus.");
+    return fail(error, "Couldn't delete the question.");
   }
 }
 
@@ -436,6 +510,6 @@ export async function moveQuizQuestionAction(_state: ContentActionState, formDat
     revalidateRoomPaths(question.quiz.room, question.quiz.roomId);
     return { tone: "idle", message: "" };
   } catch (error) {
-    return fail(error, "Urutan pertanyaan belum berhasil diubah.");
+    return fail(error, "Couldn't reorder the question.");
   }
 }

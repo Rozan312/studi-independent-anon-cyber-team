@@ -12,7 +12,7 @@ import { MAX_RICH_CONTENT_LENGTH } from "@/lib/content/rich-text-config";
 
 const initialState: MaterialActionState = { tone: "idle", message: "" };
 
-const LEAVE_MESSAGE = "Ada perubahan materi yang belum disimpan. Tinggalkan halaman ini dan buang perubahan?";
+const LEAVE_MESSAGE = "You have unsaved material changes. Leave this page and discard them?";
 
 /** Panjang HTML dihitung ulang setelah jeda mengetik, bukan di setiap ketikan (mahal untuk dokumen panjang). */
 const LENGTH_CHECK_DELAY_MS = 600;
@@ -197,36 +197,37 @@ export function MaterialEditor({
       <input ref={contentInputRef} type="hidden" name="content" defaultValue="" />
 
       {needsFormatUpgrade ? (
-        <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-100">
-          Materi ini masih tersimpan dalam format Markdown lama dan sudah dikonversi otomatis untuk diedit. Periksa hasilnya, lalu klik Simpan
-          materi agar tersimpan dalam format editor baru.
+        <p className="rounded-lg border border-amber/30 bg-amber-soft px-3 py-2 text-sm leading-relaxed text-ink">
+          This material is still stored in the old Markdown format and was converted automatically for editing. Check the result, then select
+          Save material to store it in the new editor format.
         </p>
       ) : null}
 
       <RichTextEditor initialHtml={initialHtml} onChange={handleChange} onReady={handleReady} disabled={disabled} />
 
       {tooLong ? (
-        <p className="text-xs text-rose-300" role="alert">
-          Materi terlalu panjang ({htmlLength.toLocaleString("id-ID")} dari maksimal {MAX_RICH_CONTENT_LENGTH.toLocaleString("id-ID")} karakter HTML).
-          Pecah menjadi beberapa room atau kurangi tabel besar.
+        <p className="text-sm text-red" role="alert">
+          This material is too long ({htmlLength.toLocaleString("en-US")} of {MAX_RICH_CONTENT_LENGTH.toLocaleString("en-US")} HTML characters
+          allowed). Split it across several rooms or shorten large tables.
         </p>
       ) : null}
 
       {adjustedNotice ? (
-        <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs leading-relaxed text-blue-100" role="status">
-          Sebagian format tidak didukung (misalnya gambar dari luar atau gaya yang tidak aman) dan disesuaikan saat disimpan. Editor kini
-          menampilkan versi yang dilihat student.
+        <p className="rounded-lg border border-line bg-well px-3 py-2 text-sm leading-relaxed text-ink" role="status">
+          Some formatting isn&apos;t supported (such as external images or unsafe styles) and was adjusted on save. The editor now shows exactly
+          what members see.
         </p>
       ) : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
           <ActionMessage state={state} />
-          <p className={`text-[11px] ${isDirty ? "text-amber-300" : "text-slate-500"}`} aria-live="polite">
-            {isDirty ? "Ada perubahan yang belum disimpan." : "Semua perubahan sudah disimpan."} Tekan Ctrl/⌘+S untuk menyimpan.
+          <p className="text-xs text-ink-3" aria-live="polite">
+            <span className={isDirty ? "font-semibold text-amber" : undefined}>{isDirty ? "Unsaved changes." : "All changes saved."}</span> Press
+            Ctrl/⌘+S to save.
           </p>
         </div>
-        <SubmitButton label="Simpan materi" disabled={disabled || tooLong} />
+        <SubmitButton label="Save material" pendingLabel="Saving…" disabled={disabled || tooLong} />
       </div>
     </form>
   );

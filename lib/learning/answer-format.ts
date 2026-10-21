@@ -7,19 +7,19 @@ import type { AnswerType } from "@prisma/client";
  */
 export const answerFormatMeta: Record<AnswerType, { label: string; hint: string; placeholder: string }> = {
   TEXT: {
-    label: "Teks singkat",
-    hint: "Ketik jawaban singkat. Huruf besar/kecil dan spasi di tepi diabaikan.",
-    placeholder: "Ketik jawaban singkat"
+    label: "Short text",
+    hint: "Type a short answer. Letter case and leading/trailing spaces are ignored.",
+    placeholder: "Type a short answer"
   },
   MULTIPLE_CHOICE: {
-    label: "Pilih satu istilah",
-    hint: "Pilih satu istilah dari deskripsi task, lalu ketik istilah itu.",
-    placeholder: "Ketik istilah yang dipilih"
+    label: "Pick one term",
+    hint: "Pick one term from the task description, then type it.",
+    placeholder: "Type the term you picked"
   },
   CHECKBOX: {
-    label: "Istilah tunggal",
-    hint: "Ketik istilah yang paling tepat dari deskripsi task.",
-    placeholder: "Ketik istilah yang dipilih"
+    label: "Single term",
+    hint: "Type the term from the task description that fits best.",
+    placeholder: "Type the term you picked"
   }
 };
 

@@ -1,12 +1,24 @@
 /**
  * Normalisasi HTML yang ditempel dari Word, Excel, Google Docs, atau halaman web (berjalan di browser).
- * Tujuannya agar yang terlihat di editor sama dengan yang lolos sanitasi server dan terbaca di tema gelap:
+ * Tujuannya agar yang terlihat di editor sama dengan yang lolos sanitasi server dan terbaca di kertas terang.
+ * Aturan warna memakai fungsi yang sama dengan pelindung keterbacaan server (lib/content/rich-text.ts):
  * - ukuran font pt/em/rem/%/kata kunci dikonversi ke px (8-96 px);
- * - warna teks gelap (hitam bawaan Office) dan latar terang dibuang karena tidak terbaca di tema gelap;
+ * - teks hitam/hampir hitam bawaan Office dan Google Docs dibuang agar memakai tinta tema; warna gelap lain dipertahankan;
+ * - warna teks yang terlalu terang (di bawah 4,5:1 di lembar, well, atau stabilo palet) digelapkan dengan hue tetap;
+ *   putih/abu-abu sangat terang dibuang;
+ * - latar yang lebih gelap dari stabilo palet tergelap dibuang, begitu pula latar putih/hampir putih yang hanya menambah kotak;
  * - gambar yang tidak bisa disimpan (file:, data:, http:) diganti teks link agar tidak hilang diam-diam.
  */
 
-import { isAllowedImageSrc, normalizeColor } from "@/lib/content/rich-text-config";
+import {
+  SHEET_RGBA,
+  compositeOver,
+  isAllowedImageSrc,
+  parseCssColor,
+  readableBackgroundColor,
+  readableTextColor,
+  type Rgba
+} from "@/lib/content/rich-text-config";
 
 const KEYWORD_SIZES: Record<string, number> = {
   "xx-small": 9,
@@ -43,13 +55,10 @@ function toPixels(value: string): number | null {
 
 let colorProbe: HTMLElement | null = null;
 
-/** Mengubah nilai warna CSS apa pun (nama, hex, rgb) menjadi [r, g, b, a] lewat browser. */
-function resolveColor(value: string): [number, number, number, number] | null {
-  const canonical = normalizeColor(value);
-  const direct = canonical.split(",").map(Number);
-  if (direct.length >= 3 && direct.slice(0, 3).every((part) => Number.isFinite(part))) {
-    return [direct[0], direct[1], direct[2], direct.length === 4 ? direct[3] : 1];
-  }
+/** Mengubah nilai warna CSS apa pun (nama, hex, rgb, kata kunci sistem Office) menjadi [r, g, b, a] lewat browser. */
+function resolveColor(value: string): Rgba | null {
+  const direct = parseCssColor(value);
+  if (direct) return direct;
 
   if (typeof document === "undefined") return null;
 
@@ -62,20 +71,29 @@ function resolveColor(value: string): [number, number, number, number] | null {
     colorProbe.style.color = "";
     colorProbe.style.color = value;
     if (!colorProbe.style.color) return null;
-    const computed = normalizeColor(getComputedStyle(colorProbe).color).split(",").map(Number);
-    if (computed.length < 3 || computed.slice(0, 3).some((part) => !Number.isFinite(part))) return null;
-    return [computed[0], computed[1], computed[2], computed.length === 4 ? computed[3] : 1];
+    return parseCssColor(getComputedStyle(colorProbe).color);
   } catch {
     return null;
   }
 }
 
-function luminance([red, green, blue]: [number, number, number, number]) {
-  const channel = (value: number) => {
-    const scaled = value / 255;
-    return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
-  };
-  return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue);
+function formatColor([red, green, blue, alpha]: Rgba) {
+  const [r, g, b] = [red, green, blue].map((part) => Math.round(part));
+  return alpha >= 1 ? `rgb(${r}, ${g}, ${b})` : `rgba(${r}, ${g}, ${b}, ${Number(alpha.toFixed(3))})`;
+}
+
+/** Hitam/abu-abu sangat gelap tanpa hue (teks bawaan dokumen Office): tinta tema sudah setara. */
+function isPlainBlack(color: Rgba) {
+  const [red, green, blue] = compositeOver(color, SHEET_RGBA);
+  const max = Math.max(red, green, blue);
+  return max <= 51 && max - Math.min(red, green, blue) <= 24;
+}
+
+/** Latar putih/hampir putih tanpa hue hanya menambah kotak di atas lembar. */
+function isPlainWhite(color: Rgba) {
+  const [red, green, blue] = compositeOver(color, SHEET_RGBA);
+  const min = Math.min(red, green, blue);
+  return min >= 236 && Math.max(red, green, blue) - min <= 16;
 }
 
 function normalizeElementStyle(element: HTMLElement) {
@@ -89,17 +107,18 @@ function normalizeElementStyle(element: HTMLElement) {
 
   if (style.color) {
     const color = resolveColor(style.color);
-    // Teks hitam/sangat gelap dari dokumen Office (kontras < 2,5:1 di latar tema) tidak terbaca; biarkan warna bawaan tema.
-    if (!color || color[3] === 0 || luminance(color) < 0.08) style.removeProperty("color");
-    else style.color = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+    const readable = color && color[3] > 0 && !isPlainBlack(color) ? readableTextColor(formatColor(color)) : null;
+    if (readable === null) style.removeProperty("color");
+    else style.color = readable;
   }
 
   for (const property of ["background-color", "background"]) {
     const value = style.getPropertyValue(property);
     if (!value) continue;
     const color = resolveColor(value);
-    // Latar putih atau terang dari Office/web akan menutupi teks terang di tema gelap.
-    if (!color || color[3] === 0 || luminance(color) > 0.6) style.removeProperty(property);
+    const readable = color && color[3] > 0 && !isPlainWhite(color) ? readableBackgroundColor(formatColor(color)) : null;
+    if (readable === null) style.removeProperty(property);
+    else style.setProperty(property, readable);
   }
 
   if (!element.getAttribute("style")?.trim()) element.removeAttribute("style");
@@ -235,12 +254,12 @@ export function normalizePastedHtml(html: string) {
     const src = image.getAttribute("src") ?? "";
     if (isAllowedImageSrc(src)) return;
 
-    const alt = image.getAttribute("alt")?.trim() || "gambar";
+    const alt = image.getAttribute("alt")?.trim() || "image";
     const replacement = parsed.createElement(/^https?:\/\//i.test(src) ? "a" : "span");
     if (replacement.tagName === "A") replacement.setAttribute("href", src);
     replacement.textContent = /^https?:\/\//i.test(src)
-      ? `Gambar: ${alt}`
-      : `[Gambar "${alt}" tidak ikut tertempel. Unggah lewat tombol gambar.]`;
+      ? `Image: ${alt}`
+      : `[Image "${alt}" was not pasted. Upload it with the image button.]`;
     image.replaceWith(replacement);
   });
 

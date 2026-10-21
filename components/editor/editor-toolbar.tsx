@@ -35,30 +35,41 @@ import {
   TextColorIcon,
   UndoIcon
 } from "@/components/editor/editor-icons";
+import { helpClass, inputClass, labelClass } from "@/components/instructor/form-styles";
 
 const BLOCK_STYLES = [
-  { value: "paragraph", label: "Teks normal" },
-  { value: "h1", label: "Judul 1" },
-  { value: "h2", label: "Judul 2" },
-  { value: "h3", label: "Judul 3" },
-  { value: "h4", label: "Judul 4" }
+  { value: "paragraph", label: "Normal text" },
+  { value: "h1", label: "Heading 1" },
+  { value: "h2", label: "Heading 2" },
+  { value: "h3", label: "Heading 3" },
+  { value: "h4", label: "Heading 4" }
 ] as const;
 
 type BlockStyle = (typeof BLOCK_STYLES)[number]["value"];
 
 const ALIGNMENTS = [
-  { value: "left", label: "Rata kiri", shortcut: "Ctrl/⌘+Shift+L", Icon: AlignLeftIcon },
-  { value: "center", label: "Rata tengah", shortcut: "Ctrl/⌘+Shift+E", Icon: AlignCenterIcon },
-  { value: "right", label: "Rata kanan", shortcut: "Ctrl/⌘+Shift+R", Icon: AlignRightIcon },
-  { value: "justify", label: "Rata kiri-kanan", shortcut: "Ctrl/⌘+Shift+J", Icon: AlignJustifyIcon }
+  { value: "left", label: "Align left", shortcut: "Ctrl/⌘+Shift+L", Icon: AlignLeftIcon },
+  { value: "center", label: "Align center", shortcut: "Ctrl/⌘+Shift+E", Icon: AlignCenterIcon },
+  { value: "right", label: "Align right", shortcut: "Ctrl/⌘+Shift+R", Icon: AlignRightIcon },
+  { value: "justify", label: "Justify", shortcut: "Ctrl/⌘+Shift+J", Icon: AlignJustifyIcon }
 ] as const;
 
+/** Pilihan gaya, font, dan ukuran: lembar kecil bergaris di atas well toolbar. */
 const selectClass =
-  "h-8 rounded-md border border-slate-700 bg-slate-900 px-2 text-xs font-semibold text-slate-200 outline-none transition hover:border-slate-500 focus-visible:border-primary disabled:cursor-not-allowed disabled:opacity-50";
+  "h-8 rounded-md border border-line bg-sheet px-2 text-xs font-semibold text-ink shadow-sheet transition-colors hover:border-line-strong focus-visible:border-cyan-ink disabled:cursor-not-allowed disabled:opacity-50";
+
+/** Tombol teks kecil di dalam popover (aksi tabel, hapus format warna). */
+const popoverButtonClass =
+  "rounded-md border border-line bg-sheet px-2 py-1.5 text-xs font-semibold text-ink-2 transition-colors hover:border-line-strong hover:bg-well hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
+
+const popoverDangerButtonClass =
+  "rounded-md border border-red/30 bg-sheet px-2 py-1.5 text-xs font-semibold text-red transition-colors hover:border-red hover:bg-red-soft disabled:cursor-not-allowed disabled:opacity-40";
 
 /**
  * Tombol toolbar. `active` hanya diisi untuk tombol toggle (dibacakan sebagai "pressed");
  * `expanded` dipakai tombol pembuka popover; `highlighted` hanya efek visual.
+ * Keadaan aktif: tombol lembar dengan garis tinta 60% (sekitar 4,6:1 terhadap well toolbar, di atas 3:1
+ * yang dibutuhkan indikator keadaan), sehingga berbeda jelas dari hover yang hanya mengganti latar.
  */
 function ToolButton({
   label,
@@ -92,8 +103,8 @@ function ToolButton({
       disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
-      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-35 ${
-        isOn ? "bg-primary/20 text-blue-100 ring-1 ring-primary/50" : "text-slate-300 hover:bg-white/[0.07] hover:text-white"
+      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+        isOn ? "bg-sheet text-ink ring-1 ring-ink/60" : "text-ink-2 hover:bg-sheet hover:text-ink"
       }`}
     >
       {children}
@@ -102,7 +113,7 @@ function ToolButton({
 }
 
 function Divider() {
-  return <span className="mx-0.5 hidden h-6 w-px bg-slate-700/80 sm:inline-block" aria-hidden="true" />;
+  return <span className="mx-1 hidden h-6 w-px bg-line-soft sm:inline-block" aria-hidden="true" />;
 }
 
 /** Panel kecil di bawah tombol; tertutup saat klik di luar atau menekan Escape. */
@@ -187,7 +198,7 @@ function ToolbarPopover({
       >
         <span className="inline-flex items-center gap-0.5">
           {buttonContent}
-          <svg viewBox="0 0 24 24" className="h-3 w-3 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className="h-3 w-3 opacity-60" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
             <path d="m6 9 6 6 6-6" />
           </svg>
         </span>
@@ -198,7 +209,7 @@ function ToolbarPopover({
           role="dialog"
           aria-label={label}
           style={shiftX ? { transform: `translateX(${shiftX}px)` } : undefined}
-          className={`absolute top-full z-30 mt-1.5 w-64 max-w-[calc(100vw-1rem)] rounded-lg border border-slate-700 bg-[#111827] p-3 shadow-2xl shadow-black/50 ${
+          className={`sheet absolute top-full z-30 mt-1.5 w-64 max-w-[calc(100vw-1rem)] p-3 shadow-lift ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -240,10 +251,10 @@ function ColorGrid({
               aria-pressed={selected}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onPick(option.value)}
-              className={`flex h-8 items-center justify-center rounded-md border text-xs font-black transition ${
-                selected ? "border-primary ring-2 ring-primary/50" : "border-slate-700 hover:border-slate-400"
-              }`}
-              style={swatchKind === "text" ? { color: option.value, backgroundColor: "#0b0f19" } : { backgroundColor: option.value, color: "#f8fafc" }}
+              className={`flex h-8 items-center justify-center rounded-md bg-sheet text-sm font-bold transition-shadow ${
+                selected ? "ring-2 ring-ink ring-offset-1 ring-offset-sheet" : "ring-1 ring-line hover:ring-line-strong"
+              } ${swatchKind === "highlight" ? "text-ink" : ""}`}
+              style={swatchKind === "text" ? { color: option.value } : { backgroundColor: option.value }}
             >
               A
             </button>
@@ -254,7 +265,7 @@ function ColorGrid({
         type="button"
         onMouseDown={(event) => event.preventDefault()}
         onClick={onReset}
-        className="mt-2 w-full rounded-md border border-slate-700 px-2 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/[0.06]"
+        className={`mt-2 w-full ${popoverButtonClass}`}
       >
         {resetLabel}
       </button>
@@ -356,7 +367,7 @@ export function EditorToolbar({
   function applyLink() {
     const href = normalizeLinkHref(linkDraft);
     if (!href) {
-      setLinkError("Gunakan alamat https://, mailto:, atau path internal seperti /rooms/...");
+      setLinkError("Use an https:// or mailto: address, or an internal path such as /rooms/…");
       return;
     }
 
@@ -391,7 +402,7 @@ export function EditorToolbar({
   const scriptActions: ToolbarAction[] = [
     {
       key: "superscript",
-      label: "Superskrip",
+      label: "Superscript",
       shortcut: "Ctrl/⌘+.",
       active: state.superscript,
       run: () => chain().toggleSuperscript().run(),
@@ -403,7 +414,7 @@ export function EditorToolbar({
     },
     {
       key: "subscript",
-      label: "Subskrip",
+      label: "Subscript",
       shortcut: "Ctrl/⌘+,",
       active: state.subscript,
       run: () => chain().toggleSubscript().run(),
@@ -413,13 +424,13 @@ export function EditorToolbar({
         </span>
       )
     },
-    { key: "code", label: "Kode inline", shortcut: "Ctrl/⌘+E", active: state.code, run: () => chain().toggleCode().run(), content: <CodeIcon /> }
+    { key: "code", label: "Inline code", shortcut: "Ctrl/⌘+E", active: state.code, run: () => chain().toggleCode().run(), content: <CodeIcon /> }
   ];
 
   const indentActions: ToolbarAction[] = [
     {
       key: "indent",
-      label: "Tambah indentasi",
+      label: "Increase indent",
       shortcut: "Tab",
       disabled: !state.canIndent,
       run: () => chain().sinkListItem(state.listItemType).run(),
@@ -427,7 +438,7 @@ export function EditorToolbar({
     },
     {
       key: "outdent",
-      label: "Kurangi indentasi",
+      label: "Decrease indent",
       shortcut: "Shift+Tab",
       disabled: !state.canOutdent,
       run: () => chain().liftListItem(state.listItemType).run(),
@@ -436,9 +447,9 @@ export function EditorToolbar({
   ];
 
   const blockActions: ToolbarAction[] = [
-    { key: "blockquote", label: "Kutipan", shortcut: "Ctrl/⌘+Shift+B", active: state.blockquote, run: () => chain().toggleBlockquote().run(), content: <QuoteIcon /> },
-    { key: "codeBlock", label: "Blok kode", shortcut: "Ctrl/⌘+Alt+C", active: state.codeBlock, run: () => chain().toggleCodeBlock().run(), content: <CodeBlockIcon /> },
-    { key: "hr", label: "Garis pemisah", run: () => chain().setHorizontalRule().run(), content: <HorizontalRuleIcon /> }
+    { key: "blockquote", label: "Quote", shortcut: "Ctrl/⌘+Shift+B", active: state.blockquote, run: () => chain().toggleBlockquote().run(), content: <QuoteIcon /> },
+    { key: "codeBlock", label: "Code block", shortcut: "Ctrl/⌘+Alt+C", active: state.codeBlock, run: () => chain().toggleCodeBlock().run(), content: <CodeBlockIcon /> },
+    { key: "hr", label: "Horizontal line", run: () => chain().setHorizontalRule().run(), content: <HorizontalRuleIcon /> }
   ];
 
   function renderActions(actions: ToolbarAction[], afterRun?: () => void) {
@@ -460,26 +471,26 @@ export function EditorToolbar({
   }
 
   return (
-    <div className="rounded-t-xl border-b border-slate-800 bg-[#0d121d] px-2 py-1.5" role="group" aria-label="Format materi">
+    <div className="rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well px-2 py-1.5" role="group" aria-label="Material formatting">
       <div className="flex flex-wrap items-center gap-1">
-        <ToolButton label="Urungkan" shortcut="Ctrl/⌘+Z" disabled={isOff || !state.canUndo} onClick={() => chain().undo().run()}>
+        <ToolButton label="Undo" shortcut="Ctrl/⌘+Z" disabled={isOff || !state.canUndo} onClick={() => chain().undo().run()}>
           <UndoIcon />
         </ToolButton>
-        <ToolButton label="Ulangi" shortcut="Ctrl/⌘+Shift+Z" disabled={isOff || !state.canRedo} onClick={() => chain().redo().run()}>
+        <ToolButton label="Redo" shortcut="Ctrl/⌘+Shift+Z" disabled={isOff || !state.canRedo} onClick={() => chain().redo().run()}>
           <RedoIcon />
         </ToolButton>
 
         <Divider />
 
         <label className="sr-only" htmlFor="editor-block-style">
-          Gaya paragraf
+          Paragraph style
         </label>
         <select
           id="editor-block-style"
           className={`${selectClass} w-[7.5rem]`}
           value={state.blockStyle}
           disabled={isOff}
-          title="Gaya paragraf"
+          title="Paragraph style"
           onChange={(event) => setBlockStyle(event.target.value as BlockStyle)}
         >
           {BLOCK_STYLES.map((style) => (
@@ -490,21 +501,21 @@ export function EditorToolbar({
         </select>
 
         <label className="sr-only" htmlFor="editor-font-family">
-          Jenis font
+          Font
         </label>
         <select
           id="editor-font-family"
           className={`${selectClass} w-[8.5rem]`}
           value={fontFamilyValue}
           disabled={isOff}
-          title="Jenis font"
+          title="Font"
           onChange={(event) => {
             const value = event.target.value;
             if (!value) chain().unsetFontFamily().run();
             else if (value !== "__custom") chain().setFontFamily(value).run();
           }}
         >
-          {fontFamilyValue === "__custom" ? <option value="__custom">Font lain</option> : null}
+          {fontFamilyValue === "__custom" ? <option value="__custom">Other font</option> : null}
           {FONT_FAMILY_OPTIONS.map((option) => (
             <option key={option.label} value={option.value} style={option.value ? { fontFamily: option.value } : undefined}>
               {option.label}
@@ -513,14 +524,14 @@ export function EditorToolbar({
         </select>
 
         <label className="sr-only" htmlFor="editor-font-size">
-          Ukuran font
+          Size
         </label>
         <select
           id="editor-font-size"
           className={`${selectClass} w-[5.25rem]`}
           value={fontSizeValue}
           disabled={isOff}
-          title="Ukuran font"
+          title="Size"
           onChange={(event) => {
             const value = event.target.value;
             if (!value) chain().unsetFontSize().run();
@@ -530,23 +541,23 @@ export function EditorToolbar({
           {fontSizeValue === "__custom" ? <option value="__custom">{state.fontSize}</option> : null}
           {FONT_SIZE_OPTIONS.map((option) => (
             <option key={option.label} value={option.value}>
-              {option.value ? `${option.label} px` : "Ukuran"}
+              {option.value ? `${option.label} px` : "Size"}
             </option>
           ))}
         </select>
 
         <Divider />
 
-        <ToolButton label="Tebal" shortcut="Ctrl/⌘+B" active={state.bold} disabled={isOff} onClick={() => chain().toggleBold().run()}>
-          <span className="font-black">B</span>
+        <ToolButton label="Bold" shortcut="Ctrl/⌘+B" active={state.bold} disabled={isOff} onClick={() => chain().toggleBold().run()}>
+          <span className="font-bold">B</span>
         </ToolButton>
-        <ToolButton label="Miring" shortcut="Ctrl/⌘+I" active={state.italic} disabled={isOff} onClick={() => chain().toggleItalic().run()}>
+        <ToolButton label="Italic" shortcut="Ctrl/⌘+I" active={state.italic} disabled={isOff} onClick={() => chain().toggleItalic().run()}>
           <span className="font-serif text-base italic">I</span>
         </ToolButton>
-        <ToolButton label="Garis bawah" shortcut="Ctrl/⌘+U" active={state.underline} disabled={isOff} onClick={() => chain().toggleUnderline().run()}>
+        <ToolButton label="Underline" shortcut="Ctrl/⌘+U" active={state.underline} disabled={isOff} onClick={() => chain().toggleUnderline().run()}>
           <span className="underline underline-offset-2">U</span>
         </ToolButton>
-        <ToolButton label="Coret" shortcut="Ctrl/⌘+Shift+S" active={state.strike} disabled={isOff} onClick={() => chain().toggleStrike().run()}>
+        <ToolButton label="Strikethrough" shortcut="Ctrl/⌘+Shift+S" active={state.strike} disabled={isOff} onClick={() => chain().toggleStrike().run()}>
           <span className="line-through">S</span>
         </ToolButton>
         <div className="hidden sm:contents">{renderActions(scriptActions)}</div>
@@ -554,18 +565,18 @@ export function EditorToolbar({
         <Divider />
 
         <ToolbarPopover
-          label="Warna teks"
+          label="Text color"
           disabled={isOff}
           open={openMenu === "color"}
           onOpenChange={(open) => setOpenMenu(open ? "color" : null)}
           buttonContent={<TextColorIcon color={state.color || undefined} />}
         >
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Warna teks</p>
+          <p className="field-label mb-2">Text color</p>
           <ColorGrid
             options={TEXT_COLOR_OPTIONS}
             current={state.color}
             swatchKind="text"
-            resetLabel="Warna bawaan"
+            resetLabel="Default color"
             onPick={(value) => {
               chain().setColor(value).run();
               setOpenMenu(null);
@@ -578,19 +589,19 @@ export function EditorToolbar({
         </ToolbarPopover>
 
         <ToolbarPopover
-          label="Stabilo"
+          label="Highlight"
           active={state.highlight}
           disabled={isOff}
           open={openMenu === "highlight"}
           onOpenChange={(open) => setOpenMenu(open ? "highlight" : null)}
           buttonContent={<HighlightIcon color={state.highlightColor || undefined} />}
         >
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Warna stabilo</p>
+          <p className="field-label mb-2">Highlight</p>
           <ColorGrid
             options={HIGHLIGHT_COLOR_OPTIONS}
             current={state.highlightColor}
             swatchKind="highlight"
-            resetLabel="Hapus stabilo"
+            resetLabel="Remove highlight"
             onPick={(value) => {
               chain().setHighlight({ color: value }).run();
               setOpenMenu(null);
@@ -602,7 +613,7 @@ export function EditorToolbar({
           />
         </ToolbarPopover>
 
-        <ToolButton label="Hapus format" disabled={isOff} onClick={() => chain().unsetAllMarks().clearNodes().run()}>
+        <ToolButton label="Clear formatting" disabled={isOff} onClick={() => chain().unsetAllMarks().clearNodes().run()}>
           <ClearFormatIcon />
         </ToolButton>
 
@@ -623,13 +634,13 @@ export function EditorToolbar({
 
         <Divider />
 
-        <ToolButton label="Daftar berpoin" shortcut="Ctrl/⌘+Shift+8" active={state.bulletList} disabled={isOff} onClick={() => chain().toggleBulletList().run()}>
+        <ToolButton label="Bulleted list" shortcut="Ctrl/⌘+Shift+8" active={state.bulletList} disabled={isOff} onClick={() => chain().toggleBulletList().run()}>
           <BulletListIcon />
         </ToolButton>
-        <ToolButton label="Daftar bernomor" shortcut="Ctrl/⌘+Shift+7" active={state.orderedList} disabled={isOff} onClick={() => chain().toggleOrderedList().run()}>
+        <ToolButton label="Numbered list" shortcut="Ctrl/⌘+Shift+7" active={state.orderedList} disabled={isOff} onClick={() => chain().toggleOrderedList().run()}>
           <OrderedListIcon />
         </ToolButton>
-        <ToolButton label="Daftar centang" shortcut="Ctrl/⌘+Shift+9" active={state.taskList} disabled={isOff} onClick={() => chain().toggleTaskList().run()}>
+        <ToolButton label="Checklist" shortcut="Ctrl/⌘+Shift+9" active={state.taskList} disabled={isOff} onClick={() => chain().toggleTaskList().run()}>
           <TaskListIcon />
         </ToolButton>
         <div className="hidden sm:contents">
@@ -641,11 +652,11 @@ export function EditorToolbar({
         {/* Di layar sempit, perintah yang jarang dipakai dikumpulkan di satu menu agar toolbar ringkas. */}
         <div className="sm:hidden">
           <ToolbarPopover
-            label="Format lainnya"
+            label="More formatting"
             disabled={isOff}
             open={openMenu === "more"}
             onOpenChange={(open) => setOpenMenu(open ? "more" : null)}
-            buttonContent={<span className="px-0.5 text-xs font-bold">Lainnya</span>}
+            buttonContent={<span className="px-0.5 text-xs font-semibold">More</span>}
           >
             <div className="grid grid-cols-4 gap-1">
               {renderActions([...scriptActions, ...indentActions, ...blockActions], () => setOpenMenu(null))}
@@ -663,8 +674,8 @@ export function EditorToolbar({
           buttonContent={<LinkIcon />}
         >
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400" htmlFor="editor-link-input">
-              Alamat link
+            <label className={labelClass} htmlFor="editor-link-input">
+              Link address
             </label>
             <input
               id="editor-link-input"
@@ -681,31 +692,31 @@ export function EditorToolbar({
                   applyLink();
                 }
               }}
-              placeholder="https://contoh.com atau /rooms/..."
-              className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-primary"
+              placeholder="https://example.com or /rooms/…"
+              className={`${inputClass} text-sm`}
             />
-            {linkError ? <p className="mt-1.5 text-[11px] text-rose-300">{linkError}</p> : null}
-            <p className="mt-1.5 text-[11px] text-slate-500">
-              {editor.state.selection.empty && !state.link ? "Tanpa teks terpilih, alamat akan disisipkan sebagai teks link." : "Link diterapkan ke teks yang dipilih."}
+            {linkError ? (
+              <p className="mt-1.5 text-xs text-red" role="alert">
+                {linkError}
+              </p>
+            ) : null}
+            <p className={helpClass}>
+              {editor.state.selection.empty && !state.link ? "With no text selected, the address is inserted as the link text." : "The link applies to the selected text."}
             </p>
-            <div className="mt-2 flex gap-2">
-              <button type="button" onClick={applyLink} className="flex-1 rounded-md bg-primary px-2 py-1.5 text-xs font-bold text-slate-950 hover:bg-blue-300">
-                Terapkan
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={applyLink} className="btn-primary btn-sm flex-1">
+                Apply link
               </button>
               {state.link ? (
-                <button
-                  type="button"
-                  onClick={removeLink}
-                  className="rounded-md border border-rose-500/40 px-2 py-1.5 text-xs font-bold text-rose-300 hover:bg-rose-500/10"
-                >
-                  Hapus link
+                <button type="button" onClick={removeLink} className="btn-danger btn-sm">
+                  Remove link
                 </button>
               ) : null}
             </div>
           </div>
         </ToolbarPopover>
 
-        <ToolButton label="Sisipkan gambar" disabled={isOff} onClick={() => fileInputRef.current?.click()}>
+        <ToolButton label="Insert image" disabled={isOff} onClick={() => fileInputRef.current?.click()}>
           <ImageIcon />
         </ToolButton>
         <input
@@ -721,9 +732,9 @@ export function EditorToolbar({
           }}
         />
 
-        {/* Teks alternatif gambar terpilih: dibacakan pembaca layar di halaman student. */}
+        {/* Teks alternatif gambar terpilih: dibacakan pembaca layar di halaman member. */}
         <ToolbarPopover
-          label="Teks alternatif gambar"
+          label="Alt text"
           active={state.imageSelected}
           disabled={isOff || !state.imageSelected}
           open={openMenu === "alt"}
@@ -732,11 +743,11 @@ export function EditorToolbar({
             if (open) setAltDraft(state.imageAlt);
           }}
           align="right"
-          buttonContent={<span className="px-0.5 text-xs font-bold">Alt</span>}
+          buttonContent={<span className="px-0.5 text-xs font-semibold">Alt</span>}
         >
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400" htmlFor="editor-alt-input">
-              Deskripsi gambar
+            <label className={labelClass} htmlFor="editor-alt-input">
+              Alt text
             </label>
             <input
               id="editor-alt-input"
@@ -752,25 +763,25 @@ export function EditorToolbar({
                   setOpenMenu(null);
                 }
               }}
-              placeholder="Contoh: Diagram alur threat hunting"
-              className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-primary"
+              placeholder="e.g. Threat hunting workflow diagram"
+              className={`${inputClass} text-sm`}
             />
-            <p className="mt-1.5 text-[11px] text-slate-500">Jelaskan isi gambar singkat. Seret sudut gambar di editor untuk mengubah ukurannya.</p>
+            <p className={helpClass}>Describe the image briefly for screen readers. Drag the image corners in the editor to resize it.</p>
             <button
               type="button"
               onClick={() => {
                 chain().updateAttributes("image", { alt: altDraft.trim() }).run();
                 setOpenMenu(null);
               }}
-              className="mt-2 w-full rounded-md bg-primary px-2 py-1.5 text-xs font-bold text-slate-950 hover:bg-blue-300"
+              className="btn-primary btn-sm mt-3 w-full"
             >
-              Simpan deskripsi
+              Save alt text
             </button>
           </div>
         </ToolbarPopover>
 
         <ToolButton
-          label="Sisipkan tabel 3x3"
+          label="Insert table"
           disabled={isOff || state.table}
           onClick={() => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
         >
@@ -779,27 +790,27 @@ export function EditorToolbar({
 
         {/* Pengaturan tabel sebagai menu agar isi editor tidak bergeser saat kursor masuk/keluar tabel. */}
         <ToolbarPopover
-          label="Atur tabel"
+          label="Table options"
           active={state.table}
           disabled={isOff || !state.table}
           open={openMenu === "table"}
           onOpenChange={(open) => setOpenMenu(open ? "table" : null)}
           align="right"
-          buttonContent={<span className="px-0.5 text-xs font-bold">Tabel</span>}
+          buttonContent={<span className="px-0.5 text-xs font-semibold">Table</span>}
         >
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">Atur tabel</p>
-          <div className="grid grid-cols-2 gap-1.5 text-xs">
+          <p className="field-label mb-2">Table options</p>
+          <div className="grid grid-cols-2 gap-1.5">
             {[
-              { label: "Baris di atas", run: () => chain().addRowBefore().run() },
-              { label: "Baris di bawah", run: () => chain().addRowAfter().run() },
-              { label: "Kolom kiri", run: () => chain().addColumnBefore().run() },
-              { label: "Kolom kanan", run: () => chain().addColumnAfter().run() },
-              { label: "Gabung sel", run: () => chain().mergeCells().run(), disabled: !state.canMergeCells },
-              { label: "Pisah sel", run: () => chain().splitCell().run(), disabled: !state.canSplitCell },
-              { label: "Baris judul", run: () => chain().toggleHeaderRow().run() },
-              { label: "Hapus baris", run: () => chain().deleteRow().run(), danger: true },
-              { label: "Hapus kolom", run: () => chain().deleteColumn().run(), danger: true },
-              { label: "Hapus tabel", run: () => chain().deleteTable().run(), danger: true, close: true }
+              { label: "Add row above", run: () => chain().addRowBefore().run() },
+              { label: "Add row below", run: () => chain().addRowAfter().run() },
+              { label: "Add column left", run: () => chain().addColumnBefore().run() },
+              { label: "Add column right", run: () => chain().addColumnAfter().run() },
+              { label: "Merge cells", run: () => chain().mergeCells().run(), disabled: !state.canMergeCells },
+              { label: "Split cell", run: () => chain().splitCell().run(), disabled: !state.canSplitCell },
+              { label: "Header row", run: () => chain().toggleHeaderRow().run() },
+              { label: "Delete row", run: () => chain().deleteRow().run(), danger: true },
+              { label: "Delete column", run: () => chain().deleteColumn().run(), danger: true },
+              { label: "Delete table", run: () => chain().deleteTable().run(), danger: true, close: true }
             ].map((action) => (
               <button
                 key={action.label}
@@ -810,9 +821,7 @@ export function EditorToolbar({
                   action.run();
                   if (action.close) setOpenMenu(null);
                 }}
-                className={`rounded-md border px-2 py-1.5 text-left font-semibold transition disabled:cursor-not-allowed disabled:opacity-35 ${
-                  action.danger ? "border-rose-500/30 text-rose-300 hover:bg-rose-500/10" : "border-slate-700 text-slate-300 hover:bg-white/[0.06]"
-                }`}
+                className={`text-left ${action.danger ? popoverDangerButtonClass : popoverButtonClass}`}
               >
                 {action.label}
               </button>

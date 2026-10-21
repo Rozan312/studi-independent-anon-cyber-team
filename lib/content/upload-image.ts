@@ -19,11 +19,11 @@ export function isUploadableImage(file: File) {
 
 export async function uploadImageFile(file: File): Promise<UploadedImage> {
   if (!isUploadableImage(file)) {
-    throw new Error("Format gambar tidak didukung. Gunakan PNG, JPEG, GIF, atau WebP.");
+    throw new Error("This image format isn't supported. Use PNG, JPEG, GIF, or WebP.");
   }
 
   if (file.size > MAX_IMAGE_BYTES) {
-    throw new Error("Ukuran gambar melebihi batas 5 MB.");
+    throw new Error("This image is larger than the 5 MB limit.");
   }
 
   const body = new FormData();
@@ -33,7 +33,7 @@ export async function uploadImageFile(file: File): Promise<UploadedImage> {
   const payload = (await response.json().catch(() => ({}))) as UploadResponse;
 
   if (!response.ok || !payload.data) {
-    throw new Error(payload.error ?? "Upload gambar gagal.");
+    throw new Error(payload.error ?? "Couldn't upload the image.");
   }
 
   return { url: payload.data.url, fileName: payload.data.fileName };
@@ -41,5 +41,5 @@ export async function uploadImageFile(file: File): Promise<UploadedImage> {
 
 /** Teks alt default dari nama file, misalnya "hunting-pipeline.png" menjadi "hunting pipeline". */
 export function altFromFileName(fileName: string) {
-  return fileName.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim() || "gambar";
+  return fileName.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]+/g, " ").trim() || "image";
 }

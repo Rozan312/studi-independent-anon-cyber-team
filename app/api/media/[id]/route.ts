@@ -10,18 +10,18 @@ const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
  */
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   if (!UUID_PATTERN.test(params.id)) {
-    return NextResponse.json({ error: "Media id tidak valid." }, { status: 400 });
+    return NextResponse.json({ error: "Invalid media ID." }, { status: 400 });
   }
 
   const user = await getCurrentUser();
   if (!user) {
-    return NextResponse.json({ error: "Login diperlukan." }, { status: 401 });
+    return NextResponse.json({ error: "Sign in to continue." }, { status: 401 });
   }
 
   try {
     const result = await readMediaAssetFile(params.id);
     if (!result) {
-      return NextResponse.json({ error: "Media tidak ditemukan." }, { status: 404 });
+      return NextResponse.json({ error: "Media not found." }, { status: 404 });
     }
 
     return new NextResponse(result.body, {
@@ -36,7 +36,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-      return NextResponse.json({ error: "Berkas media tidak ada di penyimpanan." }, { status: 404 });
+      return NextResponse.json({ error: "The media file is missing from storage." }, { status: 404 });
     }
     return NextResponse.json({ error: error instanceof Error ? error.message : "Unexpected error." }, { status: 500 });
   }

@@ -7,6 +7,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { createRoomWithTasks } from "@/lib/services/instructor-service";
 import { ContentAccessError, setRoomPublished } from "@/lib/services/content-service";
 import type { ActionMessageState } from "@/components/ui/action-message";
+import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
 
 export type InstructorActionState = ActionMessageState;
 
@@ -24,14 +25,28 @@ function boolValue(formData: FormData, key: string) {
   return formData.get(key) === "true" || formData.get(key) === "on";
 }
 
+/** Nama field seperti di form room builder, agar pesan validasi server menyebut label yang terlihat. */
+const ROOM_BUILDER_FIELDS: FieldLabels = {
+  fields: {
+    learningPathId: "Learning path",
+    title: "Room title",
+    slug: { label: "Slug", invalid: "Slug may only contain lowercase letters, numbers, and hyphens." },
+    description: "Description",
+    category: "Category",
+    difficulty: "Difficulty",
+    estimatedMinutes: "Estimated time",
+    points: "Room points",
+    orderIndex: "Order in path",
+    tasks: { label: "Starter tasks", tooSmall: "Add at least one starter task before creating the room." }
+  },
+  nested: {
+    tasks: { item: "Task", fields: { title: "Title", description: "Instructions", expectedAnswer: "Expected answer", points: "Points" } }
+  }
+};
+
 function actionError(error: unknown): InstructorActionState {
   if (error instanceof ZodError) {
-    const issue = error.issues[0];
-    const field = issue?.path?.length ? `${issue.path.join(".")}: ` : "";
-    return {
-      tone: "error",
-      message: `${field}${issue?.message ?? "Validasi room gagal."}`
-    };
+    return { tone: "error", message: zodErrorMessage(error, ROOM_BUILDER_FIELDS) };
   }
 
   if (error instanceof ContentAccessError) {
@@ -40,7 +55,7 @@ function actionError(error: unknown): InstructorActionState {
 
   return {
     tone: "error",
-    message: error instanceof Error ? error.message : "Aksi instructor gagal diproses."
+    message: error instanceof Error ? error.message : "Couldn't complete that action."
   };
 }
 
@@ -108,7 +123,7 @@ export async function publishInstructorRoomAction(_state: InstructorActionState,
 
     return {
       tone: "success",
-      message: "Room berhasil dipublish."
+      message: "Room published."
     };
   } catch (error) {
     return actionError(error);

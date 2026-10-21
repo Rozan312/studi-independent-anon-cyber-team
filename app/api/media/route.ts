@@ -10,9 +10,9 @@ import { listMediaAssets, storeImageUpload } from "@/lib/services/media-service"
  */
 async function requireUploader() {
   const profile = await getCurrentProfile();
-  if (!profile) return { error: NextResponse.json({ error: "Login diperlukan." }, { status: 401 }) };
+  if (!profile) return { error: NextResponse.json({ error: "Sign in to continue." }, { status: 401 }) };
   if (!hasRoleAccess(profile.role, ["INSTRUCTOR"])) {
-    return { error: NextResponse.json({ error: "Hanya instruktur atau admin yang dapat mengunggah media." }, { status: 403 }) };
+    return { error: NextResponse.json({ error: "Only instructors and admins can upload media." }, { status: 403 }) };
   }
   return { profile };
 }
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const file = formData.get("file");
 
     if (!file || typeof file === "string" || typeof (file as Blob).arrayBuffer !== "function") {
-      return NextResponse.json({ error: "Field 'file' wajib berisi berkas gambar." }, { status: 400 });
+      return NextResponse.json({ error: "The 'file' field must contain an image file." }, { status: 400 });
     }
 
     const upload = file as File;

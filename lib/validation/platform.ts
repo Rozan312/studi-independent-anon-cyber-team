@@ -92,13 +92,13 @@ export const slugSchema = z
   .string()
   .min(3)
   .max(180)
-  .regex(/^[a-z0-9-]+$/, "Slug hanya boleh huruf kecil, angka, dan tanda hubung.");
+  .regex(/^[a-z0-9-]+$/, "Slug may only contain lowercase letters, numbers, and hyphens.");
 
 /** URL gambar: kosong berarti null; selain itu harus URL media internal atau http(s). */
 export const imageUrlSchema = z
   .union([
     z.literal(""),
-    z.string().max(500).regex(/^(\/api\/media\/[0-9a-fA-F-]{36}|https?:\/\/\S+)$/, "URL gambar tidak valid.")
+    z.string().max(500).regex(/^(\/api\/media\/[0-9a-fA-F-]{36}|https?:\/\/\S+)$/, "Enter a valid image URL.")
   ])
   .optional()
   .transform((value) => (value ? value : null));
@@ -129,8 +129,8 @@ export const scheduleDateSchema = z
     z.literal(""),
     z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/, "Format tanggal tidak valid.")
-      .refine((value) => !Number.isNaN(new Date(value).getTime()), "Tanggal tidak valid.")
+      .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/, "Enter a valid date and time.")
+      .refine((value) => !Number.isNaN(new Date(value).getTime()), "Enter a valid date.")
   ])
   .optional()
   .transform((value) => (value ? new Date(value) : null));
@@ -143,14 +143,14 @@ export const roomMetadataSchema = roomDraftSchema
     availableUntil: scheduleDateSchema
   })
   .refine((data) => !data.availableFrom || !data.availableUntil || data.availableUntil > data.availableFrom, {
-    message: "Tanggal tutup harus setelah tanggal buka.",
+    message: "The close date must be after the open date.",
     path: ["availableUntil"]
   });
 
 /** Materi room. HTML dari editor visual (disanitasi di service) atau Markdown untuk data lama/skrip. */
 export const roomContentSchema = z.object({
   roomId: uuidSchema,
-  content: z.string().max(200_000, "Materi terlalu panjang (maksimal 200.000 karakter)."),
+  content: z.string().max(200_000, "Material is too long (200,000 characters max)."),
   contentFormat: z.enum(["MARKDOWN", "HTML"]).default("MARKDOWN")
 });
 
@@ -194,10 +194,10 @@ const quizQuestionBodySchema = z.object({
   explanation: z.string().min(5).max(2000),
   options: z
     .array(quizOptionInputSchema)
-    .min(2, "Minimal dua opsi jawaban.")
-    .max(6, "Maksimal enam opsi jawaban.")
+    .min(2, "Add at least two answer options.")
+    .max(6, "Use six answer options or fewer.")
     .refine((options) => options.filter((option) => option.isCorrect).length === 1, {
-      message: "Tandai tepat satu opsi sebagai jawaban benar."
+      message: "Mark exactly one option as the correct answer."
     })
 });
 

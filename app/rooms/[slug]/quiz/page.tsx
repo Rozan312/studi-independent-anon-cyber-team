@@ -18,17 +18,29 @@ export default async function RoomQuizPage({ params }: { params: { slug: string 
   const availability = getRoomAvailability(quiz.room);
   const canPreviewClosedRoom = hasRoleAccess(profile.role, ["INSTRUCTOR"]);
 
+  const pageTitle = quiz.title.trim() || `Quiz: ${quiz.room.title}`;
+  const pageSubtitle = `${quiz.room.title} · Score ${quiz.passingScore}% or higher to pass.`;
+
   if (!availability.isOpen && !canPreviewClosedRoom) {
+    const upcoming = availability.state === "upcoming";
+
     return (
-      <AppShell title={`${quiz.title} - Assessment`} subtitle={quiz.room.title} role={profile.role}>
+      <AppShell title={pageTitle} subtitle={pageSubtitle} role={profile.role}>
         <PageNotice
-          tone={availability.state === "upcoming" ? "info" : "warning"}
-          title={availability.state === "upcoming" ? "Quiz belum dibuka" : "Quiz sudah ditutup"}
-          message={`${describeAvailability(availability)}. Attempt baru tidak dapat dikirim di luar jadwal room.`}
+          tone={upcoming ? "info" : "warning"}
+          title={upcoming ? "This quiz isn't open yet" : "This quiz is closed"}
+          message={
+            upcoming
+              ? `${describeAvailability(availability)}. You can take the quiz once the room opens.`
+              : `${describeAvailability(availability)}. New attempts can't be submitted outside the room's schedule.`
+          }
           className="mb-6"
         />
-        <Link href={`/rooms/${quiz.room.slug}`} className="inline-flex rounded-lg bg-primary px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-blue-300">
-          Kembali ke room
+        <Link href={`/rooms/${quiz.room.slug}`} className="btn-secondary">
+          <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+            <path d="M13 8H3M7 4 3 8l4 4" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+          Back to room
         </Link>
       </AppShell>
     );
@@ -57,12 +69,12 @@ export default async function RoomQuizPage({ params }: { params: { slug: string 
   };
 
   return (
-    <AppShell title={`${quiz.title} - Assessment`} subtitle={`Cek pemahaman untuk room ${quiz.room.title}`} role={profile.role}>
+    <AppShell title={pageTitle} subtitle={pageSubtitle} role={profile.role}>
       {!availability.isOpen ? (
         <PageNotice
           tone="warning"
-          title="Preview instruktur"
-          message={`${describeAvailability(availability)}. Student belum bisa mengerjakan quiz ini; submit dari akun instruktur juga akan ditolak server.`}
+          title="Instructor preview"
+          message={`${describeAvailability(availability)}. Members can't take this quiz right now. Submissions, including yours, are rejected while the room isn't open.`}
           className="mb-6"
         />
       ) : null}

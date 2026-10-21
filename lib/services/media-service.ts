@@ -25,14 +25,14 @@ function sanitizeFileName(name: string) {
  */
 export async function storeImageUpload(uploaderId: string, file: { name: string; size: number; arrayBuffer(): Promise<ArrayBuffer> }) {
   if (file.size > MAX_UPLOAD_BYTES) {
-    throw new Error("Ukuran file melebihi batas 5 MB.");
+    throw new Error("This file is larger than the 5 MB limit.");
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
   const mimeType = detectImageMimeType(buffer);
 
   if (!mimeType || !ALLOWED_IMAGE_MIME_TYPES.includes(mimeType)) {
-    throw new Error("Format gambar tidak didukung. Gunakan PNG, JPEG, GIF, atau WebP.");
+    throw new Error("This image format isn't supported. Use PNG, JPEG, GIF, or WebP.");
   }
 
   const storageKey = await saveImageBuffer(buffer, mimeType);

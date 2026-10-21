@@ -1,17 +1,19 @@
 import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
+import { sortByDifficulty } from "@/lib/learning/difficulty";
 
 export async function listPublishedLearningPaths() {
-  return prisma.learningPath.findMany({
+  const paths = await prisma.learningPath.findMany({
     where: { isPublished: true },
     include: {
       _count: {
         select: { rooms: true }
       }
     },
-    orderBy: [{ difficulty: "asc" }, { title: "asc" }]
+    orderBy: { title: "asc" }
   });
+  return sortByDifficulty(paths);
 }
 
 export async function getLearningPathBySlug(slug: string) {

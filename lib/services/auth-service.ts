@@ -18,6 +18,22 @@ import {
 import { clearLocalSession, createLocalSession } from "@/lib/auth/local-session";
 import { isLocalAuthEnabled } from "@/lib/auth/local-session-core";
 
+/**
+ * Error dari Supabase Auth dengan kode aslinya (mis. "invalid_credentials"), agar server action bisa
+ * menampilkan pesan yang jelas tanpa mencocokkan teks error.
+ */
+export class AuthRequestError extends Error {
+  readonly code: string | undefined;
+  readonly status: number | undefined;
+
+  constructor(error: { message: string; code?: string; status?: number }) {
+    super(error.message);
+    this.name = "AuthRequestError";
+    this.code = error.code;
+    this.status = error.status;
+  }
+}
+
 function appUrl() {
   return process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 }
@@ -46,7 +62,7 @@ export async function registerUser(input: RegisterInput & { role?: unknown; user
     }
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw new AuthRequestError(error);
   if (!authData.user) throw new Error("Registration did not return a Supabase user.");
 
   await prisma.profile.upsert({
@@ -71,10 +87,8 @@ export async function registerUser(input: RegisterInput & { role?: unknown; user
 export async function loginUser(input: LoginInput & { role?: unknown; username?: string }) {
   if (isLocalAuthEnabled()) {
     const data = localLoginSchema.parse(input);
-    return createLocalSession({
-      username: data.username,
-      fullName: data.username
-    });
+    // Tanpa fullName: login tidak boleh mengganti nama lengkap profil yang sudah ada.
+    return createLocalSession({ username: data.username });
   }
 
   const data = loginSchema.parse(input);
@@ -85,7 +99,7 @@ export async function loginUser(input: LoginInput & { role?: unknown; username?:
     password: data.password
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw new AuthRequestError(error);
   return authData.user;
 }
 
@@ -97,7 +111,7 @@ export async function logoutUser() {
 
   const supabase = createSupabaseServerClient();
   const { error } = await supabase.auth.signOut();
-  if (error) throw new Error(error.message);
+  if (error) throw new AuthRequestError(error);
 }
 
 export async function requestPasswordReset(input: ForgotPasswordInput) {
@@ -113,7 +127,7 @@ export async function requestPasswordReset(input: ForgotPasswordInput) {
     redirectTo: `${appUrl()}/reset-password`
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw new AuthRequestError(error);
 }
 
 export async function resetPassword(input: ResetPasswordInput) {
@@ -129,5 +143,5 @@ export async function resetPassword(input: ResetPasswordInput) {
     password: data.password
   });
 
-  if (error) throw new Error(error.message);
+  if (error) throw new AuthRequestError(error);
 }

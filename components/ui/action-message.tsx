@@ -6,17 +6,23 @@ export type ActionMessageState = {
 export function ActionMessage({ state }: { state: ActionMessageState }) {
   if (!state.message) return null;
 
-  const toneClass =
-    state.tone === "success"
-      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-200"
-      : "border-rose-500/25 bg-rose-500/10 text-rose-200";
-
-  const dotClass = state.tone === "success" ? "bg-emerald-300" : "bg-rose-300";
+  const success = state.tone === "success";
 
   return (
-    <div className={`rounded-lg border px-3 py-2 text-xs font-medium leading-relaxed ${toneClass}`} role="status">
-      <span className={`mr-2 inline-block h-1.5 w-1.5 rounded-full align-middle ${dotClass}`} />
-      {state.message}
-    </div>
+    <p
+      className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm leading-snug ${
+        success ? "border-green/30 bg-green-soft text-ink" : "border-red/30 bg-red-soft text-ink"
+      }`}
+      role={success ? "status" : "alert"}
+    >
+      <svg viewBox="0 0 16 16" className={`mt-0.5 h-4 w-4 shrink-0 ${success ? "text-green" : "text-red"}`} fill="none" stroke="currentColor" aria-hidden="true">
+        {success ? (
+          <path d="m3.5 8.5 3 3 6-7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        ) : (
+          <path d="M8 3.5v5.5M8 11.8v.1" strokeWidth="1.8" strokeLinecap="round" />
+        )}
+      </svg>
+      <span>{state.message}</span>
+    </p>
   );
 }

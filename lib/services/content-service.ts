@@ -37,7 +37,7 @@ import {
 export type ContentActor = { id: string; role: Role };
 
 export class ContentAccessError extends Error {
-  constructor(message = "Anda tidak memiliki akses untuk mengelola konten ini.") {
+  constructor(message = "You don't have permission to manage this content.") {
     super(message);
     this.name = "ContentAccessError";
   }
@@ -60,7 +60,7 @@ async function requireManagedPath(actor: ContentActor, pathId: string) {
     select: { id: true, slug: true, createdById: true }
   });
 
-  if (!path) throw new Error("Learning path tidak ditemukan.");
+  if (!path) throw new Error("Learning path not found.");
   if (!canManageContent(actor, path.createdById)) throw new ContentAccessError();
   return path;
 }
@@ -71,7 +71,7 @@ async function requireManagedRoom(actor: ContentActor, roomId: string) {
     select: { id: true, slug: true, title: true, createdById: true, learningPathId: true, learningPath: { select: { id: true, slug: true } } }
   });
 
-  if (!room) throw new Error("Room tidak ditemukan.");
+  if (!room) throw new Error("Room not found.");
   if (!canManageContent(actor, room.createdById)) throw new ContentAccessError();
   return room;
 }
@@ -86,7 +86,7 @@ async function requireManagedTask(actor: ContentActor, taskId: string) {
     }
   });
 
-  if (!task) throw new Error("Task tidak ditemukan.");
+  if (!task) throw new Error("Task not found.");
   if (!canManageContent(actor, task.room.createdById)) throw new ContentAccessError();
   return task;
 }
@@ -101,7 +101,7 @@ async function requireManagedQuiz(actor: ContentActor, quizId: string) {
     }
   });
 
-  if (!quiz) throw new Error("Quiz tidak ditemukan.");
+  if (!quiz) throw new Error("Quiz not found.");
   if (!canManageContent(actor, quiz.room.createdById)) throw new ContentAccessError();
   return quiz;
 }
@@ -121,7 +121,7 @@ async function requireManagedQuestion(actor: ContentActor, questionId: string) {
     }
   });
 
-  if (!question) throw new Error("Pertanyaan tidak ditemukan.");
+  if (!question) throw new Error("Question not found.");
   if (!canManageContent(actor, question.quiz.room.createdById)) throw new ContentAccessError();
   return question;
 }
@@ -232,7 +232,7 @@ export async function addRoomToLearningPath(actor: ContentActor, input: unknown)
   const room = await requireManagedRoom(actor, roomId);
 
   if (room.learningPathId === pathId) {
-    throw new Error("Room ini sudah berada di path tersebut.");
+    throw new Error("This room is already in that path.");
   }
 
   const { _max } = await prisma.room.aggregate({ where: { learningPathId: pathId }, _max: { orderIndex: true } });
@@ -260,7 +260,7 @@ export async function moveRoomInPath(actor: ContentActor, input: unknown) {
     select: { id: true, slug: true, learningPathId: true, learningPath: { select: { id: true, slug: true, createdById: true } } }
   });
 
-  if (!room) throw new Error("Room tidak ditemukan.");
+  if (!room) throw new Error("Room not found.");
   if (!canManageContent(actor, room.learningPath.createdById)) throw new ContentAccessError();
 
   const ordered = (
@@ -328,7 +328,7 @@ export async function updateRoomMetadata(actor: ContentActor, input: unknown) {
   await requireManagedRoom(actor, roomId);
 
   const path = await prisma.learningPath.findUnique({ where: { id: data.learningPathId }, select: { id: true } });
-  if (!path) throw new Error("Learning path tujuan tidak ditemukan.");
+  if (!path) throw new Error("The target learning path wasn't found.");
 
   return prisma.room.update({ where: { id: roomId }, data });
 }

@@ -44,8 +44,9 @@ function EditorStats({ editor }: { editor: Editor }) {
   });
 
   return (
-    <span>
-      {counts.words.toLocaleString("id-ID")} kata · {counts.characters.toLocaleString("id-ID")} karakter
+    <span className="figure">
+      {counts.words.toLocaleString("en-US")} {counts.words === 1 ? "word" : "words"} · {counts.characters.toLocaleString("en-US")}{" "}
+      {counts.characters === 1 ? "character" : "characters"}
     </span>
   );
 }
@@ -59,8 +60,8 @@ export function RichTextEditor({
   onChange,
   onReady,
   disabled = false,
-  placeholder = "Mulai menulis materi. Gunakan toolbar di atas untuk format teks, gambar, dan tabel.",
-  ariaLabel = "Editor materi"
+  placeholder = "Start writing the material. Use the toolbar above to format text and add images and tables.",
+  ariaLabel = "Material editor"
 }: RichTextEditorProps) {
   const [uploadStatus, setUploadStatus] = useState<{ tone: "info" | "error"; message: string } | null>(null);
   const editorRef = useRef<Editor | null>(null);
@@ -89,7 +90,7 @@ export function RichTextEditor({
     };
     current.on("transaction", trackPosition);
 
-    setUploadStatus({ tone: "info", message: files.length > 1 ? `Mengunggah ${files.length} gambar...` : "Mengunggah gambar..." });
+    setUploadStatus({ tone: "info", message: files.length > 1 ? `Uploading ${files.length} images…` : "Uploading image…" });
 
     try {
       for (const file of files) {
@@ -109,7 +110,7 @@ export function RichTextEditor({
       }
       setUploadStatus(null);
     } catch (error) {
-      setUploadStatus({ tone: "error", message: error instanceof Error ? error.message : "Upload gambar gagal." });
+      setUploadStatus({ tone: "error", message: error instanceof Error ? error.message : "Image upload failed." });
     } finally {
       current.off("transaction", trackPosition);
     }
@@ -210,42 +211,42 @@ export function RichTextEditor({
   }, [editor, disabled]);
 
   return (
-    <div className={`rich-editor rounded-xl border border-slate-800 bg-slate-950 ${disabled ? "opacity-70" : ""}`}>
+    <div className={`rich-editor rounded-sheet border border-line bg-sheet ${disabled ? "opacity-70" : ""}`}>
       {editor ? (
         <EditorToolbar editor={editor} disabled={disabled} onPickImages={(files) => uploadAndInsert(files)} />
       ) : (
-        <div className="h-[92px] rounded-t-xl border-b border-slate-800 bg-[#0d121d]" aria-hidden="true" />
+        <div className="h-[92px] rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well" aria-hidden="true" />
       )}
 
       {uploadStatus ? (
         <div
           role={uploadStatus.tone === "error" ? "alert" : "status"}
-          className={`flex items-center justify-between gap-3 border-b px-4 py-2 text-xs ${
-            uploadStatus.tone === "error" ? "border-rose-500/30 bg-rose-500/10 text-rose-200" : "border-primary/30 bg-primary/10 text-blue-100"
+          className={`flex items-center justify-between gap-3 border-b px-4 py-2 text-sm text-ink ${
+            uploadStatus.tone === "error" ? "border-red/30 bg-red-soft" : "border-line bg-well"
           }`}
         >
           <span>{uploadStatus.message}</span>
           {uploadStatus.tone === "error" ? (
-            <button type="button" onClick={() => setUploadStatus(null)} className="font-bold text-rose-100 hover:underline">
-              Tutup
+            <button type="button" onClick={() => setUploadStatus(null)} className="btn-ghost btn-sm shrink-0">
+              Dismiss
             </button>
           ) : null}
         </div>
       ) : null}
 
-      <div className="max-h-[60vh] min-h-[320px] overflow-y-auto sm:max-h-[70vh] sm:min-h-[380px]">
+      <div className="max-h-[60vh] min-h-[320px] overflow-y-auto bg-sheet sm:max-h-[70vh] sm:min-h-[380px]">
         {editor ? (
           <EditorContent editor={editor} />
         ) : (
-          <div className="p-4 text-sm text-slate-500" aria-live="polite">
-            Memuat editor...
+          <div className="p-4 text-sm text-ink-3" aria-live="polite">
+            Loading editor…
           </div>
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-b-xl border-t border-slate-800 bg-[#0d121d] px-4 py-2 text-[11px] text-slate-500">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-b-[calc(0.75rem-1px)] border-t border-line-soft bg-sheet px-4 py-2 text-xs text-ink-3">
         {editor ? <EditorStats editor={editor} /> : <span>{" "}</span>}
-        <span>Tempel atau seret gambar langsung ke editor untuk mengunggah.</span>
+        <span>Paste or drop images into the editor to upload them.</span>
       </div>
     </div>
   );

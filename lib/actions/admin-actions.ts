@@ -5,6 +5,7 @@ import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import { createAnnouncement, publishAnnouncement, updateAnnouncement, updateUserRole } from "@/lib/services/admin-service";
 import type { ActionMessageState } from "@/components/ui/action-message";
+import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
 
 export type AdminActionState = ActionMessageState;
 
@@ -22,17 +23,28 @@ function boolValue(formData: FormData, key: string) {
   return formData.get(key) === "true" || formData.get(key) === "on";
 }
 
-function actionError(error: unknown): AdminActionState {
+// Nama field seperti label di form admin; batas panjangnya mengikuti announcementSchema.
+const ANNOUNCEMENT_FIELDS: FieldLabels = {
+  fields: {
+    title: "Title",
+    content: "Content",
+    audience: "Audience"
+  }
+};
+
+const ROLE_FIELDS: FieldLabels = { fields: { role: "Role" } };
+
+function actionError(error: unknown, labels: FieldLabels = ANNOUNCEMENT_FIELDS): AdminActionState {
   if (error instanceof ZodError) {
     return {
       tone: "error",
-      message: error.issues[0]?.message ?? "Validasi gagal."
+      message: zodErrorMessage(error, labels)
     };
   }
 
   return {
     tone: "error",
-    message: error instanceof Error ? error.message : "Aksi gagal diproses."
+    message: error instanceof Error ? error.message : "Couldn't complete that action."
   };
 }
 
@@ -45,7 +57,7 @@ export async function updateUserRoleAction(_state: AdminActionState, formData: F
     if (profile.id === userId && role !== "ADMIN") {
       return {
         tone: "error",
-        message: "Tidak bisa menurunkan role admin yang sedang login dari UI ini."
+        message: "You can't remove the admin role from your own account here."
       };
     }
 
@@ -55,10 +67,10 @@ export async function updateUserRoleAction(_state: AdminActionState, formData: F
 
     return {
       tone: "success",
-      message: "Role user berhasil diperbarui."
+      message: "User role updated."
     };
   } catch (error) {
-    return actionError(error);
+    return actionError(error, ROLE_FIELDS);
   }
 }
 
@@ -78,7 +90,7 @@ export async function createAnnouncementAction(_state: AdminActionState, formDat
 
     return {
       tone: "success",
-      message: "Announcement berhasil dibuat."
+      message: "Announcement created."
     };
   } catch (error) {
     return actionError(error);
@@ -102,7 +114,7 @@ export async function updateAnnouncementAction(_state: AdminActionState, formDat
 
     return {
       tone: "success",
-      message: "Announcement berhasil diperbarui."
+      message: "Announcement updated."
     };
   } catch (error) {
     return actionError(error);
@@ -120,7 +132,7 @@ export async function publishAnnouncementAction(_state: AdminActionState, formDa
 
     return {
       tone: "success",
-      message: "Status publish announcement berhasil diperbarui."
+      message: "Announcement publish status updated."
     };
   } catch (error) {
     return actionError(error);

@@ -1,68 +1,113 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { Card, SectionHeader, StatusPill } from "@/components/card";
+import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
+import { PathRosette } from "@/components/paper/rosette";
 import { requireRole } from "@/lib/auth/guards";
+import { prisma } from "@/lib/db/prisma";
+import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { listPublishedLearningPaths } from "@/lib/services/learning-path-service";
 
 export const dynamic = "force-dynamic";
 
 export default async function LearningPathsPage() {
   const profile = await requireRole(["STUDENT"]);
-  const paths = await listPublishedLearningPaths();
+  const [pathRows, publishedRooms, completedRows] = await Promise.all([
+    listPublishedLearningPaths(),
+    // Hanya room yang terbit dihitung, sama seperti halaman detail path.
+    prisma.room.findMany({
+      where: { isPublished: true, learningPath: { isPublished: true } },
+      select: { id: true, learningPathId: true }
+    }),
+    prisma.userRoomProgress.findMany({
+      where: { userId: profile.id, status: "COMPLETED" },
+      select: { roomId: true }
+    })
+  ]);
+
+  // Beginner → Intermediate → Advanced, lalu judul (urutan abjad menaruh "Advanced" lebih dulu).
+  const paths = sortByDifficulty(pathRows);
+  const completedRoomIds = new Set(completedRows.map((row) => row.roomId));
+  const roomIdsByPath = new Map<string, string[]>();
+  for (const room of publishedRooms) {
+    const list = roomIdsByPath.get(room.learningPathId) ?? [];
+    list.push(room.id);
+    roomIdsByPath.set(room.learningPathId, list);
+  }
 
   return (
-    <AppShell title="Learning Paths" subtitle="Jalur belajar terstruktur. Pilih path, lalu kerjakan room di dalamnya secara berurutan." role={profile.role}>
-      <Card>
-        <SectionHeader eyebrow="Curriculum" title="Available paths" />
-        {paths.length === 0 ? (
-          <p className="rounded-lg border border-white/[0.06] bg-black/20 p-5 text-sm text-slate-400">Belum ada learning path yang dipublish.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {paths.map((path) => (
-              <Link
-                key={path.id}
-                href={`/learning-paths/${path.slug}`}
-                className="group flex flex-col overflow-hidden rounded-xl border border-border bg-black/20 transition hover:-translate-y-0.5 hover:border-primary/45 hover:bg-primary/5"
-              >
-                {/* Cover: gambar yang diunggah instruktur, atau pola gradien bila belum ada */}
-                <div className="relative h-32 overflow-hidden bg-[#0f131d]">
-                  {path.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={path.coverImageUrl}
-                      alt={path.title}
-                      className="absolute inset-0 h-full w-full object-cover opacity-70 transition-opacity duration-300 group-hover:opacity-90"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/25 via-transparent to-emerald-500/15" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f19] via-[#0b0f19]/40 to-transparent" />
-                  <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between gap-2">
-                    <span className="rounded border border-white/[0.08] bg-black/60 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-200 backdrop-blur-md">
-                      {path.category}
-                    </span>
-                    <StatusPill tone={path.difficulty === "Beginner" ? "success" : "primary"}>{path.difficulty}</StatusPill>
-                  </div>
-                </div>
+    <AppShell
+      title="Learning paths"
+      subtitle="Structured routes through the material. Pick a path and work through its rooms in order."
+      role={profile.role}
+    >
+      {paths.length === 0 ? (
+        <EmptyState title="No learning paths yet" message="Instructors haven't published a path yet. Check back soon." />
+      ) : (
+        <section className="sheet overflow-hidden" aria-label="All learning paths">
+          {/* Sel bergaris rambut seperti halaman album: margin negatif menyembunyikan garis tepi kanan/bawah terakhir. */}
+          <ul className="-mb-px -mr-px grid md:grid-cols-2 xl:grid-cols-3">
+            {paths.map((path) => {
+              const roomIds = roomIdsByPath.get(path.id) ?? [];
+              const total = roomIds.length;
+              const done = roomIds.filter((id) => completedRoomIds.has(id)).length;
+              const complete = total > 0 && done === total;
+              const roomNoun = total === 1 ? "room" : "rooms";
+              const progressTitle = `${path.title}: ${done} of ${total} ${roomNoun} completed`;
 
-                <div className="flex flex-grow flex-col p-4">
-                  <h2 className="text-lg font-semibold text-slate-50 transition-colors group-hover:text-primary">{path.title}</h2>
-                  <p className="mt-2 line-clamp-3 min-h-16 text-sm text-slate-400">{path.description}</p>
-                  <div className="mt-auto pt-5">
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>{path.estimatedHours} jam</span>
-                      <span>{path._count.rooms} room</span>
+              return (
+                <li key={path.id} className="border-b border-r border-line-soft">
+                  <Link
+                    href={`/learning-paths/${path.slug}`}
+                    className="group flex h-full gap-4 p-5 transition-colors hover:bg-well md:flex-col md:gap-0 md:p-6"
+                  >
+                    {path.coverImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={path.coverImageUrl}
+                        alt=""
+                        className="h-20 w-20 shrink-0 rounded-lg border border-line object-cover md:h-[88px] md:w-[88px]"
+                      />
+                    ) : (
+                      <PathRosette
+                        seed={path.slug}
+                        size={88}
+                        progress={total > 0 ? done / total : undefined}
+                        label={total > 0 ? `${done}/${total}` : undefined}
+                        title={total > 0 ? progressTitle : undefined}
+                        className="h-20 w-20 md:h-[88px] md:w-[88px]"
+                      />
+                    )}
+
+                    <div className="flex min-w-0 flex-1 flex-col md:mt-4">
+                      <h2 className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink [text-wrap:balance] group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
+                        {path.title}
+                      </h2>
+                      <p className="mt-1 line-clamp-2 text-sm text-ink-2">{path.description}</p>
+                      <p className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 pt-3 text-sm text-ink-3">
+                        <span>{path.difficulty}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>{total === 0 ? "No rooms yet" : `${total} ${total === 1 ? "room" : "rooms"}`}</span>
+                        <span aria-hidden="true">·</span>
+                        <span>~{path.estimatedHours} h</span>
+                        {complete ? <StatusPill tone="done">Complete</StatusPill> : null}
+                      </p>
+
+                      {path.coverImageUrl && total > 0 ? (
+                        <div className="mt-3">
+                          <p className="mb-1.5 text-xs text-ink-3">
+                            {done} of {total} {roomNoun} passed
+                          </p>
+                          <ProgressBar value={(done / total) * 100} label={progressTitle} />
+                        </div>
+                      ) : null}
                     </div>
-                    <div className="mt-4 rounded-md border border-border px-3 py-2 text-center text-sm text-slate-300 transition group-hover:border-primary/45 group-hover:text-slate-50">
-                      Buka path
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </Card>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </AppShell>
   );
 }

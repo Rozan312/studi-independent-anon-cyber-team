@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Profile, Role } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { hasRoleAccess, type AppRole } from "@/lib/auth/rbac";
@@ -13,7 +14,8 @@ export type AuthUser = {
   email?: string;
 };
 
-export async function getCurrentUser(): Promise<AuthUser | null> {
+// Dibungkus cache() agar halaman, guard, dan AppShell berbagi satu pencarian user dan profil per request.
+export const getCurrentUser = cache(async (): Promise<AuthUser | null> => {
   if (isLocalAuthEnabled()) {
     return getLocalAuthUser();
   }
@@ -26,16 +28,16 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
 
   if (error || !user) return null;
   return user;
-}
+});
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
   const user = await getCurrentUser();
   if (!user) return null;
 
   return prisma.profile.findUnique({
     where: { id: user.id }
   });
-}
+});
 
 export async function getUserRole(): Promise<Role | null> {
   const profile = await getCurrentProfile();
@@ -49,8 +51,8 @@ export async function requireAuth() {
 }
 
 export async function requireProfile() {
-  const user = await requireAuth();
-  const profile = await prisma.profile.findUnique({ where: { id: user.id } });
+  await requireAuth();
+  const profile = await getCurrentProfile();
 
   if (!profile) {
     redirect("/login?error=missing-profile");

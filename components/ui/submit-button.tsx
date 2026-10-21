@@ -5,7 +5,7 @@ import { primaryButtonClass } from "@/components/instructor/form-styles";
 
 export function SubmitButton({
   label,
-  pendingLabel = "Menyimpan...",
+  pendingLabel = "Saving…",
   className = primaryButtonClass,
   disabled = false
 }: {
@@ -17,7 +17,7 @@ export function SubmitButton({
   const { pending } = useFormStatus();
 
   return (
-    <button type="submit" disabled={pending || disabled} className={className}>
+    <button type="submit" disabled={pending || disabled} aria-busy={pending || undefined} className={className}>
       {pending ? pendingLabel : label}
     </button>
   );

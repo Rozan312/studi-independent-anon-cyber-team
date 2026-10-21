@@ -49,25 +49,63 @@ export function getRoomAvailability(room: RoomScheduleFields, now: Date = new Da
   };
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
+
+const zonedFormat = new Intl.DateTimeFormat("en-US", {
+  timeZone: DISPLAY_TIME_ZONE,
+  year: "numeric",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23"
+});
+
+/** Bagian tanggal di zona waktu tampilan. Nama bulan ditulis sendiri agar selalu tiga huruf ("Sep", bukan "Sept"). */
+export function zonedDateParts(date: Date) {
+  const parts = zonedFormat.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  return {
+    day: Number(get("day")),
+    month: MONTHS[Number(get("month")) - 1] ?? "",
+    year: get("year"),
+    time: `${get("hour")}:${get("minute")}`
+  };
+}
+
+/** Singkatan zona waktu Indonesia; zona lain memakai nama pendek dari Intl (misalnya "GMT+8"). */
+const ZONE_LABELS: Record<string, string> = {
+  "Asia/Jakarta": "WIB",
+  "Asia/Pontianak": "WIB",
+  "Asia/Makassar": "WITA",
+  "Asia/Jayapura": "WIT"
+};
+
+function zoneLabel(date: Date) {
+  if (ZONE_LABELS[DISPLAY_TIME_ZONE]) return ZONE_LABELS[DISPLAY_TIME_ZONE];
+  const part = new Intl.DateTimeFormat("en-US", { timeZone: DISPLAY_TIME_ZONE, timeZoneName: "short" })
+    .formatToParts(date)
+    .find((item) => item.type === "timeZoneName");
+  return part?.value ?? DISPLAY_TIME_ZONE;
+}
+
+/** "21 Oct 2026, 19:30 WIB" */
 export function formatScheduleDate(date: Date) {
-  return new Intl.DateTimeFormat("id-ID", {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: DISPLAY_TIME_ZONE
-  }).format(date);
+  const { day, month, year, time } = zonedDateParts(date);
+  return `${day} ${month} ${year}, ${time} ${zoneLabel(date)}`;
 }
 
 /** Kalimat singkat untuk badge di daftar room dan halaman detail. */
 export function describeAvailability(availability: RoomAvailability) {
   switch (availability.state) {
     case "draft":
-      return "Draft, belum dipublish";
+      return "Draft, not published";
     case "upcoming":
-      return `Dibuka ${formatScheduleDate(availability.opensAt as Date)}`;
+      return `Opens ${formatScheduleDate(availability.opensAt as Date)}`;
     case "closed":
-      return `Ditutup sejak ${formatScheduleDate(availability.closesAt as Date)}`;
+      return `Closed since ${formatScheduleDate(availability.closesAt as Date)}`;
     default:
-      return availability.closesAt ? `Tersedia sampai ${formatScheduleDate(availability.closesAt)}` : "Selalu tersedia";
+      return availability.closesAt ? `Open until ${formatScheduleDate(availability.closesAt)}` : "Always open";
   }
 }
 
@@ -75,13 +113,13 @@ export function describeAvailability(availability: RoomAvailability) {
 export function availabilityErrorMessage(availability: RoomAvailability) {
   switch (availability.state) {
     case "draft":
-      return "Room belum dipublish.";
+      return "This room isn't published yet.";
     case "upcoming":
-      return `Room belum dibuka. Jadwal buka: ${formatScheduleDate(availability.opensAt as Date)}.`;
+      return `This room opens on ${formatScheduleDate(availability.opensAt as Date)}.`;
     case "closed":
-      return `Room sudah ditutup sejak ${formatScheduleDate(availability.closesAt as Date)}.`;
+      return `This room closed on ${formatScheduleDate(availability.closesAt as Date)}.`;
     default:
-      return "Room tersedia.";
+      return "This room is open.";
   }
 }
 

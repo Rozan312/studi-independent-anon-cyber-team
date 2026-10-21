@@ -1,86 +1,87 @@
 import { AppShell } from "@/components/app-shell";
-import { Card, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
+import { EmptyState, Figure, SectionHeader } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
-import { getGlobalLeaderboard } from "@/lib/services/leaderboard-service";
+import { formatNumber } from "@/lib/format/date";
+import { getGlobalLeaderboard, getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 
 export const dynamic = "force-dynamic";
 
+const LEADERBOARD_LIMIT = 50;
+
 export default async function LeaderboardPage() {
   const profile = await requireRole(["STUDENT"]);
-  const leaderboard = await getGlobalLeaderboard(50);
+  const [leaderboard, standing] = await Promise.all([getGlobalLeaderboard(LEADERBOARD_LIMIT), getUserLeaderboardStanding(profile.id)]);
 
-  const myStanding = leaderboard.find((row) => row.user?.id === profile.id);
-  const myRank = myStanding?.rank ?? null;
-  const myPoints = myStanding?.points ?? 0;
-  const topPoints = leaderboard[0]?.points ?? 0;
-  const progressToTop = topPoints > 0 ? Math.round((myPoints / topPoints) * 100) : 0;
+  const isListed = leaderboard.some((row) => row.user?.id === profile.id);
+  // Selisih poin ke anggota terdekat di atas; hanya akurat bila user ada di papan yang dimuat.
+  const nextAbove = isListed
+    ? leaderboard.filter((row) => row.points > standing.points).reduce<number | null>((min, row) => (min === null || row.points < min ? row.points : min), null)
+    : null;
+  const pointsToMoveUp = nextAbove !== null ? nextAbove - standing.points : null;
+
+  const rankNote = !standing.rank
+    ? "Earn points to rank"
+    : pointsToMoveUp !== null
+      ? `${formatNumber(pointsToMoveUp)} pts to move up`
+      : standing.rank === 1
+        ? "Top of the board"
+        : undefined;
 
   return (
-    <AppShell title="Global Leaderboard" subtitle="Peringkat dihitung dari task dan quiz completion yang valid di platform." role={profile.role}>
-      <div className="grid gap-6 lg:grid-cols-[20rem_minmax(0,1fr)]">
-        <Card>
-          <SectionHeader eyebrow="standing" title="Your Rank" />
-          <div className="rounded-lg border border-primary-container/30 bg-primary-container/10 p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-200">Current Position</p>
-            <p className="mt-2 text-4xl font-black text-slate-100">{myRank ? `#${myRank}` : "-"}</p>
-            <p className="mt-1 text-sm font-semibold text-primary">{myPoints.toLocaleString()} pts</p>
-            <div className="mt-4">
-              <ProgressBar value={Math.max(5, progressToTop)} />
-            </div>
-            <p className="mt-3 text-xs leading-relaxed text-slate-500">Selesaikan task dan quiz untuk menaikkan posisi secara otomatis.</p>
-          </div>
-        </Card>
+    <AppShell title="Leaderboard" subtitle="Ranked by points from correct task answers and passed quizzes." role={profile.role}>
+      <section className="sheet overflow-hidden" aria-label="Your standing">
+        <div className="grid gap-px bg-line-soft sm:grid-cols-3">
+          <Figure className="bg-sheet p-4 sm:p-5" label="Your rank" value={standing.rank ? `#${standing.rank}` : "–"} note={rankNote} />
+          <Figure className="bg-sheet p-4 sm:p-5" label="Your points" value={formatNumber(standing.points)} unit="pts" />
+          <Figure className="bg-sheet p-4 sm:p-5" label="Members ranked" value={formatNumber(standing.totalRanked)} />
+        </div>
+      </section>
 
-        <Card>
-          <SectionHeader
-            eyebrow="ranking"
-            title="Top Learners"
-            action={<StatusPill tone="primary">{leaderboard.length} users</StatusPill>}
-          />
-          {leaderboard.length === 0 ? (
-            <div className="rounded-lg border border-white/[0.06] bg-black/20 p-6 text-center text-sm text-slate-400">
-              Leaderboard belum memiliki poin.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-left text-sm">
+      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Rankings">
+        <SectionHeader
+          title="Rankings"
+          description={
+            leaderboard.length >= LEADERBOARD_LIMIT
+              ? `The top ${LEADERBOARD_LIMIT} point totals on the platform.`
+              : `${leaderboard.length} ${leaderboard.length === 1 ? "member has" : "members have"} points so far.`
+          }
+        />
+        {leaderboard.length === 0 ? (
+          <EmptyState title="No points recorded yet" message="The first correct task answer puts a member on the board." />
+        ) : (
+          <>
+            <div className="-mx-5 overflow-x-auto sm:-mx-6">
+              <table className="w-full min-w-[480px] text-sm">
                 <thead>
-                  <tr className="border-b border-white/[0.06] text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                    <th className="py-3 pr-4 text-center">Rank</th>
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="py-3 pl-4 text-right">Points</th>
+                  <tr>
+                    <th scope="col" className="field-label w-20 border-b border-line px-3 py-2.5 pl-5 text-left sm:pl-6">
+                      Rank
+                    </th>
+                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
+                      Username
+                    </th>
+                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
+                      Name
+                    </th>
+                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 pr-5 text-right sm:pr-6">
+                      Points
+                    </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.04]">
-                  {leaderboard.map((row) => {
-                    const isMe = row.user?.id === profile.id;
-                    const rankTone = row.rank === 1 ? "warning" : row.rank <= 3 ? "primary" : "neutral";
+                <tbody className="divide-y divide-line-soft">
+                  {leaderboard.map((row, index) => {
+                    const isYou = row.user?.id === profile.id;
 
                     return (
-                      <tr key={row.rank} className={isMe ? "bg-primary-container/10 text-slate-100" : "text-slate-300"}>
-                        <td className="py-4 pr-4 text-center">
-                          <StatusPill tone={rankTone}>#{row.rank}</StatusPill>
+                      <tr key={row.user?.id ?? `rank-${index}`} className={isYou ? "bg-cyan-soft/60" : "hover:bg-well"} aria-current={isYou ? "true" : undefined}>
+                        <td className="figure px-3 py-2.5 pl-5 text-base font-bold text-ink sm:pl-6">{row.rank}</td>
+                        <td className="px-3 py-2.5">
+                          <span className="font-semibold text-ink">{row.user?.username ?? "unknown"}</span>
+                          {isYou ? <span className="ml-1.5 text-ink-3">(you)</span> : null}
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-black/25 text-xs font-black text-primary">
-                              {(row.user?.fullName ?? row.user?.username ?? "??").slice(0, 2).toUpperCase()}
-                            </div>
-                            <div>
-                              <p className="font-semibold text-slate-100">
-                                {row.user?.fullName ?? row.user?.username ?? "Learner"}
-                                {isMe ? <span className="ml-2 rounded bg-primary px-1.5 py-0.5 text-[9px] font-black text-slate-950">YOU</span> : null}
-                              </p>
-                              <p className="mt-1 text-xs text-slate-500">{row.user?.username ?? "local-user"}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <StatusPill tone="success">{row.rank <= 3 ? "Top performer" : "Active"}</StatusPill>
-                        </td>
-                        <td className="py-4 pl-4 text-right font-mono text-sm font-bold text-primary">
-                          {row.points.toLocaleString()} pts
+                        <td className="px-3 py-2.5 text-ink-2">{row.user?.fullName ?? "–"}</td>
+                        <td className="figure whitespace-nowrap px-3 py-2.5 pr-5 text-right font-semibold text-ink sm:pr-6">
+                          {formatNumber(row.points)}
                         </td>
                       </tr>
                     );
@@ -88,9 +89,17 @@ export default async function LeaderboardPage() {
                 </tbody>
               </table>
             </div>
-          )}
-        </Card>
-      </div>
+            {standing.rank && !isListed ? (
+              <p className="mt-4 text-sm text-ink-2">
+                {/* Rank memakai competition ranking: anggota yang seri di batas daftar bisa punya rank <= batas tetapi tidak termuat. */}
+                {standing.rank > LEADERBOARD_LIMIT
+                  ? `You're #${standing.rank} with ${formatNumber(standing.points)} pts, outside the top ${LEADERBOARD_LIMIT}.`
+                  : `You share #${standing.rank} with ${formatNumber(standing.points)} pts. The list shows the first ${LEADERBOARD_LIMIT} members, so not everyone tied at that rank fits.`}
+              </p>
+            ) : null}
+          </>
+        )}
+      </section>
     </AppShell>
   );
 }

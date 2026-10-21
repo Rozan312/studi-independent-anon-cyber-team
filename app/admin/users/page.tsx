@@ -1,62 +1,93 @@
 import { AppShell } from "@/components/app-shell";
-import { requireRole } from "@/lib/auth/guards";
-import { getUserList } from "@/lib/services/admin-service";
-import { StatusPill } from "@/components/card";
+import { EmptyState, StatusPill } from "@/components/card";
 import { UserRoleForm } from "@/components/admin/user-role-form";
+import { requireRole } from "@/lib/auth/guards";
+import { formatNumber, formatShortDate } from "@/lib/format/date";
+import { getUserList } from "@/lib/services/admin-service";
 
 export const dynamic = "force-dynamic";
+
+const ROLE_LABEL: Record<string, string> = {
+  STUDENT: "Member",
+  INSTRUCTOR: "Instructor",
+  ADMIN: "Admin"
+};
+
+function plural(count: number, singular: string, pluralForm = `${singular}s`) {
+  return `${formatNumber(count)} ${count === 1 ? singular : pluralForm}`;
+}
+
+const headerCell = "field-label border-b border-line px-3 py-2.5 text-left";
 
 export default async function AdminUsersPage() {
   const profile = await requireRole(["ADMIN"]);
   const users = await getUserList();
 
-  return (
-    <AppShell title="Users Management" subtitle="Manage the global registry, monitor authorization roles, and audit account access profiles." role={profile.role}>
-      <div className="glass-panel rounded-xl overflow-hidden border border-slate-800/80 bg-black/10">
-        <div className="p-4 border-b border-slate-800/80 flex justify-between items-center bg-black/15">
-          <h3 className="text-base font-bold text-slate-100">Global Operative Registry</h3>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{users.length} profiles synchronized</span>
-        </div>
+  const countRole = (role: string) => users.filter((user) => user.role === role).length;
+  const subtitle = `${plural(users.length, "account")} · ${plural(countRole("STUDENT"), "member")}, ${plural(
+    countRole("INSTRUCTOR"),
+    "instructor"
+  )}, ${plural(countRole("ADMIN"), "admin")}`;
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse whitespace-nowrap">
-            <thead>
-              <tr className="bg-black/25 border-b border-slate-800/80 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                <th className="p-4 font-semibold">Operative Profile</th>
-                <th className="p-4 font-semibold">Security Role</th>
-                <th className="p-4 font-semibold">Access Node</th>
-                <th className="p-4 font-semibold text-right">Role Update</th>
-              </tr>
-            </thead>
-            <tbody className="text-sm text-slate-200 divide-y divide-slate-800/50">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-white/[0.01] transition-colors group">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-primary">
-                        {user.fullName ? user.fullName.substring(0, 2).toUpperCase() : "??"}
-                      </div>
-                      <div>
-                        <span className="font-semibold block text-slate-100">{user.fullName || "Unnamed Operative"}</span>
-                        <span className="text-[10px] text-slate-500 block uppercase font-mono tracking-wider">UUID: {user.id.substring(0, 8)}...</span>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <StatusPill tone={user.role === "ADMIN" ? "warning" : user.role === "INSTRUCTOR" ? "primary" : "success"}>
-                      {user.role}
-                    </StatusPill>
-                  </td>
-                  <td className="p-4 text-slate-400 font-semibold">{user.email}</td>
-                  <td className="p-4 text-right">
-                    <UserRoleForm userId={user.id} currentRole={user.role} />
-                  </td>
+  return (
+    <AppShell title="Users" subtitle={subtitle} role={profile.role}>
+      {users.length > 0 ? (
+        <section className="sheet overflow-hidden" aria-label="All accounts">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="sr-only">All accounts, newest first, with a form to change each role</caption>
+              <thead className="bg-well">
+                <tr>
+                  <th scope="col" className={`${headerCell} pl-5`}>
+                    Name
+                  </th>
+                  <th scope="col" className={headerCell}>
+                    Username
+                  </th>
+                  <th scope="col" className={headerCell}>
+                    Email
+                  </th>
+                  <th scope="col" className={headerCell}>
+                    Role
+                  </th>
+                  <th scope="col" className={headerCell}>
+                    Joined
+                  </th>
+                  <th scope="col" className={`${headerCell} pr-5`}>
+                    Change role
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+              </thead>
+              <tbody className="divide-y divide-line-soft">
+                {users.map((user) => {
+                  const isSelf = user.id === profile.id;
+                  const name = user.fullName || user.username;
+
+                  return (
+                    <tr key={user.id} className="hover:bg-well">
+                      <td className="whitespace-nowrap py-2.5 pl-5 pr-3 font-semibold text-ink">
+                        {name}
+                        {isSelf ? <span className="ml-1.5 font-normal text-ink-3">(you)</span> : null}
+                      </td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-ink-2">{user.username}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5 text-ink-2">{user.email}</td>
+                      <td className="px-3 py-2.5">
+                        <StatusPill tone="neutral">{ROLE_LABEL[user.role] ?? user.role}</StatusPill>
+                      </td>
+                      <td className="figure whitespace-nowrap px-3 py-2.5 text-ink-2">{formatShortDate(user.createdAt)}</td>
+                      <td className="py-2.5 pl-3 pr-5">
+                        <UserRoleForm userId={user.id} currentRole={user.role} userName={name} isSelf={isSelf} />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : (
+        <EmptyState title="No accounts yet" message="Accounts appear here as soon as people sign up." />
+      )}
     </AppShell>
   );
 }

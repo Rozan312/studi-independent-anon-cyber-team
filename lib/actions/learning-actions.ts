@@ -10,7 +10,7 @@ export type LearningActionState = {
   message: string;
 };
 
-const defaultErrorMessage = "Aksi belum berhasil diproses. Cek input lalu coba lagi.";
+const defaultErrorMessage = "Couldn't process that. Check your input and try again.";
 
 function toActionError(error: unknown): LearningActionState {
   if (error instanceof ZodError) {
@@ -46,7 +46,7 @@ export async function submitTaskAnswerAction(
     if (!answer) {
       return {
         tone: "error",
-        message: "Jawaban belum diisi."
+        message: "Enter an answer first."
       };
     }
 
@@ -61,21 +61,21 @@ export async function submitTaskAnswerAction(
     }
 
     if (result.isCorrect) {
-      const progressNote = result.progressPercentage === 100 ? "Room selesai." : `Progress room sekarang ${result.progressPercentage ?? 0}%.`;
+      const progressNote = result.progressPercentage === 100 ? "Room complete." : `Room progress is now ${result.progressPercentage ?? 0}%.`;
       return {
         tone: "success",
-        message: `Jawaban benar. Poin dan progress sudah dicatat. ${progressNote}`
+        message: `Correct. Points and progress recorded. ${progressNote}`
       };
     }
 
-    let message = `Jawaban belum tepat (percobaan salah ke-${result.wrongAttempts}).`;
+    let message = `Not quite (wrong attempt ${result.wrongAttempts}).`;
 
     if (result.hasHint) {
       message += result.hintUnlocked
-        ? " Hint sudah terbuka di bawah kolom jawaban."
-        : ` Hint terbuka setelah ${result.hintUnlockAfter} percobaan salah.`;
+        ? " The hint is now open below the answer field."
+        : ` The hint opens after ${result.hintUnlockAfter} wrong attempts.`;
     } else {
-      message += " Baca kembali materi dan instruksi task, lalu coba lagi.";
+      message += " Review the material and task instructions, then try again.";
     }
 
     return { tone: "error", message };

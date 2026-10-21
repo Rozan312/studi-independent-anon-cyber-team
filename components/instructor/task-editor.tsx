@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { useFormState } from "react-dom";
 import {
   addRoomTaskAction,
@@ -8,9 +8,10 @@ import {
   moveRoomTaskAction,
   updateRoomTaskAction
 } from "@/lib/actions/content-actions";
+import { EmptyState } from "@/components/card";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { dangerButtonClass, ghostButtonClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { dangerButtonClass, helpClass, idleActionState, inputClass, labelClass, secondaryButtonClass } from "@/components/instructor/form-styles";
 
 export type EditorTask = {
   id: string;
@@ -23,128 +24,199 @@ export type EditorTask = {
   orderIndex: number;
 };
 
+/** Tombol ikon kecil untuk mengubah urutan task. */
+const reorderButtonClass = "btn-ghost btn-sm w-8 px-0";
+
+function ChevronIcon({ direction }: { direction: "up" | "down" }) {
+  return (
+    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <path d={direction === "up" ? "m4 10 4-4 4 4" : "m4 6 4 4 4-4"} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function TaskFields({ task, disabled }: { task?: EditorTask; disabled: boolean }) {
+  const id = useId();
+
   return (
     <>
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_8rem]">
-        <label className={labelClass}>
-          Judul task
-          <input name="title" defaultValue={task?.title ?? ""} placeholder="Identifikasi header respons" className={inputClass} disabled={disabled} />
-        </label>
-        <label className={labelClass}>
-          Poin
-          <input name="points" type="number" min={0} max={10000} defaultValue={task?.points ?? 10} className={inputClass} disabled={disabled} />
-        </label>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_7.5rem]">
+        <div>
+          <label htmlFor={`${id}-title`} className={labelClass}>
+            Task title
+          </label>
+          <input
+            id={`${id}-title`}
+            name="title"
+            defaultValue={task?.title ?? ""}
+            placeholder="Identify the response header"
+            className={inputClass}
+            disabled={disabled}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${id}-points`} className={labelClass}>
+            Points
+          </label>
+          <input
+            id={`${id}-points`}
+            name="points"
+            type="number"
+            min={0}
+            max={10000}
+            defaultValue={task?.points ?? 10}
+            className={`${inputClass} figure`}
+            disabled={disabled}
+          />
+        </div>
       </div>
-      <label className={labelClass}>
-        Instruksi untuk peserta
+
+      <div>
+        <label htmlFor={`${id}-description`} className={labelClass}>
+          Instructions for members
+        </label>
         <textarea
+          id={`${id}-description`}
           name="description"
           rows={3}
           defaultValue={task?.description ?? ""}
-          placeholder="Jelaskan apa yang harus diamati atau dikerjakan peserta (minimal 10 karakter)."
+          placeholder="Describe what members should look at or do (at least 10 characters)."
           className={inputClass}
           disabled={disabled}
         />
-      </label>
-      <label className={labelClass}>
-        Jawaban yang diharapkan
+      </div>
+
+      <div>
+        <label htmlFor={`${id}-answer`} className={labelClass}>
+          Expected answer
+        </label>
         <input
+          id={`${id}-answer`}
           name="expectedAnswer"
           defaultValue={task?.expectedAnswer ?? ""}
-          placeholder="Contoh: least privilege"
-          className={inputClass}
+          placeholder="e.g. least privilege"
+          aria-describedby={`${id}-answer-help`}
+          className={`${inputClass} font-mono text-sm`}
           disabled={disabled}
         />
-        <span className="mt-1 block text-[11px] normal-case tracking-normal text-slate-500">
-          Dibandingkan sebagai teks: huruf besar/kecil dan spasi di tepi diabaikan. Kosongkan jika task hanya bersifat bacaan (jawaban tidak akan
-          pernah dinilai benar).
-        </span>
-      </label>
-      <div className="grid gap-3 md:grid-cols-2">
-        <label className={labelClass}>
-          Jawaban alternatif (opsional, satu per baris)
+        <p id={`${id}-answer-help`} className={helpClass}>
+          Members must type this answer (or one of the other accepted answers) to solve the task. Letter case and spaces at either end are
+          ignored. A task without an answer can&apos;t be solved: the tasks after it stay locked and the room can&apos;t be completed.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <label htmlFor={`${id}-accepted`} className={labelClass}>
+            Other accepted answers <span className="font-normal text-ink-3">(optional, one per line)</span>
+          </label>
           <textarea
+            id={`${id}-accepted`}
             name="acceptedAnswers"
             rows={3}
             defaultValue={task?.acceptedAnswers?.join("\n") ?? ""}
             placeholder={"principle of least privilege\nleast-privilege"}
-            className={inputClass}
+            aria-describedby={`${id}-accepted-help`}
+            className={`${inputClass} font-mono text-sm`}
             disabled={disabled}
           />
-          <span className="mt-1 block text-[11px] normal-case tracking-normal text-slate-500">
-            Sinonim, singkatan, atau ejaan lain yang juga dianggap benar. Maksimal 10 baris.
-          </span>
-        </label>
-        <label className={labelClass}>
-          Hint (opsional)
+          <p id={`${id}-accepted-help`} className={helpClass}>
+            Synonyms, abbreviations, or other spellings that also count as correct. Up to 10 lines.
+          </p>
+        </div>
+        <div>
+          <label htmlFor={`${id}-hint`} className={labelClass}>
+            Hint <span className="font-normal text-ink-3">(optional)</span>
+          </label>
           <textarea
+            id={`${id}-hint`}
             name="hint"
             rows={3}
             defaultValue={task?.hint ?? ""}
-            placeholder="Petunjuk yang mengarahkan tanpa menyebut jawabannya langsung."
+            placeholder="Point members in the right direction without giving the answer away."
+            aria-describedby={`${id}-hint-help`}
             className={inputClass}
             disabled={disabled}
           />
-          <span className="mt-1 block text-[11px] normal-case tracking-normal text-slate-500">
-            Ditampilkan ke peserta setelah dua percobaan salah pada task ini.
-          </span>
-        </label>
+          <p id={`${id}-hint-help`} className={helpClass}>
+            Shown to members after two wrong attempts on this task.
+          </p>
+        </div>
       </div>
     </>
   );
 }
 
-function TaskRow({ task, isFirst, isLast, disabled }: { task: EditorTask; isFirst: boolean; isLast: boolean; disabled: boolean }) {
+function TaskRow({
+  task,
+  position,
+  isFirst,
+  isLast,
+  disabled
+}: {
+  task: EditorTask;
+  position: number;
+  isFirst: boolean;
+  isLast: boolean;
+  disabled: boolean;
+}) {
   const [state, formAction] = useFormState(updateRoomTaskAction, idleActionState);
   const [deleteState, deleteAction] = useFormState(deleteRoomTaskAction, idleActionState);
   const [moveState, moveAction] = useFormState(moveRoomTaskAction, idleActionState);
+  const headingId = `task-${task.id}-heading`;
 
   return (
-    <article className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-primary">Task {task.orderIndex}</p>
-        <div className="flex flex-wrap items-center gap-2">
+    <article aria-labelledby={headingId} className="py-6 first:pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex items-baseline gap-2">
+          <h3 id={headingId} className="text-base font-bold text-ink">
+            Task <span className="figure">{position}</span>
+          </h3>
+          <span className="figure text-sm text-ink-3">
+            {task.points} {task.points === 1 ? "pt" : "pts"}
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
           <form action={moveAction}>
             <input type="hidden" name="taskId" value={task.id} />
             <input type="hidden" name="direction" value="up" />
-            <button type="submit" className={ghostButtonClass} disabled={disabled || isFirst} title="Pindah ke atas">
-              Naik
+            <button type="submit" className={reorderButtonClass} disabled={disabled || isFirst} aria-label="Move up" title="Move up">
+              <ChevronIcon direction="up" />
             </button>
           </form>
           <form action={moveAction}>
             <input type="hidden" name="taskId" value={task.id} />
             <input type="hidden" name="direction" value="down" />
-            <button type="submit" className={ghostButtonClass} disabled={disabled || isLast} title="Pindah ke bawah">
-              Turun
+            <button type="submit" className={reorderButtonClass} disabled={disabled || isLast} aria-label="Move down" title="Move down">
+              <ChevronIcon direction="down" />
             </button>
           </form>
           <form
             action={deleteAction}
             onSubmit={(event) => {
-              if (!window.confirm("Hapus task ini? Riwayat jawaban peserta untuk task ini ikut terhapus.")) {
+              if (!window.confirm("Delete this task and its answer history?")) {
                 event.preventDefault();
               }
             }}
           >
             <input type="hidden" name="taskId" value={task.id} />
-            <button type="submit" className={dangerButtonClass} disabled={disabled}>
-              Hapus
+            <button type="submit" className={`${dangerButtonClass} ml-1`} disabled={disabled}>
+              Delete
             </button>
           </form>
         </div>
       </div>
 
-      <form action={formAction} className="mt-4 space-y-3">
+      <form action={formAction} className="mt-4 space-y-4">
         <input type="hidden" name="taskId" value={task.id} />
         <TaskFields task={task} disabled={disabled} />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
+        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 space-y-2">
             <ActionMessage state={state} />
             <ActionMessage state={deleteState} />
             <ActionMessage state={moveState} />
           </div>
-          <SubmitButton label="Simpan task" disabled={disabled} />
+          <SubmitButton label="Save task" className={secondaryButtonClass} disabled={disabled} />
         </div>
       </form>
     </article>
@@ -154,35 +226,56 @@ function TaskRow({ task, isFirst, isLast, disabled }: { task: EditorTask; isFirs
 function AddTaskForm({ roomId, disabled }: { roomId: string; disabled: boolean }) {
   const [state, formAction] = useFormState(addRoomTaskAction, idleActionState);
   const formRef = useRef<HTMLFormElement>(null);
+  const headingId = useId();
 
   useEffect(() => {
     if (state.tone === "success") formRef.current?.reset();
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Tambah task baru</p>
+    <form
+      ref={formRef}
+      action={formAction}
+      aria-labelledby={headingId}
+      className="space-y-4 border-t border-dashed border-line-strong pt-6"
+    >
+      <h3 id={headingId} className="text-base font-bold text-ink">
+        Add a task
+      </h3>
       <input type="hidden" name="roomId" value={roomId} />
       <TaskFields disabled={disabled} />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <ActionMessage state={state} />
-        <SubmitButton label="Tambah task" pendingLabel="Menambahkan..." disabled={disabled} />
+      <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <ActionMessage state={state} />
+        </div>
+        <SubmitButton label="Add task" pendingLabel="Adding…" disabled={disabled} />
       </div>
     </form>
   );
 }
 
+/** Task tersusun sebagai daftar bergaris di dalam lembar seksi (bukan kartu di dalam kartu); form tambah dipisah garis putus-putus. */
 export function TaskEditor({ roomId, tasks, disabled = false }: { roomId: string; tasks: EditorTask[]; disabled?: boolean }) {
   return (
-    <div className="space-y-4">
+    <div>
       {tasks.length === 0 ? (
-        <p className="rounded-lg border border-white/[0.06] bg-black/20 p-4 text-sm text-slate-400">
-          Belum ada task. Tambahkan minimal satu task agar progress room peserta dapat dihitung.
-        </p>
-      ) : null}
-      {tasks.map((task, index) => (
-        <TaskRow key={task.id} task={task} isFirst={index === 0} isLast={index === tasks.length - 1} disabled={disabled} />
-      ))}
+        <div className="mb-6">
+          <EmptyState title="No tasks yet" message="Add at least one task so members' room progress can be counted." />
+        </div>
+      ) : (
+        <div className="divide-y divide-line-soft">
+          {tasks.map((task, index) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              position={index + 1}
+              isFirst={index === 0}
+              isLast={index === tasks.length - 1}
+              disabled={disabled}
+            />
+          ))}
+        </div>
+      )}
       <AddTaskForm roomId={roomId} disabled={disabled} />
     </div>
   );

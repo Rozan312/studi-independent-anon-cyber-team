@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { useFormState } from "react-dom";
+import { useEffect, useId, useRef } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 import { addRoomToPathAction, moveRoomInPathAction } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { StatusPill } from "@/components/card";
-import { ghostButtonClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { EmptyState, StatusPill } from "@/components/card";
+import { StateStamp, type StampTone } from "@/components/paper/stamp";
+import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
 
 export type PathRoomItem = {
   id: string;
@@ -30,56 +31,78 @@ export type CandidateRoomItem = {
   canManage: boolean;
 };
 
-function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFirst: boolean; isLast: boolean; disabled: boolean }) {
-  const [moveState, moveAction] = useFormState(moveRoomInPathAction, idleActionState);
+/** Warna stempel jadwal dari teks describeAvailability: "Closed since…" merah, selain itu amber (terjadwal). */
+function scheduleTone(label: string): StampTone {
+  return label.startsWith("Closed") ? "red" : "amber";
+}
+
+function MoveButton({ direction, describedBy, disabled }: { direction: "up" | "down"; describedBy: string; disabled: boolean }) {
+  const { pending } = useFormStatus();
+  const label = direction === "up" ? "Move up" : "Move down";
 
   return (
-    <li className="rounded-lg border border-white/[0.06] bg-black/20 p-3">
-      <div className="flex items-start gap-3">
-        <div className="flex h-12 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-white/[0.06] bg-[#0f131d]">
-          {room.coverImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={room.coverImageUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <span className="text-base font-black text-primary/60">{room.orderIndex}</span>
-          )}
-        </div>
-        <div className="min-w-0 flex-grow">
-          <div className="flex flex-wrap items-start justify-between gap-2">
-            <p className="truncate text-sm font-semibold text-slate-100">
-              {room.orderIndex}. {room.title}
-            </p>
-            <StatusPill tone={room.isPublished ? "success" : "neutral"}>{room.isPublished ? "Live" : "Draft"}</StatusPill>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-500">
-            {room.taskCount} task · {room.questionCount > 0 ? `${room.questionCount} soal quiz` : "tanpa quiz"} · {room.points} pts · pemilik {room.ownerLabel}
-          </p>
-          {room.scheduleLabel ? <p className="mt-1 text-[11px] text-amber-300/80">{room.scheduleLabel}</p> : null}
-        </div>
-      </div>
+    <button
+      type="submit"
+      className="btn-ghost btn-sm px-2"
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      aria-label={label}
+      aria-describedby={describedBy}
+      title={label}
+    >
+      <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+        <path d={direction === "up" ? "m4 10 4-4 4 4" : "m4 6 4 4 4-4"} strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFirst: boolean; isLast: boolean; disabled: boolean }) {
+  const [moveState, moveAction] = useFormState(moveRoomInPathAction, idleActionState);
+  const titleId = useId();
+
+  return (
+    <li className="py-3">
+      <div className="flex items-start gap-3">
+        <span className="figure w-7 shrink-0 text-right text-lg font-bold leading-6 text-ink-3" aria-hidden="true">
+          {room.orderIndex}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Link
+              id={titleId}
+              href={`/instructor/rooms/${room.id}`}
+              className="min-w-0 font-semibold leading-6 text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
+            >
+              {room.title}
+            </Link>
+            <StatusPill tone={room.isPublished ? "success" : "neutral"}>{room.isPublished ? "Published" : "Draft"}</StatusPill>
+            {room.scheduleLabel ? <StateStamp tone={scheduleTone(room.scheduleLabel)}>{room.scheduleLabel}</StateStamp> : null}
+          </div>
+          <p className="mt-0.5 text-sm text-ink-3">
+            {room.taskCount} {room.taskCount === 1 ? "task" : "tasks"} ·{" "}
+            {room.questionCount > 0 ? `${room.questionCount} quiz ${room.questionCount === 1 ? "question" : "questions"}` : "No quiz"} ·{" "}
+            <span className="figure">{room.points}</span> {room.points === 1 ? "pt" : "pts"} · Owner: {room.ownerLabel}
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-0.5">
           <form action={moveAction}>
             <input type="hidden" name="roomId" value={room.id} />
             <input type="hidden" name="direction" value="up" />
-            <button type="submit" className={ghostButtonClass} disabled={disabled || isFirst} title="Pindah ke atas">
-              Naik
-            </button>
+            <MoveButton direction="up" describedBy={titleId} disabled={disabled || isFirst} />
           </form>
           <form action={moveAction}>
             <input type="hidden" name="roomId" value={room.id} />
             <input type="hidden" name="direction" value="down" />
-            <button type="submit" className={ghostButtonClass} disabled={disabled || isLast} title="Pindah ke bawah">
-              Turun
-            </button>
+            <MoveButton direction="down" describedBy={titleId} disabled={disabled || isLast} />
           </form>
         </div>
-        <Link href={`/instructor/rooms/${room.id}`} className="text-xs font-bold text-primary hover:underline">
-          Buka editor
-        </Link>
       </div>
-      <ActionMessage state={moveState} />
+      {moveState.message ? (
+        <div className="mt-2 pl-10">
+          <ActionMessage state={moveState} />
+        </div>
+      ) : null}
     </li>
   );
 }
@@ -87,6 +110,9 @@ function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFi
 function AddExistingRoomForm({ pathId, candidates, disabled }: { pathId: string; candidates: CandidateRoomItem[]; disabled: boolean }) {
   const [state, formAction] = useFormState(addRoomToPathAction, idleActionState);
   const formRef = useRef<HTMLFormElement>(null);
+  const uid = useId();
+  const selectId = `${uid}-room`;
+  const helpId = `${uid}-help`;
 
   useEffect(() => {
     if (state.tone === "success") formRef.current?.reset();
@@ -95,30 +121,39 @@ function AddExistingRoomForm({ pathId, candidates, disabled }: { pathId: string;
   const selectable = candidates.filter((room) => room.canManage);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-3 rounded-xl border border-dashed border-primary/30 bg-primary/5 p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Tambahkan room yang sudah ada</p>
-      <p className="text-[11px] leading-relaxed text-slate-500">
-        Room hanya bisa berada di satu path, jadi room yang dipilih akan dipindahkan dari path asalnya ke urutan terakhir di path ini.
-      </p>
+    <form ref={formRef} action={formAction} className="space-y-3 border-t border-dashed border-line-strong pt-4">
       <input type="hidden" name="pathId" value={pathId} />
-      <label className={labelClass}>
-        Pilih room
-        <select name="roomId" defaultValue="" className={inputClass} disabled={disabled || selectable.length === 0} required>
+      <div>
+        <label htmlFor={selectId} className={labelClass}>
+          Add an existing room
+        </label>
+        <select
+          id={selectId}
+          name="roomId"
+          defaultValue=""
+          className={inputClass}
+          disabled={disabled || selectable.length === 0}
+          aria-describedby={helpId}
+          required
+        >
           <option value="" disabled>
-            {selectable.length === 0 ? "Tidak ada room lain yang bisa dipindahkan" : "Pilih room dari path lain"}
+            {selectable.length === 0 ? "No other rooms you can move" : "Choose a room from another path"}
           </option>
           {candidates.map((room) => (
             <option key={room.id} value={room.id} disabled={!room.canManage}>
-              {room.title} — dari {room.pathTitle}
-              {room.isPublished ? "" : " (draft)"}
-              {room.canManage ? "" : " (milik instruktur lain)"}
+              {room.title} (from {room.pathTitle})
+              {room.isPublished ? "" : ", draft"}
+              {room.canManage ? "" : ", owned by another instructor"}
             </option>
           ))}
         </select>
-      </label>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p id={helpId} className={helpClass}>
+          A room belongs to one path, so the room you pick moves out of its current path and goes to the end of this one.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <SubmitButton label="Add room" pendingLabel="Adding…" className="btn-secondary" disabled={disabled || selectable.length === 0} />
         <ActionMessage state={state} />
-        <SubmitButton label="Tambahkan ke path" pendingLabel="Memindahkan..." disabled={disabled || selectable.length === 0} />
       </div>
     </form>
   );
@@ -138,11 +173,9 @@ export function PathRoomsEditor({
   return (
     <div className="space-y-4">
       {rooms.length === 0 ? (
-        <p className="rounded-lg border border-white/[0.06] bg-black/20 p-4 text-sm text-slate-400">
-          Belum ada room di path ini. Tambahkan room yang sudah ada di bawah, atau buat room baru.
-        </p>
+        <EmptyState title="No rooms in this path yet" message="Add an existing room below, or create a new room for this path." />
       ) : (
-        <ol className="space-y-2">
+        <ol className="divide-y divide-line-soft border-t border-line-soft" aria-label="Rooms in this path, in order">
           {rooms.map((room, index) => (
             <RoomRow key={room.id} room={room} isFirst={index === 0} isLast={index === rooms.length - 1} disabled={!canManagePath} />
           ))}
@@ -151,11 +184,11 @@ export function PathRoomsEditor({
 
       <AddExistingRoomForm pathId={pathId} candidates={candidates} disabled={!canManagePath} />
 
-      <Link
-        href={`/instructor/rooms/new?pathId=${pathId}`}
-        className="flex items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.02] px-4 py-2.5 text-xs font-bold text-slate-200 transition hover:border-primary/40 hover:text-white"
-      >
-        Buat room baru di path ini
+      <Link href={`/instructor/rooms/new?pathId=${pathId}`} className="btn-secondary w-full">
+        <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+          <path d="M8 3.5v9M3.5 8h9" strokeLinecap="round" />
+        </svg>
+        Create a new room in this path
       </Link>
     </div>
   );

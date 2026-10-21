@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { useFormState } from "react-dom";
 import { updateRoomMetadataAction } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUploadField } from "@/components/instructor/image-upload-field";
-import { idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
 import { DISPLAY_TIME_ZONE, dateTimeLocalToIso, toDateTimeLocalValue } from "@/lib/learning/availability";
 
 export type RoomMetadataValues = {
@@ -26,6 +26,23 @@ export type RoomMetadataValues = {
   availableUntil: string | null;
 };
 
+/** Label di atas input, teks bantuan opsional di bawahnya (terhubung lewat aria-describedby di input). */
+function Field({ id, label, help, className = "", children }: { id: string; label: string; help?: React.ReactNode; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className={labelClass}>
+        {label}
+      </label>
+      {children}
+      {help ? (
+        <p id={`${id}-help`} className={helpClass}>
+          {help}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function RoomMetadataForm({
   room,
   paths,
@@ -39,30 +56,34 @@ export function RoomMetadataForm({
   const [scheduleEnabled, setScheduleEnabled] = useState(Boolean(room.availableFrom || room.availableUntil));
   const [fromLocal, setFromLocal] = useState(toDateTimeLocalValue(room.availableFrom));
   const [untilLocal, setUntilLocal] = useState(toDateTimeLocalValue(room.availableUntil));
+  const uid = useId();
+  const fieldId = (key: string) => `${uid}-${key}`;
 
   const fromIso = scheduleEnabled ? dateTimeLocalToIso(fromLocal) : "";
   const untilIso = scheduleEnabled ? dateTimeLocalToIso(untilLocal) : "";
   const rangeInvalid = Boolean(fromIso && untilIso && new Date(untilIso) <= new Date(fromIso));
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form action={formAction} className="space-y-5">
       <input type="hidden" name="roomId" value={room.id} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <label className={labelClass}>
-          Judul room
-          <input name="title" defaultValue={room.title} className={inputClass} disabled={disabled} />
-        </label>
-        <label className={labelClass}>
-          Slug (URL)
-          <input name="slug" defaultValue={room.slug} className={inputClass} disabled={disabled} />
-        </label>
-      </div>
+        <Field id={fieldId("title")} label="Room title">
+          <input id={fieldId("title")} name="title" defaultValue={room.title} className={inputClass} disabled={disabled} />
+        </Field>
+        <Field id={fieldId("slug")} label="Slug" help="Used in the room's address.">
+          <input
+            id={fieldId("slug")}
+            name="slug"
+            defaultValue={room.slug}
+            className={inputClass}
+            disabled={disabled}
+            aria-describedby={`${fieldId("slug")}-help`}
+          />
+        </Field>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className={labelClass}>
-          Learning path
-          <select name="learningPathId" defaultValue={room.learningPathId} className={inputClass} disabled={disabled}>
+        <Field id={fieldId("path")} label="Learning path">
+          <select id={fieldId("path")} name="learningPathId" defaultValue={room.learningPathId} className={inputClass} disabled={disabled}>
             {paths.map((path) => (
               <option key={path.id} value={path.id}>
                 {path.title}
@@ -70,79 +91,111 @@ export function RoomMetadataForm({
               </option>
             ))}
           </select>
-        </label>
-        <label className={labelClass}>
-          Kategori
-          <input name="category" defaultValue={room.category} className={inputClass} disabled={disabled} />
-        </label>
-        <label className={labelClass}>
-          Tingkat
-          <input name="difficulty" defaultValue={room.difficulty} className={inputClass} disabled={disabled} />
-        </label>
+        </Field>
+        <Field id={fieldId("order")} label="Position in path" help="1 is the first room members see.">
+          <input
+            id={fieldId("order")}
+            name="orderIndex"
+            type="number"
+            min={0}
+            max={10000}
+            defaultValue={room.orderIndex}
+            className={`${inputClass} figure`}
+            disabled={disabled}
+            aria-describedby={`${fieldId("order")}-help`}
+          />
+        </Field>
+
+        <Field id={fieldId("category")} label="Category">
+          <input id={fieldId("category")} name="category" defaultValue={room.category} className={inputClass} disabled={disabled} />
+        </Field>
+        <Field id={fieldId("difficulty")} label="Difficulty">
+          <input id={fieldId("difficulty")} name="difficulty" defaultValue={room.difficulty} className={inputClass} disabled={disabled} />
+        </Field>
+
+        <Field id={fieldId("minutes")} label="Estimated minutes">
+          <input
+            id={fieldId("minutes")}
+            name="estimatedMinutes"
+            type="number"
+            min={5}
+            max={600}
+            defaultValue={room.estimatedMinutes}
+            className={`${inputClass} figure`}
+            disabled={disabled}
+          />
+        </Field>
+        <Field id={fieldId("points")} label="Points" help="Awarded when a member passes the room's quiz.">
+          <input
+            id={fieldId("points")}
+            name="points"
+            type="number"
+            min={0}
+            max={10000}
+            defaultValue={room.points}
+            className={`${inputClass} figure`}
+            disabled={disabled}
+            aria-describedby={`${fieldId("points")}-help`}
+          />
+        </Field>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <label className={labelClass}>
-          Estimasi (menit)
-          <input name="estimatedMinutes" type="number" min={5} max={600} defaultValue={room.estimatedMinutes} className={inputClass} disabled={disabled} />
-        </label>
-        <label className={labelClass}>
-          Poin room (quiz lulus)
-          <input name="points" type="number" min={0} max={10000} defaultValue={room.points} className={inputClass} disabled={disabled} />
-        </label>
-        <label className={labelClass}>
-          Urutan di path
-          <input name="orderIndex" type="number" min={0} max={10000} defaultValue={room.orderIndex} className={inputClass} disabled={disabled} />
-        </label>
-      </div>
+      <Field id={fieldId("description")} label="Short description">
+        <textarea id={fieldId("description")} name="description" rows={3} defaultValue={room.description} className={inputClass} disabled={disabled} />
+      </Field>
 
-      <label className={labelClass}>
-        Deskripsi singkat
-        <textarea name="description" rows={3} defaultValue={room.description} className={inputClass} disabled={disabled} />
-      </label>
+      <ImageUploadField
+        initialValue={room.coverImageUrl}
+        help="Shown on room cards and at the top of the room."
+        disabled={disabled}
+      />
 
-      <ImageUploadField initialValue={room.coverImageUrl} label="Gambar cover (tampil di kartu menu dan hero room)" disabled={disabled} />
-
-      <fieldset className="rounded-xl border border-white/[0.08] bg-black/20 p-4">
-        <legend className="px-1 text-xs font-bold uppercase tracking-wider text-slate-400">Jadwal kemunculan</legend>
-        <label className="flex items-center gap-2 text-xs font-semibold text-slate-300">
+      <fieldset className="rounded-lg border border-line p-4">
+        <legend className="px-1 text-sm font-semibold text-ink">Schedule</legend>
+        <label className="flex items-center gap-2.5 text-sm text-ink">
           <input
             type="checkbox"
-            className="h-4 w-4 accent-primary"
+            className="h-4 w-4 rounded border-line-strong accent-violet"
             checked={scheduleEnabled}
             onChange={(event) => setScheduleEnabled(event.target.checked)}
             disabled={disabled}
           />
-          Atur jadwal buka dan tutup room
+          Set opening and closing times
         </label>
-        <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
-          Tanpa jadwal, room tersedia terus selama dipublish. Isi salah satu atau keduanya: hanya tanggal buka berarti tersedia sejak tanggal itu
-          tanpa batas; hanya tanggal tutup berarti tersedia sampai tanggal itu. Zona waktu: {DISPLAY_TIME_ZONE}.
+        <p className={helpClass}>
+          Without a schedule, the room stays available while it&apos;s published. Times are in {DISPLAY_TIME_ZONE}.
         </p>
 
         {scheduleEnabled ? (
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <label className={labelClass}>
-              Dibuka mulai
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <Field id={fieldId("from")} label="Opens" help="Leave empty to open immediately.">
               <input
+                id={fieldId("from")}
                 type="datetime-local"
                 value={fromLocal}
                 onChange={(event) => setFromLocal(event.target.value)}
                 className={inputClass}
                 disabled={disabled}
+                aria-describedby={`${fieldId("from")}-help`}
               />
-            </label>
-            <label className={labelClass}>
-              Ditutup pada
+            </Field>
+            <Field id={fieldId("until")} label="Closes" help="Leave empty to keep it open.">
               <input
+                id={fieldId("until")}
                 type="datetime-local"
                 value={untilLocal}
                 onChange={(event) => setUntilLocal(event.target.value)}
                 className={inputClass}
                 disabled={disabled}
+                aria-invalid={rangeInvalid || undefined}
+                aria-describedby={`${fieldId("until")}-help`}
               />
-            </label>
-            {rangeInvalid ? <p className="text-xs text-rose-300 md:col-span-2">Tanggal tutup harus setelah tanggal buka.</p> : null}
+            </Field>
+            {rangeInvalid ? (
+              <div className="md:col-span-2">
+                <ActionMessage state={{ tone: "error", message: "The closing time must be after the opening time." }} />
+              </div>
+            ) : null}
           </div>
         ) : null}
 
@@ -150,9 +203,9 @@ export function RoomMetadataForm({
         <input type="hidden" name="availableUntil" value={untilIso} />
       </fieldset>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line-soft pt-4">
+        <SubmitButton label="Save room details" disabled={disabled || rangeInvalid} />
         <ActionMessage state={state} />
-        <SubmitButton label="Simpan informasi room" disabled={disabled || rangeInvalid} />
       </div>
     </form>
   );

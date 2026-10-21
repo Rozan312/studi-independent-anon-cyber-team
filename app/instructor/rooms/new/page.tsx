@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { RoomBuilderForm } from "@/components/instructor/room-builder-form";
 import { requireRole } from "@/lib/auth/guards";
@@ -12,9 +13,14 @@ export default async function NewInstructorRoomPage({ searchParams = {} }: { sea
 
   return (
     <AppShell
-      title="Room Builder"
-      subtitle="Buat room baru dengan task awal. Setelah tersimpan, editor room terbuka untuk mengisi materi dan quiz."
+      title="New room"
+      subtitle="Create a room with its first tasks. After you save it, the room editor opens so you can write the material and the quiz."
       role={profile.role}
+      actions={
+        <Link href="/instructor/rooms" className="btn-secondary">
+          All rooms
+        </Link>
+      }
     >
       <RoomBuilderForm
         defaultPathId={requestedPath ?? null}

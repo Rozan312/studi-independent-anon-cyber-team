@@ -1,35 +1,22 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { publishInstructorRoomAction, type InstructorActionState } from "@/lib/actions/instructor-actions";
 import { ActionMessage } from "@/components/ui/action-message";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 const initialState: InstructorActionState = {
   tone: "idle",
   message: ""
 };
 
-function SubmitButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="text-xs font-bold text-primary transition hover:underline disabled:cursor-not-allowed disabled:opacity-50"
-    >
-      {pending ? "Publishing..." : "Publish"}
-    </button>
-  );
-}
-
 export function PublishRoomForm({ roomId }: { roomId: string }) {
   const [state, formAction] = useFormState(publishInstructorRoomAction, initialState);
 
   return (
-    <form action={formAction} className="space-y-2 text-right">
+    <form action={formAction} className="flex flex-col items-end gap-2">
       <input type="hidden" name="roomId" value={roomId} />
-      <SubmitButton />
+      <SubmitButton label="Publish" pendingLabel="Publishing…" className="btn-secondary btn-sm" />
       <ActionMessage state={state} />
     </form>
   );

@@ -1,25 +1,32 @@
 "use client";
 
 import { useState } from "react";
+import { useFormState } from "react-dom";
 import { resetPasswordAction } from "@/lib/actions/auth-actions";
 import { AuthNotice, type AuthNoticeState } from "@/components/auth/auth-notice";
+import { helpClass, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { SubmitButton } from "@/components/ui/submit-button";
 
 export function ResetPasswordForm({ isLocalAuth }: { isLocalAuth: boolean }) {
-  const [notice, setNotice] = useState<AuthNoticeState>(
+  const [clientNotice, setClientNotice] = useState<AuthNoticeState>(
     isLocalAuth
       ? {
           tone: "info",
-          message: "Mode local tidak menyimpan password. Gunakan password minimal 8 karakter saat login."
+          message: "Local development mode doesn't store passwords. Sign in with any password of at least 8 characters."
         }
       : null
   );
+  // Kegagalan penyimpanan password baru dari server kembali sebagai state, bukan halaman error.
+  const [serverState, formAction] = useFormState(resetPasswordAction, null);
+  // Pemberitahuan dari cek di browser didahulukan; tanpa itu, hasil server terakhir yang tampil.
+  const notice = clientNotice ?? serverState;
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     if (isLocalAuth) {
       event.preventDefault();
-      setNotice({
+      setClientNotice({
         tone: "info",
-        message: "Reset password dinonaktifkan di mode local."
+        message: "Password reset is turned off in local development mode."
       });
       return;
     }
@@ -29,36 +36,47 @@ export function ResetPasswordForm({ isLocalAuth }: { isLocalAuth: boolean }) {
 
     if (!password) {
       event.preventDefault();
-      setNotice({ tone: "error", message: "Masukkan password baru terlebih dahulu." });
+      setClientNotice({ tone: "error", message: "Enter a new password." });
       return;
     }
 
     if (password.length < 8) {
       event.preventDefault();
-      setNotice({ tone: "error", message: "Password minimal 8 karakter." });
+      setClientNotice({ tone: "error", message: "Use at least 8 characters for your new password." });
+      return;
     }
+
+    setClientNotice(null);
   }
 
   return (
-    <form action={resetPasswordAction} className="glass-panel mt-6 space-y-4 rounded-lg p-6" noValidate onSubmit={handleSubmit}>
+    <form action={formAction} className="space-y-4" noValidate onSubmit={handleSubmit}>
       <AuthNotice notice={notice} />
-      <label className="block text-sm">
-        New password
+      <div>
+        <label htmlFor="reset-password" className={labelClass}>
+          New password
+        </label>
         <input
-          className="mt-1 w-full rounded-md border border-border bg-black/25 px-3 py-2 outline-none transition focus:border-primary focus:shadow-[0_0_0_3px_rgba(77,142,255,0.16)]"
+          id="reset-password"
+          className={inputClass}
           name="password"
           type="password"
           autoComplete="new-password"
           disabled={isLocalAuth}
+          aria-describedby="reset-password-help"
         />
-      </label>
-      <button
-        className="w-full rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-[0_0_20px_rgba(77,142,255,0.22)] transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-60"
-        type="submit"
-        disabled={isLocalAuth}
-      >
-        Update password
-      </button>
+        <p id="reset-password-help" className={helpClass}>
+          At least 8 characters.
+        </p>
+      </div>
+      <div className="pt-1">
+        <SubmitButton
+          label="Save new password"
+          pendingLabel="Saving password…"
+          disabled={isLocalAuth}
+          className="btn-primary min-h-11 w-full text-[0.9375rem]"
+        />
+      </div>
     </form>
   );
 }

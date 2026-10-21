@@ -1,6 +1,7 @@
 "use client";
 
-import { useFormState, useFormStatus } from "react-dom";
+import { useState } from "react";
+import { useFormState } from "react-dom";
 import {
   createAnnouncementAction,
   publishAnnouncementAction,
@@ -8,37 +9,21 @@ import {
   type AdminActionState
 } from "@/lib/actions/admin-actions";
 import { ActionMessage } from "@/components/ui/action-message";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { helpClass, inputClass, labelClass, panelClass } from "@/components/instructor/form-styles";
 
 const initialState: AdminActionState = {
   tone: "idle",
   message: ""
 };
 
-function SubmitButton({ label, pendingLabel = "Saving..." }: { label: string; pendingLabel?: string }) {
-  const { pending } = useFormStatus();
-
+function AudienceSelect({ id, defaultValue = "ALL" }: { id: string; defaultValue?: string }) {
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-blue-300 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {pending ? pendingLabel : label}
-    </button>
-  );
-}
-
-function AudienceSelect({ defaultValue = "ALL" }: { defaultValue?: string }) {
-  return (
-    <select
-      name="audience"
-      defaultValue={defaultValue}
-      className="focus-ring rounded-lg border border-white/[0.08] bg-[#0b111d] px-3 py-2 text-sm text-slate-100 outline-none"
-    >
-      <option value="ALL">ALL</option>
-      <option value="STUDENT">STUDENT</option>
-      <option value="INSTRUCTOR">INSTRUCTOR</option>
-      <option value="ADMIN">ADMIN</option>
+    <select id={id} name="audience" defaultValue={defaultValue} className={inputClass}>
+      <option value="ALL">Everyone</option>
+      <option value="STUDENT">Members</option>
+      <option value="INSTRUCTOR">Instructors</option>
+      <option value="ADMIN">Admins</option>
     </select>
   );
 }
@@ -47,44 +32,55 @@ export function AnnouncementCreateForm() {
   const [state, formAction] = useFormState(createAnnouncementAction, initialState);
 
   return (
-    <form action={formAction} noValidate className="glass-panel rounded-xl p-5">
-      <div className="mb-4 border-b border-white/[0.06] pb-3">
-        <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">new bulletin</p>
-        <h2 className="mt-1 text-lg font-semibold text-slate-100">Draft Announcement</h2>
+    <form action={formAction} noValidate className={`${panelClass} space-y-4`} aria-labelledby="new-announcement-heading">
+      <div>
+        <h2 id="new-announcement-heading" className="text-lg font-bold text-ink">
+          New announcement
+        </h2>
+        <p className="mt-0.5 text-sm text-ink-2">Once published, it shows under Announcements on the dashboard of the chosen audience.</p>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
-        <label className="block text-xs font-bold uppercase tracking-[0.16em] text-slate-500 md:col-span-2">
+
+      <div>
+        <label htmlFor="new-announcement-title" className={labelClass}>
           Title
-          <input
-            name="title"
-            placeholder="Platform maintenance notice"
-            className="focus-ring mt-2 w-full rounded-lg border border-white/[0.08] bg-[#0b111d] px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-100 outline-none placeholder:text-slate-600"
-          />
         </label>
-        <label className="block text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
+        <input id="new-announcement-title" name="title" placeholder="Maintenance on Saturday evening" className={inputClass} />
+      </div>
+
+      <div>
+        <label htmlFor="new-announcement-audience" className={labelClass}>
           Audience
-          <div className="mt-2">
-            <AudienceSelect />
-          </div>
         </label>
-        <label className="flex items-end gap-2 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
-          <input name="isPublished" type="checkbox" className="mb-2 h-4 w-4 accent-primary" />
+        <AudienceSelect id="new-announcement-audience" />
+      </div>
+
+      <div>
+        <label htmlFor="new-announcement-content" className={labelClass}>
+          Content
+        </label>
+        <textarea
+          id="new-announcement-content"
+          name="content"
+          rows={5}
+          placeholder="Write a short update for the people who will see it."
+          aria-describedby="new-announcement-content-help"
+          className={`${inputClass} resize-y`}
+        />
+        <p id="new-announcement-content-help" className={helpClass}>
+          At least 10 characters.
+        </p>
+      </div>
+
+      <div>
+        <label className="flex items-center gap-2.5 text-sm font-semibold text-ink">
+          <input name="isPublished" type="checkbox" className="h-4 w-4 rounded border-line-strong accent-[rgb(var(--violet))]" />
           Publish immediately
         </label>
-        <label className="block text-xs font-bold uppercase tracking-[0.16em] text-slate-500 md:col-span-2">
-          Content
-          <textarea
-            name="content"
-            rows={4}
-            placeholder="Write a short platform update for learners."
-            className="focus-ring mt-2 w-full resize-none rounded-lg border border-white/[0.08] bg-[#0b111d] px-3 py-2 text-sm font-medium normal-case tracking-normal text-slate-100 outline-none placeholder:text-slate-600"
-          />
-        </label>
+        <p className={helpClass}>Leave unchecked to save it as a draft.</p>
       </div>
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <ActionMessage state={state} />
-        <SubmitButton label="Create Announcement" />
-      </div>
+
+      <ActionMessage state={state} />
+      <SubmitButton label="Create announcement" pendingLabel="Creating…" />
     </form>
   );
 }
@@ -102,42 +98,81 @@ export function AnnouncementEditForm({
 }) {
   const [updateState, updateAction] = useFormState(updateAnnouncementAction, initialState);
   const [publishState, publishAction] = useFormState(publishAnnouncementAction, initialState);
+  const [editing, setEditing] = useState(false);
+  const fieldId = `announcement-${announcement.id}`;
 
   return (
-    <div className="space-y-3">
-      <form action={updateAction} noValidate className="space-y-3">
+    <div className="mt-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <form action={publishAction}>
+          <input type="hidden" name="announcementId" value={announcement.id} />
+          <input type="hidden" name="isPublished" value={String(!announcement.isPublished)} />
+          <SubmitButton
+            label={announcement.isPublished ? "Unpublish" : "Publish"}
+            pendingLabel={announcement.isPublished ? "Unpublishing…" : "Publishing…"}
+            className="btn-secondary btn-sm"
+          />
+        </form>
+        <button
+          type="button"
+          className="btn-ghost btn-sm"
+          aria-expanded={editing}
+          aria-controls={`${fieldId}-editor`}
+          onClick={() => setEditing((open) => !open)}
+        >
+          {editing ? "Close editor" : "Edit"}
+        </button>
+      </div>
+
+      {publishState.message ? (
+        <div className="mt-2 max-w-xl">
+          <ActionMessage state={publishState} />
+        </div>
+      ) : null}
+
+      {/* Form edit tetap ter-mount saat ditutup agar pesan hasil simpan dan isian tidak hilang. */}
+      <form
+        id={`${fieldId}-editor`}
+        hidden={!editing}
+        action={updateAction}
+        noValidate
+        className="mt-3 space-y-4 rounded-lg bg-well p-4"
+        aria-label={`Edit ${announcement.title}`}
+      >
         <input type="hidden" name="announcementId" value={announcement.id} />
         <input type="hidden" name="isPublished" value={String(announcement.isPublished)} />
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem]">
-          <input
-            name="title"
-            defaultValue={announcement.title}
-            className="focus-ring rounded-lg border border-white/[0.08] bg-[#0b111d] px-3 py-2 text-sm font-semibold text-slate-100 outline-none"
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+          <div>
+            <label htmlFor={`${fieldId}-title`} className={labelClass}>
+              Title
+            </label>
+            <input id={`${fieldId}-title`} name="title" defaultValue={announcement.title} className={inputClass} />
+          </div>
+          <div>
+            <label htmlFor={`${fieldId}-audience`} className={labelClass}>
+              Audience
+            </label>
+            <AudienceSelect id={`${fieldId}-audience`} defaultValue={announcement.audience} />
+          </div>
+        </div>
+        <div>
+          <label htmlFor={`${fieldId}-content`} className={labelClass}>
+            Content
+          </label>
+          <textarea
+            id={`${fieldId}-content`}
+            name="content"
+            rows={4}
+            defaultValue={announcement.content}
+            aria-describedby={`${fieldId}-content-help`}
+            className={`${inputClass} resize-y`}
           />
-          <AudienceSelect defaultValue={announcement.audience} />
+          <p id={`${fieldId}-content-help`} className={helpClass}>
+            At least 10 characters.
+          </p>
         </div>
-        <textarea
-          name="content"
-          rows={3}
-          defaultValue={announcement.content}
-          className="focus-ring w-full resize-none rounded-lg border border-white/[0.08] bg-[#0b111d] px-3 py-2 text-sm text-slate-100 outline-none"
-        />
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <ActionMessage state={updateState} />
-          <SubmitButton label="Save Changes" />
-        </div>
-      </form>
-
-      <form action={publishAction} className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <input type="hidden" name="announcementId" value={announcement.id} />
-        <input type="hidden" name="isPublished" value={String(!announcement.isPublished)} />
-        <ActionMessage state={publishState} />
-        <button
-          type="submit"
-          className="rounded-lg border border-white/[0.08] px-4 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/[0.05]"
-        >
-          {announcement.isPublished ? "Unpublish" : "Publish"}
-        </button>
+        <ActionMessage state={updateState} />
+        <SubmitButton label="Save changes" />
       </form>
     </div>
   );
