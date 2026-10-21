@@ -21,12 +21,15 @@ const SIZES = {
   xl: "h-24 w-24 rounded-2xl text-2xl"
 } as const;
 
-/** "Introduction to HTTP" -> "IH", "Linux Fundamentals" -> "LF", "Networking" -> "NE". */
-export function initialsFor(name: string) {
+/**
+ * "Introduction to HTTP" -> "IH", "Linux Fundamentals" -> "LF", "Networking" -> "NE".
+ * Untuk nama orang, stopword tidak dibuang ("Dan Pratama" -> "DP", bukan "PR").
+ */
+export function initialsFor(name: string, { person = false }: { person?: boolean } = {}) {
   const words = name
     .split(/[^\p{L}\p{N}]+/u)
     .filter(Boolean)
-    .filter((word) => !STOPWORDS.has(word.toLowerCase()));
+    .filter((word) => person || !STOPWORDS.has(word.toLowerCase()));
   if (words.length === 0) return "?";
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return `${words[0][0]}${words[1][0]}`.toUpperCase();
@@ -42,9 +45,12 @@ export function EntityLogo({
   name,
   src,
   size = "md",
+  person = false,
   className = ""
 }: {
   name: string;
+  /** Nama orang (avatar): inisial dari kata pertama dan kedua tanpa membuang stopword. */
+  person?: boolean;
   /** URL logo yang diunggah; kosong berarti pakai inisial nama. */
   src?: string | null;
   size?: keyof typeof SIZES;
@@ -62,7 +68,7 @@ export function EntityLogo({
       aria-hidden="true"
       className={`inline-flex shrink-0 select-none items-center justify-center border font-bold tracking-[0.02em] ${SIZES[size]} ${tintFor(name)} ${className}`}
     >
-      {initialsFor(name)}
+      {initialsFor(name, { person })}
     </span>
   );
 }

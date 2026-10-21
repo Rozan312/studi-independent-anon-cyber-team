@@ -5,7 +5,8 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { formatScheduleDate } from "@/lib/learning/availability";
-import { getLearningStreak } from "@/lib/services/activity-service";
+import { getLearningActivity } from "@/lib/services/activity-service";
+import { ActivityHeatmap } from "@/components/paper/activity-heatmap";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 import { memberSerial } from "@/lib/format/member";
 import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
@@ -45,7 +46,7 @@ export default async function ProfilePage() {
 
   const [
     standing,
-    streak,
+    activity,
     progressRows,
     submissions,
     attempts,
@@ -57,7 +58,7 @@ export default async function ProfilePage() {
     passedQuizGroups
   ] = await Promise.all([
     getUserLeaderboardStanding(profile.id),
-    getLearningStreak(profile.id),
+    getLearningActivity(profile.id),
     prisma.userRoomProgress.findMany({
       where: { userId: profile.id },
       include: {
@@ -151,7 +152,7 @@ export default async function ProfilePage() {
   return (
     <AppShell title="Profile" subtitle="Your member record: identity, points, and the trail of rooms, tasks, and quizzes behind them." role={profile.role}>
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        {/* Halaman data paspor */}
+        {/* Data anggota */}
         <section className="sheet p-5 sm:p-7" aria-label="Member details">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="mx-auto shrink-0 sm:mx-0">
@@ -159,7 +160,7 @@ export default async function ProfilePage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={profile.avatarUrl} alt={`Photo of ${profile.fullName}`} className="h-[140px] w-[140px] rounded-lg border border-line object-cover" />
               ) : (
-                <EntityLogo name={profile.fullName} size="xl" className="!h-[140px] !w-[140px] !rounded-xl !text-4xl" />
+                <EntityLogo name={profile.fullName} person size="xl" className="!h-[140px] !w-[140px] !rounded-xl !text-4xl" />
               )}
             </div>
             <dl className="grid min-w-0 flex-1 grid-cols-1 gap-x-6 gap-y-4 border-line-soft sm:grid-cols-2 sm:border-l sm:pl-6">
@@ -208,7 +209,7 @@ export default async function ProfilePage() {
             value={standing.rank ? `#${standing.rank}` : "–"}
             note={standing.rank ? `of ${plural(standing.totalRanked, "member")}` : "Earn points to rank"}
           />
-          <Figure className="bg-sheet p-4" label="Streak" value={streak.streakDays} unit={streak.streakDays === 1 ? "day" : "days"} />
+          <Figure className="bg-sheet p-4" label="Streak" value={activity.streakDays} unit={activity.streakDays === 1 ? "day" : "days"} />
           <Figure className="bg-sheet p-4" label="Rooms completed" value={completedRooms} />
           <Figure
             className="bg-sheet p-4"
@@ -225,20 +226,32 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Recently completed">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-bold text-ink">Recently completed</h2>
-          <Link href="/progress" className="text-link text-sm">
-            Full record
-          </Link>
-        </div>
-        <div className="mt-4">
-          <CompletionList entries={recentCompletions} />
-          {recentCompletions.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-3">Finished rooms and passed quizzes show up here.</p>
-          ) : null}
-        </div>
-      </section>
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[auto_minmax(0,1fr)]">
+        <section className="sheet p-5 sm:p-6" aria-label="Activity">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-bold text-ink">Activity</h2>
+            <Link href="/progress" className="text-link text-sm">
+              Progress
+            </Link>
+          </div>
+          <ActivityHeatmap calendar={activity.calendar} className="mt-4" />
+        </section>
+
+        <section className="sheet min-w-0 p-5 sm:p-6" aria-label="Recently completed">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-lg font-bold text-ink">Recently completed</h2>
+            <Link href="/progress" className="text-link text-sm">
+              Full record
+            </Link>
+          </div>
+          <div className="mt-4">
+            <CompletionList entries={recentCompletions} columns={2} />
+            {recentCompletions.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-3">Finished rooms and passed quizzes show up here.</p>
+            ) : null}
+          </div>
+        </section>
+      </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-2">
         <section className="sheet min-w-0 p-5 sm:p-6" aria-label="Quiz history">

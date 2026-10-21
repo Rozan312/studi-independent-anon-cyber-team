@@ -1,12 +1,12 @@
 import { zonedDateParts } from "@/lib/learning/availability";
 
-/** "14 Oct 2026": tanggal pada stempel dan daftar. */
+/** "14 Oct 2026": tanggal pada daftar dan riwayat. */
 export function formatShortDate(date: Date) {
   const { day, month, year } = zonedDateParts(date);
   return `${day} ${month} ${year}`;
 }
 
-/** "24 Oct": tanggal ringkas untuk stempel status seperti "Opens 24 Oct". */
+/** "24 Oct": tanggal ringkas untuk label status seperti "Opens 24 Oct". */
 export function formatDayMonth(date: Date) {
   const { day, month } = zonedDateParts(date);
   return `${day} ${month}`;

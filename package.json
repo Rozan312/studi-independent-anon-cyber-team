@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "test": "tsx tests/service-smoke.test.ts",
+    "seed:showcase": "tsx prisma/seed-showcase.ts",
+    "seed:showcase:remove": "tsx prisma/seed-showcase.ts --remove",
     "typecheck": "tsc --noEmit",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",

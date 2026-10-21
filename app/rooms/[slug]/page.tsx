@@ -23,10 +23,10 @@ import { EntityLogo } from "@/components/paper/entity-logo";
 
 export const dynamic = "force-dynamic";
 
-/** Stempel room yang baru selesai (15 menit terakhir) dihentakkan sekali. */
+/** Room yang baru selesai (15 menit terakhir): tanda centangnya digambar sekali. */
 const FRESH_COMPLETION_MS = 15 * 60 * 1000;
 
-/** Stempel status ketersediaan; null bila room terbuka tanpa batas akhir. */
+/** Label status ketersediaan; null bila room terbuka tanpa batas akhir. */
 function availabilityTag(availability: RoomAvailability) {
   if (availability.state === "upcoming" && availability.opensAt) {
     return <StateTag tone="amber">Opens {formatDayMonth(availability.opensAt)}</StateTag>;
@@ -136,7 +136,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
     getWrongAttemptCounts(profile.id, room.id),
     getRoomCompletionSnapshot(profile.id, room.id),
     getLatestLabSessionForRoom(profile.id, room.id),
-    // Hanya baca: tanggal selesai untuk stempel "Passed".
+    // Hanya baca: tanggal selesai untuk penanda "Room passed".
     prisma.userRoomProgress.findUnique({
       where: { userId_roomId: { userId: profile.id, roomId: room.id } },
       select: { completedAt: true }
@@ -297,7 +297,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
                             </p>
                           ) : null}
 
-                          {/* Form tetap di posisi yang sama saat task berubah jadi solved agar stempel "Correct" terlihat. */}
+                          {/* Form tetap di posisi yang sama saat task berubah jadi solved agar pesan "Correct" terlihat. */}
                           {isActive || isCompleted ? (
                             <TaskSubmitForm
                               taskId={task.id}

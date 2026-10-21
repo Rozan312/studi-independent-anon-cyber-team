@@ -391,7 +391,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         </div>
       </div>
 
-      {/* Paspor belajar */}
+      {/* Riwayat selesai */}
       <section className="sheet mt-5 p-5 sm:p-6" aria-labelledby="completed-title">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>

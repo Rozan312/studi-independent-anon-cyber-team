@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { StateTag } from "@/components/paper/state-tag";
+import { NightModeToggle } from "@/components/theme/night-mode";
 import { PageNotice } from "@/components/ui/page-notice";
 import { requireRole } from "@/lib/auth/guards";
 import { hasRoleAccess } from "@/lib/auth/rbac";
@@ -46,12 +47,15 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
       subtitle="Lab workspace placeholder. No virtual machines or VPN are connected yet."
       role={profile.role}
       actions={
-        <Link href={`/rooms/${room.slug}`} className="btn-secondary">
-          <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-            <path d="M13 8H3M7 4 3 8l4 4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          Back to room
-        </Link>
+        <>
+          <NightModeToggle />
+          <Link href={`/rooms/${room.slug}`} className="btn-secondary">
+            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+              <path d="M13 8H3M7 4 3 8l4 4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            Back to room
+          </Link>
+        </>
       }
     >
       <PageNotice

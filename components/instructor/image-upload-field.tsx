@@ -21,10 +21,13 @@ export function ImageUploadField({
   label = "Cover image",
   help,
   initialValue,
+  previewClassName = "h-36 w-full",
   disabled = false
 }: {
   name?: string;
   label?: string;
+  /** Ukuran/bentuk pratinjau; logo memakai kotak persegi seperti tampilannya di daftar. */
+  previewClassName?: string;
   /** Teks bantuan singkat di bawah label. */
   help?: string;
   initialValue?: string | null;
@@ -106,7 +109,7 @@ export function ImageUploadField({
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt={`${label} preview`} className="h-36 w-full rounded-md border border-line bg-well object-cover" />
+          <img src={value} alt={`${label} preview`} className={`${previewClassName} rounded-md border border-line bg-well object-cover`} />
         ) : (
           <div className="flex flex-col items-center gap-1.5 px-2 py-5 text-center">
             <svg viewBox="0 0 24 24" className="h-6 w-6 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -126,11 +129,11 @@ export function ImageUploadField({
             disabled={inactive}
             aria-busy={uploading || undefined}
           >
-            {uploading ? "Uploading…" : value ? "Replace image" : "Upload image"}
+            {uploading ? "Uploading…" : `${value ? "Replace" : "Upload"} ${label.toLowerCase()}`}
           </button>
           {value ? (
             <button type="button" onClick={() => setValue("")} className="btn-ghost btn-sm" disabled={inactive}>
-              Remove image
+              Remove {label.toLowerCase()}
             </button>
           ) : null}
           <span className="text-xs text-ink-3">PNG, JPEG, GIF, or WebP. Max 5 MB.</span>
@@ -148,7 +151,7 @@ export function ImageUploadField({
       </div>
 
       <label htmlFor={urlId} className="mt-3 block text-sm font-medium text-ink-2">
-        Image URL
+        {label} URL
       </label>
       <input
         id={urlId}

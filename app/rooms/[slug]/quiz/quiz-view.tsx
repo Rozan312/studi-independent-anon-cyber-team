@@ -367,7 +367,7 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
                 <label
                   key={option.id}
                   className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 text-[0.9375rem] leading-relaxed transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-cyan-ink ${
-                    isSelected ? "border-ink bg-cyan-soft/50 text-ink" : "border-line bg-sheet text-ink-2 hover:border-line-strong hover:bg-well hover:text-ink"
+                    isSelected ? "border-cyan-ink/60 bg-cyan-soft/50 text-ink" : "border-line bg-sheet text-ink-2 hover:border-line-strong hover:bg-well hover:text-ink"
                   }`}
                 >
                   <input
@@ -458,7 +458,7 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
                   aria-label={`Question ${index + 1}, ${isAnswered ? "answered" : "not answered"}`}
                   className={`figure flex h-10 w-full items-center justify-center rounded-md text-sm font-semibold transition-colors ${
                     isCurrent
-                      ? "border-[1.5px] border-ink bg-sheet text-ink"
+                      ? "border-[1.5px] border-cyan-ink/70 bg-sheet text-ink"
                       : isAnswered
                         ? "border border-line-strong bg-well text-ink hover:border-ink-3"
                         : "border border-dashed border-line-strong bg-sheet text-ink-3 hover:bg-well hover:text-ink"

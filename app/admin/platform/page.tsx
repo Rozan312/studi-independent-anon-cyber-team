@@ -8,7 +8,7 @@ import { getLabSessionOverview, getPlatformStatistics } from "@/lib/services/adm
 
 export const dynamic = "force-dynamic";
 
-// Tinta stempel menurut makna: hijau berjalan, merah gagal, amber sedang disiapkan; sisanya netral (cyan khusus langkah berikutnya).
+// Warna status menurut makna: hijau berjalan, merah gagal, amber sedang disiapkan; sisanya netral (cyan khusus langkah berikutnya).
 const labStatusTone: Record<string, StatusTone> = {
   READY: "neutral",
   STARTING: "warning",

@@ -26,7 +26,7 @@ function editedLabel(date: Date, now: Date) {
   return `Edited ${relative === "Just now" || relative === "Yesterday" ? relative.toLowerCase() : relative}`;
 }
 
-/** Status terbit dan jadwal sebuah room: Draft tetap terlihat, room terjadwal/ditutup memakai stempel. */
+/** Status terbit dan jadwal sebuah room: Draft tetap terlihat, room terjadwal/ditutup memakai label status. */
 function RoomStateMarks({ room, now }: { room: RoomScheduleFields; now: Date }) {
   if (!room.isPublished) return <StateTag tone="muted">Draft</StateTag>;
 

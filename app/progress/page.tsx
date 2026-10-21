@@ -6,16 +6,17 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
-import { getLearningStreak } from "@/lib/services/activity-service";
+import { getLearningActivity } from "@/lib/services/activity-service";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 import { EntityLogo } from "@/components/paper/entity-logo";
+import { ActivityHeatmap, WEEKDAYS } from "@/components/paper/activity-heatmap";
 
 export const dynamic = "force-dynamic";
 
-/** Dinding stempel dan tabel attempt memuat maksimal 100 attempt terbaru; angka ringkasan memakai agregat. */
+/** Daftar "Completed" dan tabel attempt memuat maksimal 100 attempt terbaru; angka ringkasan memakai agregat. */
 const ATTEMPT_LIMIT = 100;
 
-/** Jendela yang dipakai getLearningStreak (lib/services/activity-service.ts) untuk menghitung hari aktif. */
+/** Jendela yang dipakai getLearningActivity (lib/services/activity-service.ts) untuk menghitung hari aktif. */
 const ACTIVITY_WINDOW_DAYS = 120;
 
 function plural(count: number, singular: string, pluralForm = `${singular}s`) {
@@ -28,14 +29,14 @@ export default async function ProgressPage() {
   const profile = await requireRole(["STUDENT"]);
   const now = new Date();
 
-  const [rows, standing, streak, quizAttempts, publishedPathRows, attemptTotal, passedQuizGroups] = await Promise.all([
+  const [rows, standing, activity, quizAttempts, publishedPathRows, attemptTotal, passedQuizGroups] = await Promise.all([
     prisma.userRoomProgress.findMany({
       where: { userId: profile.id },
       include: { room: true },
       orderBy: { updatedAt: "desc" }
     }),
     getUserLeaderboardStanding(profile.id),
-    getLearningStreak(profile.id, now),
+    getLearningActivity(profile.id, now),
     prisma.userQuizAttempt.findMany({
       where: { userId: profile.id, completedAt: { not: null } },
       select: {
@@ -63,6 +64,9 @@ export default async function ProgressPage() {
 
   // Beginner → Intermediate → Advanced, lalu judul (urutan abjad menaruh "Advanced" lebih dulu).
   const publishedPaths = sortByDifficulty(publishedPathRows);
+
+  const { calendar } = activity;
+  const thisWeek = calendar.weeks[calendar.weeks.length - 1]?.reduce((sum, day) => sum + day.count, 0) ?? 0;
 
   const completedRows = rows.filter((row) => row.status === "COMPLETED");
   const inProgressRows = rows.filter((row) => row.status === "IN_PROGRESS");
@@ -127,10 +131,22 @@ export default async function ProgressPage() {
           <Figure
             className="bg-sheet p-4 sm:p-5"
             label="Streak"
-            value={streak.streakDays}
-            unit={streak.streakDays === 1 ? "day" : "days"}
-            note={`${plural(streak.activeDays, "active day")} in the last ${ACTIVITY_WINDOW_DAYS} days`}
+            value={activity.streakDays}
+            unit={activity.streakDays === 1 ? "day" : "days"}
+            note={`${plural(activity.windowActiveDays, "active day")} in the last ${ACTIVITY_WINDOW_DAYS} days`}
           />
+        </div>
+      </section>
+
+      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Activity">
+        <SectionHeader title="Activity" description="Task answers and quiz attempts per day. Hover a square for the date." />
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
+          <ActivityHeatmap calendar={calendar} className="min-w-0 shrink-0" />
+          <div className="grid grid-cols-3 gap-4 border-t border-line-soft pt-5 lg:flex-1 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
+            <Figure label="Longest streak" value={calendar.longestStreak} unit={calendar.longestStreak === 1 ? "day" : "days"} />
+            <Figure label="This week" value={formatNumber(thisWeek)} unit={thisWeek === 1 ? "activity" : "activities"} />
+            <Figure label="Busiest day" size="sm" value={calendar.busiestWeekday === null ? "–" : WEEKDAYS[calendar.busiestWeekday]} />
+          </div>
         </div>
       </section>
 

@@ -31,7 +31,7 @@ export type CandidateRoomItem = {
   canManage: boolean;
 };
 
-/** Warna stempel jadwal dari teks describeAvailability: "Closed since…" merah, selain itu amber (terjadwal). */
+/** Warna label jadwal dari teks describeAvailability: "Closed since…" merah, selain itu amber (terjadwal). */
 function scheduleTone(label: string): StateTone {
   return label.startsWith("Closed") ? "red" : "amber";
 }

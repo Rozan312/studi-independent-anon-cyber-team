@@ -51,7 +51,8 @@ export function CompletionMark({
     return (
       <span className={`inline-flex shrink-0 items-center justify-center rounded-full bg-red-soft text-red ${s.box} ${className}`} aria-hidden="true">
         <svg viewBox="0 0 24 24" className={s.icon} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7" />
+          <path d="M20 12a8 8 0 1 1-2.34-5.66L20 8.5" />
+          <path d="M20 3.5v5h-5" />
         </svg>
       </span>
     );
@@ -72,14 +73,23 @@ export function CompletionMark({
 
 function describe(entry: CompletionEntry) {
   if (entry.kind === "room") return `Room passed · ${entry.date}`;
-  if (entry.kind === "quiz-pass") return `Quiz passed · ${entry.date}`;
+  if (entry.kind === "quiz-pass") return `Quiz passed with ${entry.score ?? 0}% · ${entry.date}`;
   return `Quiz scored ${entry.score ?? 0}% · try again · ${entry.date}`;
 }
 
 /** Daftar penyelesaian (room lulus, skor quiz, quiz yang perlu diulang), terbaru dulu. */
-export function CompletionList({ entries, next }: { entries: CompletionEntry[]; next?: string | null }) {
+export function CompletionList({
+  entries,
+  next,
+  columns = 3
+}: {
+  entries: CompletionEntry[];
+  next?: string | null;
+  /** Jumlah kolom maksimum; 2 untuk kartu yang berbagi baris dengan kartu lain. */
+  columns?: 2 | 3;
+}) {
   return (
-    <ul className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 xl:grid-cols-3">
+    <ul className={`grid grid-cols-1 gap-x-6 sm:grid-cols-2 ${columns === 3 ? "xl:grid-cols-3" : ""}`}>
       {entries.map((entry) => (
         <li key={entry.id} className="flex items-center gap-3 border-b border-line-soft py-3">
           <span className="flex w-12 shrink-0 justify-center">

@@ -3,7 +3,9 @@
  * Dibuat deterministik dari seed sehingga tidak berubah antar render. Selalu aria-hidden.
  */
 
-const INK = "rgb(0 108 138)";
+// Warna lewat token CSS agar ikut berganti di night mode.
+const INK = "rgb(var(--cyan-ink))";
+const PAD = "rgb(var(--sheet))";
 
 function hashSeed(seed: string) {
   let value = 0x811c9dc5;
@@ -71,7 +73,7 @@ export function CircuitField({ seed = "anon-cyber-team", className = "", opacity
 
   return (
     <svg viewBox="0 0 480 480" preserveAspectRatio="xMidYMid slice" className={className} aria-hidden="true" focusable="false">
-      <g fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round">
+      <g fill="none" style={{ stroke: INK, strokeOpacity: opacity }} strokeWidth={1.25} strokeLinecap="round" strokeLinejoin="round">
         {traces.map((trace, index) => (
           <path key={index} d={trace.d} vectorEffect="non-scaling-stroke" />
         ))}
@@ -88,12 +90,12 @@ export function CircuitField({ seed = "anon-cyber-team", className = "", opacity
           </g>
         ))}
       </g>
-      <g fill="rgb(252 253 253)" stroke={INK} strokeOpacity={opacity + 0.12} strokeWidth={1.25}>
+      <g style={{ fill: PAD, stroke: INK, strokeOpacity: opacity + 0.12 }} strokeWidth={1.25}>
         {traces.map((trace, index) => (
           <circle key={index} cx={trace.end[0]} cy={trace.end[1]} r={3.5} vectorEffect="non-scaling-stroke" />
         ))}
       </g>
-      <g fill={INK} fillOpacity={opacity + 0.1}>
+      <g style={{ fill: INK, fillOpacity: opacity + 0.1 }}>
         {traces.map((trace, index) => (
           <rect key={index} x={trace.start[0] - 2.5} y={trace.start[1] - 2.5} width={5} height={5} rx={1} />
         ))}
@@ -111,16 +113,16 @@ export function CircuitStrip({ className = "", opacity = 0.4 }: { className?: st
     <svg className={`block h-5 w-full ${className}`} aria-hidden="true" focusable="false">
       <defs>
         <pattern id="circuit-strip-tile" width="168" height="20" patternUnits="userSpaceOnUse">
-          <g fill="none" stroke={INK} strokeOpacity={opacity} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
+          <g fill="none" style={{ stroke: INK, strokeOpacity: opacity }} strokeWidth={1} strokeLinecap="round" strokeLinejoin="round">
             <path d="M0 6H38L46 14H92L100 6H168" />
             <path d="M0 15H18M62 3H80M120 15H150" />
           </g>
-          <g fill="rgb(252 253 253)" stroke={INK} strokeOpacity={opacity + 0.15} strokeWidth={1}>
+          <g style={{ fill: PAD, stroke: INK, strokeOpacity: opacity + 0.15 }} strokeWidth={1}>
             <circle cx={18} cy={15} r={2.5} />
             <circle cx={62} cy={3} r={2} />
             <circle cx={150} cy={15} r={2.5} />
           </g>
-          <g fill={INK} fillOpacity={opacity + 0.1}>
+          <g style={{ fill: INK, fillOpacity: opacity + 0.1 }}>
             <rect x={44} y={12} width={4} height={4} rx={1} />
             <rect x={98} y={4} width={4} height={4} rx={1} />
           </g>

@@ -5,10 +5,11 @@
 
 export type RingSegment = "done" | "next" | "todo";
 
+// Warna lewat token CSS agar ikut berganti di night mode.
 const COLORS: Record<RingSegment, string> = {
-  done: "rgb(90 61 176)",
-  next: "rgb(0 194 245)",
-  todo: "rgb(223 232 235)"
+  done: "rgb(var(--violet))",
+  next: "rgb(var(--cyan))",
+  todo: "rgb(var(--line-soft))"
 };
 
 const R = 80;
@@ -59,30 +60,30 @@ export function ProgressRing({
       aria-hidden={title ? undefined : true}
     >
       {/* Cincin luar bertitik dan cincin dalam tipis: kesan gauge digital. */}
-      <circle r={94} fill="none" stroke="rgb(0 108 138)" strokeOpacity={0.35} strokeWidth={1.4} strokeDasharray="1.5 5" strokeLinecap="round" />
-      <circle r={66} fill="none" stroke="rgb(204 220 225)" strokeWidth={1} />
+      <circle r={94} fill="none" style={{ stroke: "rgb(var(--cyan-ink) / 0.35)" }} strokeWidth={1.4} strokeDasharray="1.5 5" strokeLinecap="round" />
+      <circle r={66} fill="none" style={{ stroke: "rgb(var(--line))" }} strokeWidth={1} />
 
       <g className="ring-in" fill="none" strokeWidth={12} strokeLinecap="butt">
         {continuous ? (
           <>
-            <circle r={R} stroke={COLORS.todo} />
+            <circle r={R} style={{ stroke: COLORS.todo }} />
             {doneShare > 0 ? (
-              doneShare >= 1 ? <circle r={R} stroke={COLORS.done} /> : <path d={arc(0, 360 * doneShare)} stroke={COLORS.done} />
+              doneShare >= 1 ? <circle r={R} style={{ stroke: COLORS.done }} /> : <path d={arc(0, 360 * doneShare)} style={{ stroke: COLORS.done }} />
             ) : null}
           </>
         ) : total === 1 ? (
           // Satu room: busur 360° tidak bisa digambar sebagai path (titik awal = titik akhir), jadi pakai lingkaran.
-          <circle r={R} stroke={COLORS[segments[0]]} />
+          <circle r={R} style={{ stroke: COLORS[segments[0]] }} />
         ) : (
           segments.map((segment, index) => (
-            <path key={index} d={arc(index * span + gap / 2, (index + 1) * span - gap / 2)} stroke={COLORS[segment]} />
+            <path key={index} d={arc(index * span + gap / 2, (index + 1) * span - gap / 2)} style={{ stroke: COLORS[segment] }} />
           ))
         )}
       </g>
 
       {/* Tanda batas antar segmen di cincin dalam. */}
       {!continuous && total > 1 ? (
-        <g stroke="rgb(150 175 184)" strokeWidth={1.2} strokeLinecap="round">
+        <g style={{ stroke: "rgb(var(--line-strong))" }} strokeWidth={1.2} strokeLinecap="round">
           {segments.map((_, index) => {
             const [x1, y1] = point(index * span, 62);
             const [x2, y2] = point(index * span, 70);
@@ -96,8 +97,7 @@ export function ProgressRing({
           x="0"
           y={sublabel ? 4 : 11}
           textAnchor="middle"
-          fill="rgb(16 22 31)"
-          style={{ font: "700 34px var(--font-archivo), sans-serif", fontVariantNumeric: "tabular-nums" }}
+          style={{ fill: "rgb(var(--ink))", font: "700 34px var(--font-archivo), sans-serif", fontVariantNumeric: "tabular-nums" }}
         >
           {label}
         </text>
@@ -107,8 +107,7 @@ export function ProgressRing({
           x="0"
           y="30"
           textAnchor="middle"
-          fill="rgb(92 106 114)"
-          style={{ font: "600 14px var(--font-archivo), sans-serif", letterSpacing: "0.12em", fontStretch: "75%" }}
+          style={{ fill: "rgb(var(--ink-3))", font: "600 14px var(--font-archivo), sans-serif", letterSpacing: "0.12em", fontStretch: "75%" }}
         >
           {sublabel.toUpperCase()}
         </text>

@@ -15,7 +15,7 @@ const headCell = "field-label whitespace-nowrap border-b border-line px-3 py-2.5
 const bodyCell = "px-3 py-2.5 align-top first:pl-5 last:pr-5";
 
 /**
- * Jadwal room. Room terbit yang terjadwal/ditutup memakai stempel; draft hanya menampilkan tanggal
+ * Jadwal room. Room terbit yang terjadwal/ditutup memakai label status; draft hanya menampilkan tanggal
  * rencananya sebagai teks karena belum terlihat oleh member.
  */
 function ScheduleCell({ isPublished, availability }: { isPublished: boolean; availability: RoomAvailability }) {

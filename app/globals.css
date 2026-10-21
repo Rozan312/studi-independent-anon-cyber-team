@@ -25,6 +25,13 @@
   --cyan-hover: 0 174 222;
   --cyan-soft: 222 244 251;
   --cyan-ink: 0 108 138;
+  /* Teks di atas isian cyan: biru-tinta gelap, lebih menyatu daripada hitam pekat. */
+  --on-cyan: 4 40 54;
+  /* Latar gelap di belakang drawer/dialog (sama di kedua tema). */
+  --scrim: 8 12 16;
+  /* Warna teks dan kode di materi room. */
+  --prose-ink: 29 41 51;
+  --code-ink: 36 49 59;
 
   --violet: 90 61 176;
   --violet-soft: 237 233 249;
@@ -45,6 +52,71 @@
   --iris: linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%);
 }
 
+/* Night mode: token yang sama dengan nilai gelap, jadi semua komponen ikut berubah. Dipasang di <html>
+   oleh skrip awal di app/layout.tsx (tanpa kedip) dan oleh tombol Night mode. */
+:root[data-theme="night"] {
+  color-scheme: dark;
+
+  --paper: 13 19 24;
+  --sheet: 20 28 35;
+  --well: 26 36 44;
+  --line: 41 54 63;
+  --line-soft: 32 43 51;
+  --line-strong: 70 88 99;
+
+  --ink: 230 238 242;
+  --ink-2: 182 196 204;
+  --ink-3: 140 157 167;
+
+  --cyan: 0 194 245;
+  --cyan-hover: 70 212 250;
+  --cyan-soft: 12 52 66;
+  --cyan-ink: 96 212 246;
+  --on-cyan: 4 40 54;
+
+  --violet: 172 154 242;
+  --violet-soft: 39 33 68;
+  --green: 110 204 146;
+  --green-soft: 21 48 34;
+  --red: 242 128 118;
+  --red-soft: 62 27 25;
+  --amber: 232 184 96;
+  --amber-soft: 58 43 18;
+
+  --tile-indigo: 35 41 74;
+  --tile-indigo-ink: 176 188 244;
+  --tile-teal: 18 50 48;
+  --tile-teal-ink: 124 216 202;
+
+  --iris: linear-gradient(180deg, #0f1c24 0%, #111a26 55%, #151a28 100%);
+  --prose-ink: 211 222 228;
+  --code-ink: 228 237 241;
+}
+
+/* Materi room di tema malam (tampilan student dan editor sama-sama .prose-cyber).
+   Warna teks pilihan instruktur dipilih untuk latar terang; kecerahannya dibalik (invert + hue-rotate 180°)
+   sehingga ronanya tetap tetapi terbaca di latar gelap (kontras palet 6-8:1 terhadap sheet malam). */
+:root[data-theme="night"]
+  .prose-cyber
+  :is([style^="color"], [style*=" color:"], [style*=";color:"]):not(mark):not([style*="color:inherit"]):not([style*="color: inherit"]) {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* Elemen berwarna di dalam elemen berwarna sudah ikut dibalik oleh induknya; jangan dibalik dua kali. */
+:root[data-theme="night"] .prose-cyber :is([style^="color"], [style*=" color:"], [style*=";color:"]) :is([style^="color"], [style*=" color:"], [style*=";color:"]) {
+  /* !important: aturan pembalik di atas lebih spesifik karena rantai :not(). */
+  filter: none !important;
+}
+/* Kode inline di dalam teks berwarna: latarnya ikut terbalik, jadi dibuat transparan. */
+:root[data-theme="night"] .prose-cyber :is([style^="color"], [style*=" color:"], [style*=";color:"]) code {
+  background: transparent;
+  border-color: transparent;
+}
+/* Blok kode sedikit lebih gelap dari lembar agar tetap menonjol di tema malam. */
+:root[data-theme="night"] .prose-cyber pre {
+  background: #0a1015;
+  border-color: rgb(var(--line));
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -58,6 +130,7 @@ body {
   line-height: 1.55;
   font-feature-settings: "kern", "liga";
   overflow-x: hidden;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 a {
@@ -130,7 +203,7 @@ textarea::placeholder {
     @apply rounded-sheet border border-line bg-sheet shadow-sheet;
   }
 
-  /* Label kolom ala formulir paspor: huruf kapital condensed. Hanya untuk data/field, bukan di atas judul. */
+  /* Label kolom ala formulir resmi: huruf kapital condensed. Hanya untuk data/field, bukan di atas judul. */
   .field-label {
     font-stretch: 72%;
     @apply text-label font-semibold uppercase text-ink-3;
@@ -154,8 +227,9 @@ textarea::placeholder {
     @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition-[background-color,border-color,color,transform] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-55 active:translate-y-px;
   }
   /* Tombol langkah berikutnya: wajah cyan bergaris tinta, seperti logo. */
+  /* Tombol langkah berikutnya: isian cyan logo dengan tepi cyan tipis, menyatu dengan latar. */
   .btn-primary {
-    @apply btn border-[1.5px] border-ink bg-cyan text-ink hover:bg-cyan-hover;
+    @apply btn border border-cyan-ink/25 bg-cyan text-[rgb(var(--on-cyan))] shadow-[0_1px_2px_rgb(0_108_138/0.18)] hover:bg-cyan-hover;
   }
   .btn-secondary {
     @apply btn border border-line-strong bg-sheet text-ink hover:border-ink-3 hover:bg-well;
@@ -203,6 +277,22 @@ textarea::placeholder {
   animation: check-draw 460ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
 }
 
+/* Konten halaman masuk halus setiap pindah menu. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: page-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @keyframes ring-in {
   from {
     opacity: 0;
@@ -221,7 +311,8 @@ textarea::placeholder {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ring-in {
+  .ring-in,
+  .page-enter {
     animation: none;
   }
   .check-draw path {
@@ -234,7 +325,7 @@ textarea::placeholder {
    Materi room (mode baca): sama di editor dan tampilan student.
    --------------------------------------------------------------------------- */
 .prose-cyber {
-  color: #1d2933;
+  color: rgb(var(--prose-ink));
   font-size: 1.0625rem;
   line-height: 1.75;
   overflow-wrap: break-word;
@@ -297,7 +388,7 @@ textarea::placeholder {
   border: 1px solid rgb(var(--line-soft));
   border-radius: 0.35rem;
   padding: 0.08em 0.38em;
-  color: #24313b;
+  color: rgb(var(--code-ink));
 }
 .prose-cyber pre {
   background: #17222b;

@@ -23,3 +23,8 @@ storage/
 .impeccable/build/
 .impeccable/hook.cache.json
 .impeccable/config.local.json
+
+# Screenshot showcase (besar, dibuat ulang lewat scripts/showcase; lihat docs/showcase/README.md)
+docs/showcase/screens/
+docs/showcase/framed/
+docs/showcase/banner/

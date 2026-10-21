@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
+import { NightModeToggle } from "@/components/theme/night-mode";
 import { logoutAction } from "@/lib/actions/auth-actions";
 
 type NavLink = { href: string; label: string; icon: IconName };
@@ -139,6 +140,7 @@ export function AppShellFrame({
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  const drawerRootRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef(false);
 
   const groups: NavGroup[] = [
@@ -159,6 +161,11 @@ export function AppShellFrame({
       // Penyimpanan lokal tidak tersedia (mode privat): pakai rail terbuka.
     }
   }, []);
+
+  // Drawer tertutup tidak boleh bisa difokus atau dibaca walau tetap terpasang untuk animasi.
+  useEffect(() => {
+    if (drawerRootRef.current) drawerRootRef.current.inert = !drawerOpen;
+  }, [drawerOpen]);
 
   // Tutup drawer mobile setiap kali route berubah (fokus pindah ke halaman baru, bukan ke tombol Menu).
   useEffect(() => {
@@ -244,18 +251,13 @@ export function AppShellFrame({
           return (
           <div key={group.label ?? "member"} className={groupIndex > 0 ? "mt-4" : ""}>
             {group.label ? (
-              isCollapsed ? (
-                <>
-                  <div className="mx-auto mb-2 h-px w-8 bg-line-strong/60" aria-hidden="true" />
-                  <span id={groupId} className="sr-only">
-                    {group.label}
-                  </span>
-                </>
-              ) : (
-                <p id={groupId} className="field-label mb-1.5 px-3">
-                  {group.label}
-                </p>
-              )
+              // Label grup memudar saat rail diciutkan; tingginya tetap agar ikon tidak melompat.
+              <p
+                id={groupId}
+                className={`field-label mb-1.5 whitespace-nowrap px-3 transition-opacity motion-reduce:transition-none duration-200 ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`}
+              >
+                {group.label}
+              </p>
             ) : null}
             <ul className="space-y-0.5" aria-labelledby={groupId}>
               {group.links.map((link) => {
@@ -270,8 +272,8 @@ export function AppShellFrame({
                       aria-current={active ? "page" : undefined}
                       title={isCollapsed ? collapsedName : undefined}
                       aria-label={isCollapsed ? collapsedName : undefined}
-                      className={`flex min-h-10 items-center gap-3 rounded-lg px-3 text-[0.9375rem] transition-colors lg:min-h-9 ${
-                        isCollapsed ? "justify-center px-0" : ""
+                      className={`flex min-h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-[0.9375rem] transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out lg:min-h-9 ${
+                        isCollapsed ? "px-[17px]" : "px-3"
                       } ${
                         active
                           ? "bg-sheet font-semibold text-ink shadow-sheet ring-1 ring-line"
@@ -281,7 +283,12 @@ export function AppShellFrame({
                       <span className={active ? "text-cyan-ink" : "text-ink-3"}>
                         <NavIcon name={link.icon} />
                       </span>
-                      {isCollapsed ? null : <span className="truncate">{link.label}</span>}
+                      <span
+                        className={`truncate transition-opacity motion-reduce:transition-none duration-200 ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`}
+                        aria-hidden={isCollapsed || undefined}
+                      >
+                        {link.label}
+                      </span>
                     </Link>
                   </li>
                 );
@@ -297,28 +304,43 @@ export function AppShellFrame({
   function renderMemberCard(isCollapsed: boolean, onNavigate?: () => void) {
     return (
       <div className="border-t border-line/80 px-3 pb-4 pt-3">
-        {member && !isCollapsed ? (
-          <Link href="/profile" onClick={onNavigate} className="mb-2 block rounded-lg border border-line bg-sheet/80 px-3 py-2.5 transition-colors hover:border-line-strong">
-            <span className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-sm font-semibold text-ink">{member.name}</span>
-              <span className="field-label shrink-0">{ROLE_LABEL[role ?? ""] ?? "Member"}</span>
-            </span>
-            <span className="serial mt-1 block">{member.serial}</span>
-          </Link>
+        {member ? (
+          // Kartu anggota menyusut halus saat rail diciutkan (grid 1fr -> 0fr), lalu tidak bisa difokus.
+          <div
+            className={`grid transition-[grid-template-rows,opacity] motion-reduce:transition-none duration-300 ease-out ${isCollapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"}`}
+            aria-hidden={isCollapsed || undefined}
+          >
+            <div className="overflow-hidden">
+              <Link
+                href="/profile"
+                onClick={onNavigate}
+                tabIndex={isCollapsed ? -1 : undefined}
+                className="mb-2 block whitespace-nowrap rounded-lg border border-line bg-sheet/80 px-3 py-2.5 transition-colors hover:border-line-strong"
+              >
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="truncate text-sm font-semibold text-ink">{member.name}</span>
+                  <span className="field-label shrink-0">{ROLE_LABEL[role ?? ""] ?? "Member"}</span>
+                </span>
+                <span className="serial mt-1 block">{member.serial}</span>
+              </Link>
+            </div>
+          </div>
         ) : null}
         <form action={logoutAction}>
           <button
             type="submit"
             title={isCollapsed ? "Sign out" : undefined}
             aria-label={isCollapsed ? "Sign out" : undefined}
-            className={`flex min-h-10 w-full items-center gap-3 rounded-lg px-3 text-sm text-ink-2 transition-colors hover:bg-sheet/60 hover:text-ink ${
-              isCollapsed ? "justify-center px-0" : ""
+            className={`flex min-h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink ${
+              isCollapsed ? "px-[17px]" : "px-3"
             }`}
           >
             <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
               <path d="M14 5h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h9" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {isCollapsed ? null : "Sign out"}
+            <span className={`transition-opacity motion-reduce:transition-none duration-200 ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={isCollapsed || undefined}>
+              Sign out
+            </span>
           </button>
         </form>
       </div>
@@ -329,34 +351,40 @@ export function AppShellFrame({
     <div className="min-h-screen bg-paper">
       {/* Rail desktop: gradasi iris dengan grid titik halus. */}
       <aside
-        className={`digital-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] duration-300 ease-out lg:flex ${
+        className={`digital-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] motion-reduce:transition-none duration-300 ease-out lg:flex ${
           collapsed ? "w-[76px]" : "w-64"
         }`}
       >
         <Link
           href="/dashboard"
           aria-label="Anon Cyber Team, go to dashboard"
-          className={`flex items-center gap-3 px-5 pb-5 pt-5 ${collapsed ? "justify-center px-0" : ""}`}
+          className={`flex items-center gap-3 overflow-hidden whitespace-nowrap pb-5 pt-5 transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "px-[19px]" : "px-5"}`}
         >
-          <BrandMark size={collapsed ? 38 : 40} />
-          {collapsed ? null : <span className="text-[0.9375rem] font-bold leading-tight tracking-[-0.01em] text-ink">Anon Cyber Team</span>}
+          <BrandMark size={38} />
+          <span className={`text-[0.9375rem] font-bold leading-tight tracking-[-0.01em] text-ink transition-opacity motion-reduce:transition-none duration-200 ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
+            Anon Cyber Team
+          </span>
         </Link>
 
         {renderNav(collapsed, "Main navigation")}
+
+        <NightModeToggle variant="rail" collapsed={collapsed} />
 
         <button
           type="button"
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`mx-3 mb-1 flex min-h-9 items-center gap-3 rounded-lg px-3 text-sm text-ink-3 transition-colors hover:bg-sheet/60 hover:text-ink ${
-            collapsed ? "justify-center px-0" : ""
+          className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-3 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink ${
+            collapsed ? "px-[17px]" : "px-3"
           }`}
         >
-          <svg viewBox="0 0 24 24" className={`h-[18px] w-[18px] transition-transform duration-300 ${collapsed ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <svg viewBox="0 0 24 24" className={`h-[18px] w-[18px] transition-transform motion-reduce:transition-none duration-300 ${collapsed ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
             <path d="M15 6l-6 6 6 6M5 5v14" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-          {collapsed ? null : "Collapse"}
+          <span className={`transition-opacity motion-reduce:transition-none duration-200 ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
+            Collapse
+          </span>
         </button>
 
         {renderMemberCard(collapsed)}
@@ -368,23 +396,27 @@ export function AppShellFrame({
           <BrandMark size={32} />
           <span className="truncate text-sm font-bold text-ink">Anon Cyber Team</span>
         </Link>
-        <button
-          type="button"
-          ref={menuButtonRef}
-          onClick={() => setDrawerOpen(true)}
-          aria-expanded={drawerOpen}
-          aria-controls={drawerOpen ? "mobile-navigation" : undefined}
-          className="btn-secondary btn-sm"
-        >
-          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-            <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
-          </svg>
-          Menu
-        </button>
+        <div className="flex items-center gap-2">
+          <NightModeToggle variant="icon" />
+          <button
+            type="button"
+            ref={menuButtonRef}
+            onClick={() => setDrawerOpen(true)}
+            aria-expanded={drawerOpen}
+            aria-controls="mobile-navigation"
+            className="btn-secondary btn-sm"
+          >
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" />
+            </svg>
+            Menu
+          </button>
+        </div>
       </div>
 
-      <main className={`transition-[padding] duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
-        <div className="mx-auto w-full max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9">
+      <main className={`transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+        {/* Konten halaman masuk dengan fade halus setiap pindah menu (frame dipasang ulang per halaman). */}
+        <div className="page-enter mx-auto w-full max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9">
           <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
               <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.018em] text-ink [text-wrap:balance] lg:text-[2rem]">{title}</h1>
@@ -396,28 +428,44 @@ export function AppShellFrame({
         </div>
       </main>
 
-      {drawerOpen ? (
-        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation menu">
-          <button type="button" tabIndex={-1} aria-label="Close menu" onClick={closeDrawer} className="absolute inset-0 h-full w-full bg-ink/30" />
-          <aside
-            ref={drawerRef}
-            id="mobile-navigation"
-            className="digital-surface absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-line shadow-lift"
-          >
-            <div className="flex items-center justify-between gap-3 px-5 pb-5 pt-4">
-              <span className="flex items-center gap-2.5">
-                <BrandMark size={34} />
-                <span className="text-sm font-bold text-ink">Anon Cyber Team</span>
-              </span>
-              <button ref={closeButtonRef} type="button" onClick={closeDrawer} className="btn-ghost btn-sm">
-                Close
-              </button>
-            </div>
-            {renderNav(false, "Mobile navigation", closeDrawer)}
-            {renderMemberCard(false, closeDrawer)}
-          </aside>
-        </div>
-      ) : null}
+      {/* Drawer mobile selalu terpasang agar bisa meluncur masuk/keluar; saat tertutup tidak terlihat dan inert. */}
+      <div
+        ref={drawerRootRef}
+        className={`fixed inset-0 z-50 lg:hidden ${drawerOpen ? "visible" : "invisible"}`}
+        style={{ transition: drawerOpen ? "visibility 0s" : "visibility 0s linear 300ms" }}
+        role={drawerOpen ? "dialog" : undefined}
+        aria-modal={drawerOpen ? true : undefined}
+        aria-label={drawerOpen ? "Navigation menu" : undefined}
+        aria-hidden={drawerOpen ? undefined : true}
+      >
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-label="Close menu"
+          onClick={closeDrawer}
+          className={`absolute inset-0 h-full w-full bg-[rgb(var(--scrim)/0.35)] transition-opacity motion-reduce:transition-none duration-300 ease-out ${drawerOpen ? "opacity-100" : "opacity-0"}`}
+        />
+        <aside
+          ref={drawerRef}
+          id="mobile-navigation"
+          className={`digital-surface absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-line shadow-lift transition-transform motion-reduce:transition-none duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            drawerOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="flex items-center justify-between gap-3 px-5 pb-5 pt-4">
+            <span className="flex items-center gap-2.5">
+              <BrandMark size={34} />
+              <span className="text-sm font-bold text-ink">Anon Cyber Team</span>
+            </span>
+            <button ref={closeButtonRef} type="button" onClick={closeDrawer} className="btn-ghost btn-sm">
+              Close
+            </button>
+          </div>
+          {renderNav(false, "Mobile navigation", closeDrawer)}
+          <NightModeToggle variant="rail" />
+          {renderMemberCard(false, closeDrawer)}
+        </aside>
+      </div>
     </div>
   );
 }

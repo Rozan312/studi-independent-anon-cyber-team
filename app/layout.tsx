@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Archivo, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -26,8 +27,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${archivo.variable} ${jetbrainsMono.variable}`}>
-      <body className="min-h-screen bg-paper font-sans text-ink antialiased">{children}</body>
+    // suppressHydrationWarning: atribut data-theme dipasang skrip awal sebelum React hydrate.
+    <html lang="en" className={`${archivo.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+      <body className="min-h-screen bg-paper font-sans text-ink antialiased">
+        {/* Pasang night mode sebelum halaman tampil agar tidak ada kilatan tema terang. Isi skrip konstan. */}
+        <Script id="act-theme-init" strategy="beforeInteractive">
+          {`try{if(localStorage.getItem("act-night-mode")==="true")document.documentElement.dataset.theme="night"}catch(e){}`}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

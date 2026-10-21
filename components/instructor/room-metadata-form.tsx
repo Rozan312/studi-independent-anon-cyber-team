@@ -146,7 +146,7 @@ export function RoomMetadataForm({
       </Field>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <ImageUploadField name="logoUrl" label="Logo" initialValue={room.logoUrl} help="Optional. A square image shown next to the room name. Without one, the initials of the name are used." disabled={disabled} />
+        <ImageUploadField name="logoUrl" label="Logo" previewClassName="h-24 w-24 rounded-2xl" initialValue={room.logoUrl} help="Optional. A square image shown next to the room name. Without one, the initials of the name are used." disabled={disabled} />
         <ImageUploadField initialValue={room.coverImageUrl} help="Optional. A wide banner shown at the top of the room's side column." disabled={disabled} />
       </div>
 

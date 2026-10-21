@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-21T12:00:00Z",
+  "generatedAt": "2026-10-21T18:00:00Z",
   "title": "Design System: Anon Cyber Team",
   "extensions": {
     "colorMeta": {
@@ -119,6 +119,11 @@
           "#E6F0F3"
         ]
       },
+      "on-cyan": {
+        "role": "primary",
+        "displayName": "Deep Blue Ink on Cyan",
+        "canonical": "rgb(4 40 54)"
+      },
       "violet": {
         "role": "secondary",
         "displayName": "Completion Violet",
@@ -218,6 +223,26 @@
         "role": "neutral",
         "displayName": "Code Night Text",
         "canonical": "#e4edf1"
+      },
+      "tile-indigo": {
+        "role": "tertiary",
+        "displayName": "Tile Indigo",
+        "canonical": "rgb(231 234 248)"
+      },
+      "tile-indigo-ink": {
+        "role": "tertiary",
+        "displayName": "Tile Indigo Ink",
+        "canonical": "rgb(59 75 138)"
+      },
+      "tile-teal": {
+        "role": "tertiary",
+        "displayName": "Tile Teal",
+        "canonical": "rgb(225 241 239)"
+      },
+      "tile-teal-ink": {
+        "role": "tertiary",
+        "displayName": "Tile Teal Ink",
+        "canonical": "rgb(15 106 99)"
       }
     },
     "typographyMeta": {
@@ -235,7 +260,7 @@
       },
       "figure": {
         "displayName": "Figure",
-        "purpose": "Counters in ruled cells and a passed quiz's score mark; tabular and lining numerals."
+        "purpose": "Counters in ruled cells, a passed quiz's score mark, and the progress ring's centre count; tabular and lining numerals."
       },
       "body": {
         "displayName": "Body",
@@ -247,7 +272,7 @@
       },
       "label": {
         "displayName": "Field Label",
-        "purpose": "Condensed uppercase label directly above a data value; faded ink."
+        "purpose": "Condensed uppercase label directly above a data value, and the progress ring's sublabel; faded ink."
       },
       "serial": {
         "displayName": "Serial",
@@ -263,6 +288,11 @@
         "name": "sheet",
         "value": "0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)",
         "purpose": "Every sheet and the active nav item: a sheet lying on paper."
+      },
+      {
+        "name": "cyan-whisper",
+        "value": "0 1px 2px rgb(0 108 138 / 0.18)",
+        "purpose": "Primary button only; dissolves its edge into the cyan face."
       },
       {
         "name": "lift",
@@ -292,9 +322,24 @@
         "purpose": "Button and input colour changes; active press of 1px."
       },
       {
-        "name": "rail-transition",
-        "value": "300ms ease-out",
-        "purpose": "Rail collapse width and main padding."
+        "name": "page-enter",
+        "value": "320ms cubic-bezier(0.16, 1, 0.3, 1); opacity 0 and translateY(6px) to rest",
+        "purpose": "Content column on every page view (AppShellFrame). Off under prefers-reduced-motion."
+      },
+      {
+        "name": "rail-collapse",
+        "value": "width and item padding 300ms ease-out; labels opacity 200ms (100ms delay on reveal); member card grid-template-rows 1fr to 0fr 300ms",
+        "purpose": "Rail collapse to 76px without swapping layouts."
+      },
+      {
+        "name": "drawer-slide",
+        "value": "transform 300ms cubic-bezier(0.16, 1, 0.3, 1); scrim opacity 300ms ease-out; visibility hidden after 300ms",
+        "purpose": "Mobile drawer slides in and out; stays mounted but inert when closed. Off under prefers-reduced-motion."
+      },
+      {
+        "name": "theme-crossfade",
+        "value": "background-color and color 200ms ease on body",
+        "purpose": "Switching the app-wide night theme."
       },
       {
         "name": "progress-fill",
@@ -307,9 +352,9 @@
         "purpose": "A passed room's check draws in once, only for a completion that just happened. Under prefers-reduced-motion the check shows already drawn."
       },
       {
-        "name": "rosette-in",
-        "value": "900ms cubic-bezier(0.16, 1, 0.3, 1); rotate -24deg and scale 0.92 to rest",
-        "purpose": "Path progress rosette entry draw. Disabled under prefers-reduced-motion."
+        "name": "ring-in",
+        "value": "700ms cubic-bezier(0.16, 1, 0.3, 1); opacity 0 and rotate -30deg to rest",
+        "purpose": "Progress ring segments entry. Disabled under prefers-reduced-motion."
       }
     ],
     "breakpoints": [
@@ -336,28 +381,73 @@
       {
         "name": "iris",
         "value": "linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%)",
-        "purpose": "Navigation rail, signed-out hero, and auth panel only."
+        "purpose": "Navigation rail, mobile drawer, signed-out hero, and auth panel only; always under the dot grid."
+      },
+      {
+        "name": "iris-night",
+        "value": "linear-gradient(180deg, #0f1c24 0%, #111a26 55%, #151a28 100%)",
+        "purpose": "Iris under the night theme."
+      },
+      {
+        "name": "digital-surface",
+        "value": "radial-gradient(rgb(var(--cyan-ink) / 0.13) 1px, transparent 1.3px) 18px grid over var(--iris)",
+        "purpose": "Dot-grid surface on the rail, drawer, auth panel, and signed-out hero."
       }
-    ],
-    "artworkInks": [
-      "#0088B4",
-      "#5A3DB0",
-      "#267345",
-      "#B23A48",
-      "#8F5708",
-      "#2F5FA8",
-      "#0F7C7C"
     ],
     "identityTints": {
       "source": "components/paper/entity-logo.tsx",
       "tints": [
         "cyan-soft / cyan-ink",
-        "violet-soft / violet",
-        "green-soft / green",
-        "amber-soft / amber",
+        "tile-indigo / tile-indigo-ink",
+        "tile-teal / tile-teal-ink",
         "well / ink-2"
       ],
       "purpose": "Initials tile fill and text, chosen deterministically from the name. Identity only, never state."
+    },
+    "motifInk": {
+      "value": "rgb(0 108 138)",
+      "opacity": {
+        "dot-grid": 0.13,
+        "circuit-field": 0.32,
+        "data-bus-strip": 0.4,
+        "ring-outer-gauge": 0.35
+      },
+      "purpose": "The single ink for every digital motif."
+    },
+    "themes": {
+      "night": {
+        "selector": ":root[data-theme=\"night\"]",
+        "scope": "App-wide and opt-in: toggles in the left rail, mobile drawer, mobile top bar and lab header share localStorage act-night-mode; applied before first paint by an inline script in app/layout.tsx. Room material follows the night theme; instructor text colours are re-inked with invert + hue-rotate(180deg).",
+        "colors": {
+          "paper": "#0D1318",
+          "sheet": "#141C23",
+          "well": "#1A242C",
+          "line": "#29363F",
+          "line-soft": "#202B33",
+          "line-strong": "#465863",
+          "ink": "#E6EEF2",
+          "ink-2": "#B6C4CC",
+          "ink-3": "#8C9DA7",
+          "cyan": "#00C2F5",
+          "cyan-hover": "#46D4FA",
+          "cyan-soft": "#0C3442",
+          "cyan-ink": "#60D4F6",
+          "on-cyan": "#042836",
+          "violet": "#AC9AF2",
+          "violet-soft": "#272144",
+          "green": "#6ECC92",
+          "green-soft": "#153022",
+          "red": "#F28076",
+          "red-soft": "#3E1B19",
+          "amber": "#E8B860",
+          "amber-soft": "#3A2B12",
+          "tile-indigo": "#23294A",
+          "tile-indigo-ink": "#B0BCF4",
+          "tile-teal": "#123230",
+          "tile-teal-ink": "#7CD8CA",
+          "reading-text": "#d3dee4"
+        }
+      }
     }
   },
   "components": [
@@ -365,9 +455,9 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The member's next step or the view's primary action: logo cyan face with an ink outline.",
+      "description": "The member's next step or the view's primary action: logo cyan face, deep blue-ink text, thin cyan-ink border, cyan whisper shadow.",
       "html": "<button class=\"ds-btn-primary\">Resume room <svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14M13 6l6 6-6 6\"/></svg></button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 0.5rem; border: 1.5px solid rgb(var(--ink, 16 22 31)); background: rgb(var(--cyan, 0 194 245)); color: rgb(var(--ink, 16 22 31)); font: 600 0.875rem/1.25rem Archivo, ui-sans-serif, system-ui, sans-serif; white-space: nowrap; cursor: pointer; transition: background-color 150ms ease-out, transform 150ms ease-out; } .ds-btn-primary:hover { background: rgb(var(--cyan-hover, 0 174 222)); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(var(--cyan-ink, 0 108 138)); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }"
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 16px; border-radius: 0.5rem; border: 1px solid rgb(var(--cyan-ink, 0 108 138) / 0.25); background: rgb(var(--cyan, 0 194 245)); color: rgb(var(--on-cyan, 4 40 54)); box-shadow: 0 1px 2px rgb(0 108 138 / 0.18); font: 600 0.875rem/1.25rem Archivo, ui-sans-serif, system-ui, sans-serif; white-space: nowrap; cursor: pointer; transition: background-color 150ms ease-out, transform 150ms ease-out; } .ds-btn-primary:hover { background: rgb(var(--cyan-hover, 0 174 222)); } .ds-btn-primary:active { transform: translateY(1px); } .ds-btn-primary:focus-visible { outline: 2px solid rgb(var(--cyan-ink, 0 108 138)); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.55; cursor: not-allowed; }"
     },
     {
       "name": "Secondary Button",
@@ -405,9 +495,9 @@
       "name": "Rail Navigation",
       "kind": "nav",
       "refersTo": "nav-item",
-      "description": "Iris-printed rail with a perforated edge; the active item is a sheet tab with a deep-cyan icon.",
+      "description": "Iris rail under a fine deep-cyan dot grid with a hairline edge; the active item is a sheet tab with a deep-cyan icon.",
       "html": "<nav class=\"ds-rail\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 5h6v6H4V5ZM14 5h6v4h-6V5ZM14 13h6v6h-6v-6ZM4 15h6v4H4v-4Z\"/></svg><span>Dashboard</span></a><a class=\"ds-nav-item\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" aria-hidden=\"true\"><path d=\"M5 17V9M12 17V5M19 17v-6M4 20h16\"/></svg><span>Progress</span></a><div class=\"ds-member\"><span class=\"ds-member-name\">rozan</span><span class=\"ds-member-serial\">ACT · 1F34 · 159F</span></div></nav>",
-      "css": ".ds-rail { position: relative; width: 256px; padding: 16px 12px 16px; background: linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%); border-right: 1px solid rgb(var(--line, 204 220 225)); } .ds-rail::after { content: \"\"; position: absolute; top: 0; bottom: 0; right: 4px; border-right: 2px dotted rgb(0 138 180 / 0.4); } .ds-nav-item { display: flex; align-items: center; gap: 12px; min-height: 36px; padding: 0 12px; border-radius: 0.5rem; color: rgb(var(--ink-2, 58 71 80)); font: 400 0.9375rem/1.4 Archivo, ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-nav-item svg { color: rgb(var(--ink-3, 92 106 114)); flex-shrink: 0; } .ds-nav-item:hover { background: rgb(var(--sheet, 252 253 253) / 0.6); color: rgb(var(--ink, 16 22 31)); } .ds-nav-item:focus-visible { outline: 2px solid rgb(var(--cyan-ink, 0 108 138)); outline-offset: 2px; } .ds-nav-active { background: rgb(var(--sheet, 252 253 253)); color: rgb(var(--ink, 16 22 31)); font-weight: 600; box-shadow: 0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03), 0 0 0 1px rgb(var(--line, 204 220 225)); } .ds-nav-active svg { color: rgb(var(--cyan-ink, 0 108 138)); } .ds-member { display: block; margin-top: 24px; padding: 10px 12px; border-radius: 0.5rem; border: 1px solid rgb(var(--line, 204 220 225)); background: rgb(var(--sheet, 252 253 253) / 0.8); } .ds-member-name { display: block; font: 600 0.875rem/1.25rem Archivo, ui-sans-serif, system-ui, sans-serif; color: rgb(var(--ink, 16 22 31)); } .ds-member-serial { display: block; margin-top: 4px; font: 600 0.75rem/1rem Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 80%; font-variant-numeric: tabular-nums; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(var(--red, 196 48 40)); }"
+      "css": ".ds-rail { position: relative; width: 256px; padding: 16px 12px 16px; background-image: radial-gradient(rgb(var(--cyan-ink, 0 108 138) / 0.13) 1px, transparent 1.3px), linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%); background-size: 18px 18px, 100% 100%; border-right: 1px solid rgb(var(--line, 204 220 225)); } .ds-nav-item { display: flex; align-items: center; gap: 12px; min-height: 36px; padding: 0 12px; border-radius: 0.5rem; color: rgb(var(--ink-2, 58 71 80)); font: 400 0.9375rem/1.4 Archivo, ui-sans-serif, system-ui, sans-serif; text-decoration: none; transition: background-color 150ms ease-out, color 150ms ease-out; } .ds-nav-item svg { color: rgb(var(--ink-3, 92 106 114)); flex-shrink: 0; } .ds-nav-item:hover { background: rgb(var(--sheet, 252 253 253) / 0.6); color: rgb(var(--ink, 16 22 31)); } .ds-nav-item:focus-visible { outline: 2px solid rgb(var(--cyan-ink, 0 108 138)); outline-offset: 2px; } .ds-nav-active { background: rgb(var(--sheet, 252 253 253)); color: rgb(var(--ink, 16 22 31)); font-weight: 600; box-shadow: 0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03), 0 0 0 1px rgb(var(--line, 204 220 225)); } .ds-nav-active svg { color: rgb(var(--cyan-ink, 0 108 138)); } .ds-member { display: block; margin-top: 24px; padding: 10px 12px; border-radius: 0.5rem; border: 1px solid rgb(var(--line, 204 220 225)); background: rgb(var(--sheet, 252 253 253) / 0.8); } .ds-member-name { display: block; font: 600 0.875rem/1.25rem Archivo, ui-sans-serif, system-ui, sans-serif; color: rgb(var(--ink, 16 22 31)); } .ds-member-serial { display: block; margin-top: 4px; font: 600 0.75rem/1rem Archivo, ui-sans-serif, system-ui, sans-serif; font-stretch: 80%; font-variant-numeric: tabular-nums; letter-spacing: 0.12em; text-transform: uppercase; color: rgb(var(--red, 196 48 40)); }"
     },
     {
       "name": "Status Pill",
@@ -438,7 +528,7 @@
       "kind": "custom",
       "refersTo": "completion-mark",
       "description": "Direct completion marks: violet check for a passed room (drawn in once when fresh), green score for a passed quiz, red retry icon, dashed circle for up next.",
-      "html": "<ul class=\"ds-clist\"><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-room\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"ds-check-draw\"><path d=\"m5 12.5 4.5 4.5L19 7.5\" pathLength=\"1\"/></svg></span></span><span><span class=\"ds-ctitle\">Introduction to HTTP</span><span class=\"ds-cdetail\">Room passed · 3 Oct 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark-score\">85%</span></span><span><span class=\"ds-ctitle\">Linux Fundamentals</span><span class=\"ds-cdetail\">Quiz passed · 1 Oct 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-retry\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7\"/></svg></span></span><span><span class=\"ds-ctitle\">Networking Basics</span><span class=\"ds-cdetail\">Quiz scored 40% · try again · 28 Sep 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-next\"></span></span><span><span class=\"ds-ctitle ds-ctitle-next\">Authentication Concepts</span><span class=\"ds-cdetail\">Up next</span></span></li></ul>",
+      "html": "<ul class=\"ds-clist\"><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-room\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"ds-check-draw\"><path d=\"m5 12.5 4.5 4.5L19 7.5\" pathLength=\"1\"/></svg></span></span><span><span class=\"ds-ctitle\">Introduction to HTTP</span><span class=\"ds-cdetail\">Room passed · 3 Oct 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark-score\">85%</span></span><span><span class=\"ds-ctitle\">Linux Fundamentals</span><span class=\"ds-cdetail\">Quiz passed with 85% · 1 Oct 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-retry\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 12a8 8 0 1 1-2.34-5.66L20 8.5\"/><path d=\"M20 3.5v5h-5\"/></svg></span></span><span><span class=\"ds-ctitle\">Networking Basics</span><span class=\"ds-cdetail\">Quiz scored 40% · try again · 28 Sep 2026</span></span></li><li class=\"ds-crow\"><span class=\"ds-cslot\"><span class=\"ds-mark ds-mark-next\"></span></span><span><span class=\"ds-ctitle ds-ctitle-next\">Authentication Concepts</span><span class=\"ds-cdetail\">Up next</span></span></li></ul>",
       "css": ".ds-clist { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr; column-gap: 24px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-crow { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgb(var(--line-soft, 223 232 235)); } .ds-cslot { display: flex; width: 48px; flex-shrink: 0; justify-content: center; } .ds-mark { display: inline-flex; width: 40px; height: 40px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 9999px; } .ds-mark-room { background: rgb(var(--violet, 90 61 176)); color: rgb(var(--sheet, 252 253 253)); } .ds-mark-retry { background: rgb(var(--red-soft, 251 233 231)); color: rgb(var(--red, 196 48 40)); } .ds-mark-next { border: 2px dashed rgb(var(--line-strong, 150 175 184)); } .ds-mark-score { min-width: 40px; text-align: center; font-size: 1.125rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums lining-nums; letter-spacing: -0.01em; color: rgb(var(--green, 38 115 69)); } .ds-ctitle { display: block; font-weight: 600; line-height: 1.375; color: rgb(var(--ink, 16 22 31)); } .ds-ctitle-next { color: rgb(var(--ink-2, 58 71 80)); } .ds-cdetail { display: block; margin-top: 2px; font-size: 0.875rem; color: rgb(var(--ink-3, 92 106 114)); } .ds-check-draw path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: ds-check-draw 460ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards; } @keyframes ds-check-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } } @media (prefers-reduced-motion: reduce) { .ds-check-draw path { animation: none; stroke-dashoffset: 0; } }"
     },
     {
@@ -446,26 +536,42 @@
       "kind": "custom",
       "refersTo": "entity-logo",
       "description": "Square identity tile beside a room or path name: uploaded logo, or tinted initials by default.",
-      "html": "<span class=\"ds-elogo ds-elogo-cyan\" aria-hidden=\"true\">IH</span> <span class=\"ds-elogo ds-elogo-violet\" aria-hidden=\"true\">LF</span> <span class=\"ds-elogo ds-elogo-amber\" aria-hidden=\"true\">NE</span> <span class=\"ds-elogo ds-elogo-neutral\" aria-hidden=\"true\">WS</span>",
-      "css": ".ds-elogo { display: inline-flex; width: 44px; height: 44px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 0.5rem; border: 1px solid; font: 700 0.875rem/1 Archivo, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.02em; user-select: none; } .ds-elogo-cyan { background: rgb(var(--cyan-soft, 222 244 251)); color: rgb(var(--cyan-ink, 0 108 138)); border-color: rgb(var(--cyan-ink, 0 108 138) / 0.2); } .ds-elogo-violet { background: rgb(var(--violet-soft, 237 233 249)); color: rgb(var(--violet, 90 61 176)); border-color: rgb(var(--violet, 90 61 176) / 0.2); } .ds-elogo-amber { background: rgb(var(--amber-soft, 251 241 220)); color: rgb(var(--amber, 143 87 8)); border-color: rgb(var(--amber, 143 87 8) / 0.2); } .ds-elogo-neutral { background: rgb(var(--well, 236 243 245)); color: rgb(var(--ink-2, 58 71 80)); border-color: rgb(var(--line, 204 220 225)); }"
+      "html": "<span class=\"ds-elogo ds-elogo-cyan\" aria-hidden=\"true\">IH</span> <span class=\"ds-elogo ds-elogo-indigo\" aria-hidden=\"true\">LF</span> <span class=\"ds-elogo ds-elogo-teal\" aria-hidden=\"true\">NE</span> <span class=\"ds-elogo ds-elogo-neutral\" aria-hidden=\"true\">WS</span>",
+      "css": ".ds-elogo { display: inline-flex; width: 44px; height: 44px; flex-shrink: 0; align-items: center; justify-content: center; border-radius: 0.5rem; border: 1px solid; font: 700 0.875rem/1 Archivo, ui-sans-serif, system-ui, sans-serif; letter-spacing: 0.02em; user-select: none; } .ds-elogo-cyan { background: rgb(var(--cyan-soft, 222 244 251)); color: rgb(var(--cyan-ink, 0 108 138)); border-color: rgb(var(--cyan-ink, 0 108 138) / 0.2); } .ds-elogo-indigo { background: rgb(var(--tile-indigo, 231 234 248)); color: rgb(var(--tile-indigo-ink, 59 75 138)); border-color: rgb(var(--tile-indigo-ink, 59 75 138) / 0.2); } .ds-elogo-teal { background: rgb(var(--tile-teal, 225 241 239)); color: rgb(var(--tile-teal-ink, 15 106 99)); border-color: rgb(var(--tile-teal-ink, 15 106 99) / 0.2); } .ds-elogo-neutral { background: rgb(var(--well, 236 243 245)); color: rgb(var(--ink-2, 58 71 80)); border-color: rgb(var(--line, 204 220 225)); }"
+    },
+    {
+      "name": "Path Progress Ring",
+      "kind": "custom",
+      "refersTo": "progress-ring",
+      "description": "Segmented gauge, one segment per room: violet done, logo cyan next, grey to do; dotted outer gauge, ticked inner hairline, tabular count in the centre.",
+      "html": "<svg class=\"ds-ring\" width=\"200\" height=\"200\" viewBox=\"-100 -100 200 200\" role=\"img\" aria-label=\"Web basics: 2 of 5 rooms completed\"><circle r=\"94\" fill=\"none\" stroke=\"rgb(0 108 138)\" stroke-opacity=\"0.35\" stroke-width=\"1.4\" stroke-dasharray=\"1.5 5\" stroke-linecap=\"round\"/><circle r=\"66\" fill=\"none\" stroke=\"rgb(204 220 225)\" stroke-width=\"1\"/><g class=\"ds-ring-in\" fill=\"none\" stroke-width=\"12\"><path d=\"M4.19 -79.89A80 80 0 0 1 74.69 -28.67\" stroke=\"rgb(90 61 176)\"/><path d=\"M77.27 -20.71A80 80 0 0 1 50.35 62.17\" stroke=\"rgb(90 61 176)\"/><path d=\"M43.57 67.09A80 80 0 0 1 -43.57 67.09\" stroke=\"rgb(0 194 245)\"/><path d=\"M-50.35 62.17A80 80 0 0 1 -77.27 -20.71\" stroke=\"rgb(223 232 235)\"/><path d=\"M-74.69 -28.67A80 80 0 0 1 -4.19 -79.89\" stroke=\"rgb(223 232 235)\"/></g><g stroke=\"rgb(150 175 184)\" stroke-width=\"1.2\" stroke-linecap=\"round\"><line x1=\"0.00\" y1=\"-62.00\" x2=\"0.00\" y2=\"-70.00\"/><line x1=\"58.97\" y1=\"-19.16\" x2=\"66.57\" y2=\"-21.63\"/><line x1=\"36.44\" y1=\"50.16\" x2=\"41.14\" y2=\"56.63\"/><line x1=\"-36.44\" y1=\"50.16\" x2=\"-41.14\" y2=\"56.63\"/><line x1=\"-58.97\" y1=\"-19.16\" x2=\"-66.57\" y2=\"-21.63\"/></g><text x=\"0\" y=\"4\" text-anchor=\"middle\" fill=\"rgb(16 22 31)\" style=\"font: 700 34px Archivo, sans-serif; font-variant-numeric: tabular-nums\">2/5</text><text x=\"0\" y=\"30\" text-anchor=\"middle\" fill=\"rgb(92 106 114)\" style=\"font: 600 14px Archivo, sans-serif; letter-spacing: 0.12em; font-stretch: 75%\">ROOMS</text></svg>",
+      "css": ".ds-ring { display: block; } .ds-ring-in { transform-origin: center; transform-box: fill-box; animation: ds-ring-in 700ms cubic-bezier(0.16, 1, 0.3, 1) both; } @keyframes ds-ring-in { from { opacity: 0; transform: rotate(-30deg); } to { opacity: 1; transform: rotate(0); } } @media (prefers-reduced-motion: reduce) { .ds-ring-in { animation: none; } }"
+    },
+    {
+      "name": "Data-Bus Strip on Digital Surface",
+      "kind": "custom",
+      "description": "Dot-grid iris surface closed by the 20px circuit data-bus strip; decorative, deep cyan ink only.",
+      "html": "<div class=\"ds-digital\"><p class=\"ds-digital-title\">Learn cybersecurity at your own pace</p><svg class=\"ds-bus\" aria-hidden=\"true\" focusable=\"false\"><defs><pattern id=\"ds-bus-tile\" width=\"168\" height=\"20\" patternUnits=\"userSpaceOnUse\"><g fill=\"none\" stroke=\"rgb(0 108 138)\" stroke-opacity=\"0.4\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M0 6H38L46 14H92L100 6H168\"/><path d=\"M0 15H18M62 3H80M120 15H150\"/></g><g fill=\"rgb(252 253 253)\" stroke=\"rgb(0 108 138)\" stroke-opacity=\"0.55\" stroke-width=\"1\"><circle cx=\"18\" cy=\"15\" r=\"2.5\"/><circle cx=\"62\" cy=\"3\" r=\"2\"/><circle cx=\"150\" cy=\"15\" r=\"2.5\"/></g><g fill=\"rgb(0 108 138)\" fill-opacity=\"0.5\"><rect x=\"44\" y=\"12\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"98\" y=\"4\" width=\"4\" height=\"4\" rx=\"1\"/></g></pattern></defs><rect width=\"100%\" height=\"100%\" fill=\"url(#ds-bus-tile)\"/></svg></div>",
+      "css": ".ds-digital { border: 1px solid rgb(var(--line, 204 220 225)); background-image: radial-gradient(rgb(var(--cyan-ink, 0 108 138) / 0.13) 1px, transparent 1.3px), linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%); background-size: 18px 18px, 100% 100%; } .ds-digital-title { margin: 0; padding: 40px 24px; font: 700 2.25rem/1.08 Archivo, ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.025em; color: rgb(var(--ink, 16 22 31)); max-width: 28rem; } .ds-bus { display: block; width: 100%; height: 20px; border-top: 1px solid rgb(var(--line-soft, 223 232 235)); background: rgb(var(--paper, 243 247 248) / 0.4); }"
     }
   ],
   "narrative": {
     "northStar": "The Security-Paper Record",
-    "overview": "Every member's learning is a calm, official record on security paper. The ground is cool security paper, content sits on whiter sheets ruled with hairlines, text is crisp intaglio ink, and the app rail is iris-printed (pale cyan fading to pale periwinkle) with a dotted perforation edge. Progress is stated plainly: a passed room gets a violet check, a passed quiz shows its score in green, a quiz to retry shows a red retry icon. A check that was just earned draws itself in once; nothing else celebrates.\n\nThe system is calm and dense rather than decorative. Ornament is confined to the security-printing vocabulary, and the ornament that remains carries information: a guilloche rosette, generated deterministically from a learning path's slug, is the progress ring of the active path, and guilloche bands edge the hero and the Continue sheet. Rooms and paths are identified by an uploaded logo or, by default, a tinted tile with the initials of their name. Status colours carry state. Counters sit in ruled, fixed cells with tabular figures so numbers never shift. The one bright colour, the logo's cyan with an ink outline, marks the member's next step and nothing else.\n\nThe world rejects both category defaults, the near-black console with neon accents and glowing cards and the white SaaS LMS with blue buttons and thumbnail tiles, and it rejects decorative badges and rubber stamps. Instructors and admins work in the same paper-and-ink system, with denser ruled tables.",
+    "overview": "Every member's learning is a calm, official record on security paper. The ground is cool security paper, content sits on whiter sheets ruled with hairlines, text is crisp intaglio ink, and the app rail is iris-printed (pale cyan fading to pale periwinkle) under a fine dot grid in deep cyan ink. Progress is stated plainly: a passed room gets a violet check, a passed quiz shows its score in green, a quiz to retry shows a red retry icon. A check that was just earned draws itself in once; nothing else celebrates.\n\nThe system is calm and dense rather than decorative. Ornament is quiet, digital, and drawn only in deep cyan ink at low opacity: a dot-grid surface on the rail, drawer, auth panel, and signed-out hero; deterministic circuit traces fading in on the hero and auth panel; a thin circuit \"data bus\" strip edging the hero and heading the Continue sheet. The one ornament that carries information is the segmented progress ring, one segment per room of the active path. Rooms and paths are identified by an uploaded logo or, by default, a tinted tile with the initials of their name. Status colours carry state. Counters sit in ruled, fixed cells with tabular figures so numbers never shift. The one bright colour, the logo's cyan, marks the member's next step and nothing else.\n\nThe world rejects both category defaults, the near-black console with neon accents and glowing cards and the white SaaS LMS with blue buttons and thumbnail tiles, and it rejects decorative badges, rubber stamps, and postage-stamp print ornament (guilloche, perforation). The lab page alone offers a night theme: the same paper-and-ink system re-inked dark, without neon or glow. Instructors and admins work in the same system, with denser ruled tables.",
     "keyCharacteristics": [
       "Light, cool paper ground; whiter sheets; hairline rules; whisper-level shadows.",
-      "One reserved accent (logo cyan, ink outlined) for the next step and primary action.",
+      "One reserved accent (logo cyan with a thin cyan border and deep blue-ink text) for the next step and primary action.",
       "Status colours (violet, green, red, amber) carry state only.",
       "Completion is a direct mark: a check, a score, or a retry icon.",
-      "Rooms and paths wear their logo or an initials tile; guilloche is reserved for the path progress ring and edge bands.",
+      "Rooms and paths wear their logo or an initials tile; path progress is a segmented ring, one segment per room.",
+      "Digital motifs (dot grid, circuit traces, data-bus strip) in deep cyan ink at low opacity, decorative and hidden from assistive technology.",
       "Archivo throughout, with its width axis used for condensed field labels and status pills; JetBrains Mono only for code.",
       "Nothing vanishes: closed, scheduled, and draft items stay visible and carry a flat state tag."
     ],
     "rules": [
       {
         "name": "The Next-Step Cyan Rule",
-        "body": "Logo cyan fills only the member's next step and the primary action of a view, and it always wears the ink outline. Links use deep cyan ink, never the bright fill colour as text.",
+        "body": "Logo cyan fills only the member's next step and the primary action of a view, with on-cyan text and a thin cyan-ink border, never a black outline. Links use deep cyan ink, never the bright fill colour as text.",
         "section": "colors"
       },
       {
@@ -479,8 +585,13 @@
         "section": "colors"
       },
       {
-        "name": "The Artwork Ink Rule",
-        "body": "Path rosettes and guilloche bands draw from their own seeded ink set (`#0088B4`, `#5A3DB0`, `#267345`, `#B23A48`, `#8F5708`, `#2F5FA8`, `#0F7C7C`), never from the status tokens.",
+        "name": "The One Motif Ink Rule",
+        "body": "Digital motifs draw only in deep cyan ink (`rgb(0 108 138)`) at low opacity (13% for the dot grid, about 32% for circuit strokes, 40% for the data-bus strip), never in status colours or logo cyan.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Theme Per Token Rule",
+        "body": "A dark surface is made by re-valuing the tokens under `data-theme=\"night\"`, never by hard-coding dark colours in a component.",
         "section": "colors"
       },
       {
@@ -490,34 +601,37 @@
       },
       {
         "name": "The Fixed Cell Rule",
-        "body": "Every counter (points, streak, rank, scores, percentages) is set in tabular figures so values never shift width when they change.",
+        "body": "Every counter (points, streak, rank, scores, percentages, ring counts) is set in tabular figures so values never shift width when they change.",
         "section": "typography"
       },
       {
         "name": "The Paper Depth Rule",
-        "body": "A sheet is a hairline border plus the sheet shadow. No glows, no coloured shadows, no hard offset shadows; lift is reserved for things that float above the page.",
+        "body": "A sheet is a hairline border plus the sheet shadow. No glows and no hard offset shadows; the only tinted shadow is the primary button's 1px cyan whisper, and lift is reserved for things that float above the page.",
         "section": "elevation"
       }
     ],
     "dos": [
-      "**Do** reserve the logo-cyan fill with a 1.5px ink outline for the single next-step or primary action in a view; use the secondary paper button for everything else.",
+      "**Do** reserve the logo-cyan fill (on-cyan text, thin cyan-ink border, cyan whisper shadow) for the single next-step or primary action in a view; use the secondary paper button for everything else.",
       "**Do** express state with the status colours: violet completed, green correct, red retry, closed, or error, amber scheduled.",
       "**Do** show completion directly: a violet check for a passed room, the green score for a passed quiz, a red retry icon for a quiz to retake.",
       "**Do** keep closed, scheduled, and draft items visible and give them a flat state tag instead of hiding them.",
       "**Do** lead every room and path name with its entity logo: the uploaded logo, or the initials tile by default.",
-      "**Do** let the seeded rosette carry the active path's progress on the dashboard and path page.",
+      "**Do** let the segmented progress ring carry the active path's progress on the dashboard and path page, one segment per room.",
+      "**Do** draw digital motifs (dot grid, circuit traces, data-bus strip) only in deep cyan ink at low opacity, deterministically, and hidden from assistive technology.",
       "**Do** set every counter in tabular figures inside ruled cells, with a condensed caps label above the value.",
       "**Do** build surfaces as sheet white on security paper with 1px hairlines and the sheet shadow (`0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)`).",
       "**Do** play the check draw only for a completion that just happened, and show the finished check under reduced motion.",
+      "**Do** build dark surfaces by re-valuing tokens under the night theme, and keep the night theme on the lab page.",
       "**Do** keep the editor and the student view on the same material typography."
     ],
     "donts": [
-      "**Don't** turn the app chrome into a near-black console with neon accents and glowing cards; the only dark surface is the code block.",
+      "**Don't** turn the app chrome into a near-black console with neon accents and glowing cards; the light paper world is the default, and the lab's night theme is the same system re-inked dark, without neon or glow.",
       "**Don't** build a white SaaS LMS look with blue buttons and thumbnail tiles; rooms and paths are identified by a small square logo or initials tile.",
-      "**Don't** reintroduce rubber stamps, rotated tags, badge or cube shapes, or passport and visa framing; completion is a check, a score, or a retry icon.",
+      "**Don't** reintroduce rubber stamps, rotated tags, badge or cube shapes, passport and visa framing, or postage-stamp print ornament (guilloche rosettes, wavy bands, perforated edges); completion is a check, a score, or a retry icon.",
+      "**Don't** put a black or ink outline on the primary button.",
       "**Don't** put a condensed caps label above a heading as an eyebrow or kicker.",
-      "**Don't** use status colours or logo cyan as decoration, gradient fills, or glows; the iris gradient belongs to the rail, the signed-out hero, and the auth panel only.",
-      "**Don't** use hard offset shadows or coloured shadows; lift is only for floating layers.",
+      "**Don't** use status colours or logo cyan as decoration, gradient fills, or glows; the iris gradient belongs to the rail, the mobile drawer, the signed-out hero, and the auth panel only.",
+      "**Don't** use hard offset shadows or glows; the only tinted shadow is the primary button's cyan whisper, and lift is only for floating layers.",
       "**Don't** use JetBrains Mono outside code, or draw icons with text glyphs; icons are stroked inline SVG.",
       "**Don't** let a status pill or state tag wrap onto two lines."
     ]

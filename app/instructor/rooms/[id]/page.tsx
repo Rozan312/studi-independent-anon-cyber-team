@@ -32,7 +32,7 @@ const sections = [
 // Jarak gulir anchor: di xl ada bilah navigasi seksi yang menempel di atas.
 const sectionClass = `${panelClass} scroll-mt-6 xl:scroll-mt-16`;
 
-/** Status terbit + stempel jadwal (terjadwal/ditutup) agar status room tidak pernah hilang dari pandangan. */
+/** Status terbit + label jadwal (terjadwal/ditutup) agar status room tidak pernah hilang dari pandangan. */
 function RoomStateMarks({ isPublished, availability }: { isPublished: boolean; availability: RoomAvailability }) {
   if (!isPublished) return <StateTag tone="muted">Draft</StateTag>;
   return (

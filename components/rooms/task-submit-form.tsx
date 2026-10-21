@@ -37,7 +37,7 @@ export function TaskSubmitForm({
   hintUnlockAfter?: number;
   /**
    * Task sudah dijawab benar. Komponen tetap dipasang di posisi yang sama setelah revalidasi
-   * agar pesan sukses dan stempel "Correct" dari submit barusan tetap terlihat.
+   * agar pesan sukses "Correct" dari submit barusan tetap terlihat.
    */
   solved?: boolean;
 }) {
