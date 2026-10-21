@@ -278,8 +278,9 @@ export function EditorToolbar({
   disabled?: boolean;
   onPickImages: (files: File[]) => void | Promise<void>;
 }) {
-  const [openMenu, setOpenMenu] = useState<"color" | "highlight" | "link" | "more" | "table" | null>(null);
+  const [openMenu, setOpenMenu] = useState<"color" | "highlight" | "link" | "more" | "table" | "alt" | null>(null);
   const [linkDraft, setLinkDraft] = useState("");
+  const [altDraft, setAltDraft] = useState("");
   const [linkError, setLinkError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -320,7 +321,9 @@ export function EditorToolbar({
         canOutdent: current.can().liftListItem(listItemType),
         listItemType,
         canMergeCells: current.can().mergeCells(),
-        canSplitCell: current.can().splitCell()
+        canSplitCell: current.can().splitCell(),
+        imageSelected: current.isActive("image"),
+        imageAlt: (current.getAttributes("image").alt as string | undefined) ?? ""
       };
     }
   });
@@ -717,6 +720,54 @@ export function EditorToolbar({
             if (files.length > 0) void onPickImages(files);
           }}
         />
+
+        {/* Teks alternatif gambar terpilih: dibacakan pembaca layar di halaman student. */}
+        <ToolbarPopover
+          label="Teks alternatif gambar"
+          active={state.imageSelected}
+          disabled={isOff || !state.imageSelected}
+          open={openMenu === "alt"}
+          onOpenChange={(open) => {
+            setOpenMenu(open ? "alt" : null);
+            if (open) setAltDraft(state.imageAlt);
+          }}
+          align="right"
+          buttonContent={<span className="px-0.5 text-xs font-bold">Alt</span>}
+        >
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400" htmlFor="editor-alt-input">
+              Deskripsi gambar
+            </label>
+            <input
+              id="editor-alt-input"
+              autoFocus
+              value={altDraft}
+              maxLength={250}
+              onChange={(event) => setAltDraft(event.target.value)}
+              onKeyDown={(event) => {
+                // Cegah Enter mengirim form materi induk.
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  chain().updateAttributes("image", { alt: altDraft.trim() }).run();
+                  setOpenMenu(null);
+                }
+              }}
+              placeholder="Contoh: Diagram alur threat hunting"
+              className="mt-1.5 w-full rounded-md border border-slate-700 bg-slate-950 px-2.5 py-1.5 text-xs text-slate-100 outline-none focus:border-primary"
+            />
+            <p className="mt-1.5 text-[11px] text-slate-500">Jelaskan isi gambar singkat. Seret sudut gambar di editor untuk mengubah ukurannya.</p>
+            <button
+              type="button"
+              onClick={() => {
+                chain().updateAttributes("image", { alt: altDraft.trim() }).run();
+                setOpenMenu(null);
+              }}
+              className="mt-2 w-full rounded-md bg-primary px-2 py-1.5 text-xs font-bold text-slate-950 hover:bg-blue-300"
+            >
+              Simpan deskripsi
+            </button>
+          </div>
+        </ToolbarPopover>
 
         <ToolButton
           label="Sisipkan tabel 3x3"

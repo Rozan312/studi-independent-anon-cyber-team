@@ -19,8 +19,8 @@ import { altFromFileName, isUploadableImage, uploadImageFile } from "@/lib/conte
 export type RichTextEditorProps = {
   /** HTML awal yang sudah disanitasi server. */
   initialHtml: string;
-  /** Dipanggil setiap isi berubah dengan HTML terbaru dari editor. */
-  onChange: (html: string) => void;
+  /** Dipanggil setiap isi dokumen berubah. Ambil HTML lewat editor saat dibutuhkan (mahal untuk dokumen panjang). */
+  onChange: () => void;
   /** Dipanggil sekali setelah editor siap, dengan HTML hasil normalisasi editor dan instance editor. */
   onReady?: (html: string, editor: Editor) => void;
   disabled?: boolean;
@@ -121,6 +121,10 @@ export function RichTextEditor({
   const editor = useEditor({
     immediatelyRender: false,
     editable: !disabled,
+    // Pintasan Markdown hanya untuk struktur blok (daftar, judul, kutipan, kode, garis). Aturan untuk tanda
+    // inline (*, _, ==, ~~) dimatikan karena memakan karakter pada perintah dan kode yang ditempel atau diketik.
+    enableInputRules: ["bulletList", "orderedList", "taskItem", "heading", "blockquote", "codeBlock", "horizontalRule"],
+    enablePasteRules: ["link"],
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3, 4] },
@@ -130,6 +134,8 @@ export function RichTextEditor({
           linkOnPaste: true,
           defaultProtocol: "https",
           protocols: ["http", "https", "mailto"],
+          // Hanya URL eksplisit yang otomatis jadi link; nama file (exploit.py) dan domain contoh (malware.ru) tidak.
+          shouldAutoLink: (url) => /^https?:\/\//i.test(url),
           HTMLAttributes: { rel: "noopener noreferrer nofollow", target: "_blank" }
         }
       }),
@@ -141,7 +147,11 @@ export function RichTextEditor({
       TextAlign.configure({ types: ["heading", "paragraph"], alignments: ["left", "center", "right", "justify"] }),
       Subscript,
       Superscript,
-      ImageExtension.configure({ inline: false, allowBase64: false }),
+      ImageExtension.configure({
+        inline: false,
+        allowBase64: false,
+        resize: { enabled: true, alwaysPreserveAspectRatio: true, minWidth: 80, minHeight: 40 }
+      }),
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -185,8 +195,8 @@ export function RichTextEditor({
       created.view.dispatch(created.state.tr.setMeta("addToHistory", false));
       onReadyRef.current?.(created.getHTML(), created);
     },
-    onUpdate: ({ editor: updated }) => {
-      onChangeRef.current(updated.getHTML());
+    onUpdate: () => {
+      onChangeRef.current();
     },
     onDestroy: () => {
       editorRef.current = null;

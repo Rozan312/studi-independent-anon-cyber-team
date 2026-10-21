@@ -585,6 +585,10 @@ async function main() {
     assert.ok(
       renderRoomMaterialHtml('<table><tbody><tr><td><p>c</p></td></tr></tbody></table>', "HTML").includes('<div class="table-scroll"><table')
     );
+    assert.ok(
+      sanitizeRichHtml('<img src="/api/media/a5e06387-ed12-4c47-8359-e16c904fa4a6" alt="x" width="258" height="130">').includes('width="258" height="130"'),
+      "resized image dimensions survive sanitization"
+    );
 
     console.log("service-smoke.test.ts passed");
   } finally {

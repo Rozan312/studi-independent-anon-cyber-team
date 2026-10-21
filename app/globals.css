@@ -385,3 +385,39 @@ input::placeholder {
 .rich-editor .ProseMirror-gapcursor::after {
   border-top-color: #4d8eff;
 }
+
+/* Gambar yang bisa diubah ukurannya (node view TipTap): pegangan di keempat sudut. */
+.rich-editor .ProseMirror [data-resize-container] {
+  justify-content: center;
+  margin: 1.2em 0;
+}
+.rich-editor .ProseMirror [data-resize-wrapper] > img {
+  margin: 0;
+}
+.rich-editor .ProseMirror [data-resize-container].ProseMirror-selectednode img {
+  outline: 2px solid #4d8eff;
+  outline-offset: 2px;
+}
+.rich-editor .ProseMirror [data-resize-handle] {
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border: 2px solid #020617;
+  border-radius: 3px;
+  background: #4d8eff;
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.rich-editor .ProseMirror [data-resize-container]:hover [data-resize-handle],
+.rich-editor .ProseMirror [data-resize-container].ProseMirror-selectednode [data-resize-handle] {
+  opacity: 1;
+}
+.rich-editor .ProseMirror [data-resize-handle="top-left"],
+.rich-editor .ProseMirror [data-resize-handle="bottom-right"] {
+  cursor: nwse-resize;
+}
+.rich-editor .ProseMirror [data-resize-handle="top-right"],
+.rich-editor .ProseMirror [data-resize-handle="bottom-left"] {
+  cursor: nesw-resize;
+}

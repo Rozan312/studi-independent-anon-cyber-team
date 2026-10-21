@@ -105,10 +105,129 @@ function normalizeElementStyle(element: HTMLElement) {
   if (!element.getAttribute("style")?.trim()) element.removeAttribute("style");
 }
 
+// ---------------------------------------------------------------------------
+// Daftar dari Microsoft Word: paragraf `mso-list` dengan penanda teks, bukan <ul>/<ol>.
+// ---------------------------------------------------------------------------
+
+const WORD_LIST_PATTERN = /mso-list\s*:\s*l(\d+)\s+level(\d+)/i;
+
+function isWordListParagraph(node: Element | null): node is HTMLElement {
+  return Boolean(node && node.tagName === "P" && WORD_LIST_PATTERN.test(node.getAttribute("style") ?? ""));
+}
+
+function isIgnoredMarker(node: Element) {
+  return /mso-list\s*:\s*ignore/i.test(node.getAttribute("style") ?? "");
+}
+
+/** Mengubah rangkaian paragraf daftar Word menjadi <ul>/<ol>/<li> bersarang sesuai level. */
+function convertWordLists(document: Document) {
+  const paragraphs = Array.from(document.body.querySelectorAll("p")).filter(isWordListParagraph);
+  const handled = new Set<Element>();
+
+  for (const first of paragraphs) {
+    if (handled.has(first)) continue;
+
+    // Kumpulkan paragraf daftar yang berurutan (abaikan teks spasi di antaranya).
+    const group: HTMLElement[] = [];
+    let cursor: Element | null = first;
+    while (isWordListParagraph(cursor)) {
+      group.push(cursor);
+      handled.add(cursor);
+      let next: ChildNode | null = cursor.nextSibling;
+      while (next && next.nodeType === Node.TEXT_NODE && !(next.textContent ?? "").trim()) next = next.nextSibling;
+      cursor = next && next.nodeType === Node.ELEMENT_NODE ? (next as Element) : null;
+    }
+
+    const root = document.createElement("div");
+    const stack: { level: number; list: HTMLElement; listId: string; ordered: boolean }[] = [];
+
+    for (const paragraph of group) {
+      const match = WORD_LIST_PATTERN.exec(paragraph.getAttribute("style") ?? "");
+      const level = match ? Number.parseInt(match[2], 10) : 1;
+      const listId = match ? match[1] : "0";
+
+      const markerNodes = Array.from(paragraph.querySelectorAll("span")).filter(isIgnoredMarker);
+      const markerText = markerNodes
+        .map((node) => node.textContent ?? "")
+        .join("")
+        .replace(/\u00a0/g, " ")
+        .trim();
+      markerNodes.forEach((node) => node.remove());
+
+      const ordered = /^\(?[0-9a-zA-Z]{1,4}[.)]$/.test(markerText);
+
+      while (stack.length > 0 && stack[stack.length - 1].level > level) stack.pop();
+
+      // Daftar lain (ID Word berbeda atau jenis berpoin/bernomor berbeda) di level yang sama dimulai sebagai daftar baru.
+      const top = stack[stack.length - 1];
+      if (top && top.level === level && (top.listId !== listId || top.ordered !== ordered)) stack.pop();
+
+      if (stack.length === 0 || stack[stack.length - 1].level < level) {
+        const list = document.createElement(ordered ? "ol" : "ul");
+        const parentList = stack[stack.length - 1]?.list;
+        const parentItem = parentList?.lastElementChild;
+        if (parentItem) parentItem.appendChild(list);
+        else root.appendChild(list);
+        stack.push({ level, list, listId, ordered });
+      }
+
+      const item = document.createElement("li");
+      const content = document.createElement("p");
+      while (paragraph.firstChild) content.appendChild(paragraph.firstChild);
+      item.appendChild(content);
+      stack[stack.length - 1].list.appendChild(item);
+    }
+
+    first.replaceWith(...Array.from(root.childNodes));
+    group.slice(1).forEach((paragraph) => paragraph.remove());
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Excel: gaya sel didefinisikan lewat kelas di blok <style> (misalnya .xl65 { font-weight:700 }).
+// ---------------------------------------------------------------------------
+
+function inlineExcelCellStyles(document: Document) {
+  const css = Array.from(document.querySelectorAll("style"))
+    .map((style) => style.textContent ?? "")
+    .join("\n");
+  if (!css.trim()) return;
+
+  const rules = new Map<string, string>();
+  for (const match of Array.from(css.matchAll(/\.([a-z][\w-]*)\s*\{([^}]*)\}/gi))) {
+    rules.set(match[1], `${rules.get(match[1]) ?? ""};${match[2]}`);
+  }
+
+  document.body.querySelectorAll<HTMLElement>("td[class], th[class]").forEach((cell) => {
+    const declarations = Array.from(cell.classList)
+      .map((name) => rules.get(name) ?? "")
+      .join(";");
+    if (!declarations) return;
+
+    const bold = /font-weight\s*:\s*(700|bold|bolder)/i.test(declarations);
+    const italic = /font-style\s*:\s*italic/i.test(declarations);
+    const align = /text-align\s*:\s*(left|center|right)/i.exec(declarations)?.[1];
+
+    if (align && !cell.style.textAlign) cell.style.textAlign = align.toLowerCase();
+
+    const wrapWith = (tag: string) => {
+      const wrapper = document.createElement(tag);
+      while (cell.firstChild) wrapper.appendChild(cell.firstChild);
+      cell.appendChild(wrapper);
+    };
+    if (italic) wrapWith("em");
+    if (bold) wrapWith("strong");
+  });
+}
+
 export function normalizePastedHtml(html: string) {
   if (typeof DOMParser === "undefined" || !html) return html;
 
   const parsed = new DOMParser().parseFromString(html, "text/html");
+
+  // Struktur dulu (membaca atribut style mentah), baru normalisasi gaya lewat CSSOM.
+  convertWordLists(parsed);
+  inlineExcelCellStyles(parsed);
 
   parsed.body.querySelectorAll<HTMLElement>("[style]").forEach(normalizeElementStyle);
 
