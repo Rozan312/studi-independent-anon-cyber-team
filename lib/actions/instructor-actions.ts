@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
+import { userMessage } from "@/lib/errors";
 import { createRoomWithTasks } from "@/lib/services/instructor-service";
-import { ContentAccessError, setRoomPublished } from "@/lib/services/content-service";
+import { setRoomPublished } from "@/lib/services/content-service";
 import type { ActionMessageState } from "@/components/ui/action-message";
 import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
 
@@ -49,13 +50,9 @@ function actionError(error: unknown): InstructorActionState {
     return { tone: "error", message: zodErrorMessage(error, ROOM_BUILDER_FIELDS) };
   }
 
-  if (error instanceof ContentAccessError) {
-    return { tone: "error", message: error.message };
-  }
-
   return {
     tone: "error",
-    message: error instanceof Error ? error.message : "Couldn't complete that action."
+    message: userMessage(error, "Couldn't complete that action.")
   };
 }
 

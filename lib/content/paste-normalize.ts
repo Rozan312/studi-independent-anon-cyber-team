@@ -124,9 +124,7 @@ function normalizeElementStyle(element: HTMLElement) {
   if (!element.getAttribute("style")?.trim()) element.removeAttribute("style");
 }
 
-// ---------------------------------------------------------------------------
 // Daftar dari Microsoft Word: paragraf `mso-list` dengan penanda teks, bukan <ul>/<ol>.
-// ---------------------------------------------------------------------------
 
 const WORD_LIST_PATTERN = /mso-list\s*:\s*l(\d+)\s+level(\d+)/i;
 
@@ -202,9 +200,7 @@ function convertWordLists(document: Document) {
   }
 }
 
-// ---------------------------------------------------------------------------
 // Excel: gaya sel didefinisikan lewat kelas di blok <style> (misalnya .xl65 { font-weight:700 }).
-// ---------------------------------------------------------------------------
 
 function inlineExcelCellStyles(document: Document) {
   const css = Array.from(document.querySelectorAll("style"))

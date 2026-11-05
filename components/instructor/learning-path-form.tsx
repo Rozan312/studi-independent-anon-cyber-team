@@ -6,7 +6,7 @@ import { createLearningPathAction, updateLearningPathAction } from "@/lib/action
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUploadField } from "@/components/instructor/image-upload-field";
-import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { helpClass, idleActionState, inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 
 export type LearningPathFormValues = {
   id: string;
@@ -180,6 +180,7 @@ export function LearningPathForm({
         <SubmitButton
           label={mode === "create" ? "Create learning path" : "Save changes"}
           pendingLabel={mode === "create" ? "Creating…" : "Saving…"}
+          className={primaryButtonClass}
           disabled={disabled}
         />
         <ActionMessage state={state} />

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/db/prisma";
+import { UserFacingError } from "@/lib/errors";
 import { recalculateRoomProgress } from "@/lib/services/progress-service";
 import { roomStartSchema } from "@/lib/validation/platform";
 
@@ -62,12 +63,12 @@ export async function getRoomTasks(roomId: string) {
 
 /**
  * Menandai room dimulai oleh peserta dan menghitung ulang progress dengan aturan tunggal
- * (lihat progress-service.ts). Persentase tidak lagi diterima dari client.
+ * (lihat progress-service.ts). Persentase dihitung di server, tidak diterima dari client.
  */
 export async function startRoomProgress(userId: string, input: { roomId: string }) {
   const { roomId } = roomStartSchema.parse(input);
   const room = await prisma.room.findFirst({ where: { id: roomId, isPublished: true }, select: { id: true } });
-  if (!room) throw new Error("Room not found or unpublished.");
+  if (!room) throw new UserFacingError("Room not found or unpublished.");
 
   return recalculateRoomProgress(userId, room.id);
 }

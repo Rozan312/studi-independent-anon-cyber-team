@@ -13,8 +13,9 @@ yarn-error.log*
 pnpm-debug.log*
 .DS_Store
 
-# Uploaded media (local storage provider)
-storage/
+# Uploaded media (local storage provider). Diawali "/" agar hanya folder unggahan di root yang diabaikan,
+# bukan kode di lib/storage/.
+/storage/
 
 # Impeccable: file kerja lokal (screenshot review, sketsa keputusan, cache hook, panduan build)
 .impeccable/review/

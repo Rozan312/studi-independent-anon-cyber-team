@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -20,8 +21,14 @@ import { describeAvailability, formatScheduleDate, getRoomAvailability, type Roo
 import { formatDayMonth, formatNumber, formatShortDate } from "@/lib/format/date";
 import { earnablePoints } from "@/lib/learning/points";
 import { EntityLogo } from "@/components/paper/entity-logo";
+import { FallbackImage } from "@/components/paper/fallback-image";
+import { publishedRoomTitle } from "@/lib/services/page-title-service";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  return { title: (await publishedRoomTitle(params.slug)) ?? "Room" };
+}
 
 /** Room yang baru selesai (15 menit terakhir): tanda centangnya digambar sekali. */
 const FRESH_COMPLETION_MS = 15 * 60 * 1000;
@@ -123,7 +130,6 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
     );
   }
 
-  // Parallel fetch: correct submissions, wrong-attempt counts (for hints), completion snapshot, lab status, completion date
   const [submissions, wrongAttemptsByTask, snapshot, session, roomProgress] = await Promise.all([
     prisma.userTaskSubmission.findMany({
       where: {
@@ -136,7 +142,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
     getWrongAttemptCounts(profile.id, room.id),
     getRoomCompletionSnapshot(profile.id, room.id),
     getLatestLabSessionForRoom(profile.id, room.id),
-    // Hanya baca: tanggal selesai untuk penanda "Room passed".
+    // Tanggal selesai untuk penanda "Room passed".
     prisma.userRoomProgress.findUnique({
       where: { userId_roomId: { userId: profile.id, roomId: room.id } },
       select: { completedAt: true }
@@ -156,7 +162,6 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
   const completedAt = snapshot.isComplete ? roomProgress?.completedAt ?? null : null;
   const freshCompletion = completedAt ? now.getTime() - completedAt.getTime() < FRESH_COMPLETION_MS : false;
 
-  // Map tasks linearly: Completed -> First incomplete is Active -> Rest are Locked
   let foundActive = false;
   const tasksWithStatus = room.tasks.map((task) => {
     const isCompleted = completedTaskIds.has(task.id);
@@ -197,16 +202,17 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Kolom utama: materi lalu task */}
         <div className="space-y-6 lg:col-span-8">
-          <nav className="flex gap-6 overflow-x-auto border-b border-line" aria-label="Room sections">
+          {/* Tanpa overflow-x-auto: wadah gulir memotong outline fokus tautan. Tiga tautan muat di kolom tersempit dan membungkus saat teks diperbesar. */}
+          <nav className="flex flex-wrap gap-x-6 gap-y-1 border-b border-line" aria-label="Room sections">
             <a
               href="#material"
-              className="whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+              className="tap-target whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink coarse:pt-3"
             >
               Material
             </a>
             <a
               href="#tasks"
-              className="whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+              className="tap-target whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink coarse:pt-3"
             >
               Tasks{" "}
               <span className="figure text-ink-3">
@@ -216,14 +222,13 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
             {room.quiz ? (
               <a
                 href="#quiz"
-                className="whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink"
+                className="tap-target whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink coarse:pt-3"
               >
                 Quiz
               </a>
             ) : null}
           </nav>
 
-          {/* Materi / walkthrough di atas lembar kertas putih */}
           <section id="material" className="sheet scroll-mt-28 p-5 md:p-6" aria-labelledby="material-title">
             {/* Tab di atas sudah bertuliskan Material; judul seksi tetap ada untuk kerangka heading pembaca layar. */}
             <h2 id="material-title" className="sr-only">
@@ -233,7 +238,6 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
             <RoomMaterial content={room.content} format={room.contentFormat} headingOffset={2} />
           </section>
 
-          {/* Daftar task */}
           <section id="tasks" className="sheet scroll-mt-28 overflow-hidden" aria-labelledby="tasks-title">
             <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 pb-3 pt-4 sm:px-6">
               <h2 id="tasks-title" className="text-lg font-bold text-ink">
@@ -391,8 +395,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
               Room facts
             </h2>
             {room.coverImageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={room.coverImageUrl} alt="" className="h-36 w-full border-b border-line object-cover" />
+              <FallbackImage src={room.coverImageUrl} alt="" className="h-36 w-full border-b border-line object-cover" fallback={null} />
             ) : null}
             <div className="grid grid-cols-2">
               <Figure

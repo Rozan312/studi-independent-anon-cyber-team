@@ -1,8 +1,10 @@
 /**
  * Logo room atau learning path. Bila instruktur mengunggah logo (Room.logoUrl / LearningPath.logoUrl),
- * gambar itu yang dipakai; bila belum, ditampilkan inisial nama dalam kotak berwarna yang tetap sama
- * untuk nama yang sama. Selalu dekoratif: nama lengkap ditulis di sebelahnya.
+ * gambar itu yang dipakai; bila belum, atau URL-nya gagal dimuat, ditampilkan inisial nama dalam kotak
+ * berwarna yang tetap sama untuk nama yang sama. Selalu dekoratif: nama lengkap ditulis di sebelahnya.
  */
+
+import { FallbackImage } from "@/components/paper/fallback-image";
 
 const STOPWORDS = new Set(["a", "an", "and", "the", "to", "of", "for", "in", "on", "with", "dan", "di", "ke", "untuk", "yang"]);
 
@@ -56,19 +58,24 @@ export function EntityLogo({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  if (src) {
-    return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt="" aria-hidden="true" className={`shrink-0 border border-line bg-sheet object-cover ${SIZES[size]} ${className}`} />
-    );
-  }
-
-  return (
+  const initialsTile = (
     <span
       aria-hidden="true"
       className={`inline-flex shrink-0 select-none items-center justify-center border font-bold tracking-[0.02em] ${SIZES[size]} ${tintFor(name)} ${className}`}
     >
       {initialsFor(name, { person })}
     </span>
+  );
+
+  return src ? (
+    <FallbackImage
+      src={src}
+      alt=""
+      aria-hidden="true"
+      className={`shrink-0 border border-line bg-sheet object-cover ${SIZES[size]} ${className}`}
+      fallback={initialsTile}
+    />
+  ) : (
+    initialsTile
   );
 }

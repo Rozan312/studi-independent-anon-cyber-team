@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { RoomBuilderForm } from "@/components/instructor/room-builder-form";
 import { requireRole } from "@/lib/auth/guards";
 import { listLearningPathsForManagement } from "@/lib/services/content-service";
 
+export const metadata: Metadata = { title: "New room" };
 export const dynamic = "force-dynamic";
 
 export default async function NewInstructorRoomPage({ searchParams = {} }: { searchParams?: Record<string, string | string[] | undefined> }) {

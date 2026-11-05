@@ -210,7 +210,7 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
                 <p className="mt-2 text-sm text-ink-3">
                   {attemptResult.roomCompleted
                     ? "This room is now complete."
-                    : `Room progress is now ${attemptResult.progressPercentage}%. The room is complete once every task is answered correctly and the quiz is passed.`}
+                    : `Room progress is now ${attemptResult.progressPercentage}%. The room is complete once every task is solved and the quiz is passed.`}
                 </p>
               ) : null}
 
@@ -456,7 +456,7 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
                   onClick={() => goToQuestion(index)}
                   aria-current={isCurrent ? "step" : undefined}
                   aria-label={`Question ${index + 1}, ${isAnswered ? "answered" : "not answered"}`}
-                  className={`figure flex h-10 w-full items-center justify-center rounded-md text-sm font-semibold transition-colors ${
+                  className={`figure flex h-10 w-full items-center justify-center rounded-md coarse:h-11 text-sm font-semibold transition-colors ${
                     isCurrent
                       ? "border-[1.5px] border-cyan-ink/70 bg-sheet text-ink"
                       : isAnswered

@@ -1,5 +1,6 @@
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireRole } from "@/lib/auth/guards";
+import { UserFacingError } from "@/lib/errors";
 import {
   createLabSessionPlaceholder,
   getLabSessionStatus,
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
 
     if (sessionId) return jsonOk(await getLabSessionStatus(profile.id, sessionId));
     if (roomId) return jsonOk(await getLatestLabSessionForRoom(profile.id, roomId));
-    throw new Error("sessionId or roomId query parameter is required.");
+    throw new UserFacingError("sessionId or roomId query parameter is required.");
   } catch (error) {
     return jsonError(error);
   }
@@ -46,7 +47,7 @@ export async function DELETE(request: Request) {
     const profile = await requireRole(["STUDENT"]);
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get("sessionId");
-    if (!sessionId) throw new Error("sessionId query parameter is required.");
+    if (!sessionId) throw new UserFacingError("sessionId query parameter is required.");
     return jsonOk(await stopLabSession(profile.id, sessionId));
   } catch (error) {
     return jsonError(error);

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -17,6 +18,8 @@ import { getRoomForEditor, listLearningPathsForManagement } from "@/lib/services
 import { roomMaterialToEditorHtml } from "@/lib/content/rich-text";
 import { describeAvailability, formatScheduleDate, getRoomAvailability, type RoomAvailability } from "@/lib/learning/availability";
 
+// Judul statis: halaman editor bisa memuat room yang belum terbit, jadi namanya tidak ditaruh di <title>.
+export const metadata: Metadata = { title: "Room editor" };
 export const dynamic = "force-dynamic";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
@@ -29,8 +32,8 @@ const sections = [
   ["#quiz", "Quiz"]
 ] as const;
 
-// Jarak gulir anchor: di xl ada bilah navigasi seksi yang menempel di atas.
-const sectionClass = `${panelClass} scroll-mt-6 xl:scroll-mt-16`;
+// Jarak gulir anchor: di bawah lg ada bar atas mobile yang menempel; di xl ada bilah navigasi seksi yang menempel.
+const sectionClass = `${panelClass} scroll-mt-20 lg:scroll-mt-6 xl:scroll-mt-16`;
 
 /** Status terbit + label jadwal (terjadwal/ditutup) agar status room tidak pernah hilang dari pandangan. */
 function RoomStateMarks({ isPublished, availability }: { isPublished: boolean; availability: RoomAvailability }) {
@@ -149,7 +152,7 @@ export default async function InstructorRoomEditorPage({
         className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line pb-2.5 xl:sticky xl:top-0 xl:z-10 xl:-mt-2 xl:bg-paper xl:pt-3"
       >
         {sections.map(([href, label]) => (
-          <a key={href} href={href} className="text-sm font-medium text-ink-2 transition-colors hover:text-ink">
+          <a key={href} href={href} className="tap-target inline-flex items-center text-sm font-medium text-ink-2 transition-colors hover:text-ink coarse:min-h-11">
             {label}
           </a>
         ))}

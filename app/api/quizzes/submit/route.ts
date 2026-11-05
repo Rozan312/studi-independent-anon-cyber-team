@@ -1,5 +1,6 @@
 import { jsonError, jsonOk } from "@/lib/http";
 import { requireRole } from "@/lib/auth/guards";
+import { UserFacingError } from "@/lib/errors";
 import { getQuizByRoomSlug, submitQuizAttempt } from "@/lib/services/quiz-service";
 
 export async function GET(request: Request) {
@@ -7,7 +8,7 @@ export async function GET(request: Request) {
     await requireRole(["STUDENT"]);
     const { searchParams } = new URL(request.url);
     const roomSlug = searchParams.get("roomSlug");
-    if (!roomSlug) throw new Error("roomSlug query parameter is required.");
+    if (!roomSlug) throw new UserFacingError("roomSlug query parameter is required.");
     return jsonOk(await getQuizByRoomSlug(roomSlug));
   } catch (error) {
     return jsonError(error);

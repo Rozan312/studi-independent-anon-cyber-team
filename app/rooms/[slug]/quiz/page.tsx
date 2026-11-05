@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -6,9 +7,15 @@ import { requireRole } from "@/lib/auth/guards";
 import { hasRoleAccess } from "@/lib/auth/rbac";
 import { describeAvailability, getRoomAvailability } from "@/lib/learning/availability";
 import { getQuizByRoomSlug } from "@/lib/services/quiz-service";
+import { publishedRoomTitle } from "@/lib/services/page-title-service";
 import QuizView from "./quiz-view";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const room = await publishedRoomTitle(params.slug);
+  return { title: room ? `${room} quiz` : "Quiz" };
+}
 
 export default async function RoomQuizPage({ params }: { params: { slug: string } }) {
   const profile = await requireRole(["STUDENT"]);
@@ -46,7 +53,7 @@ export default async function RoomQuizPage({ params }: { params: { slug: string 
     );
   }
 
-  // Convert schema object to a matching frontend payload
+  // Hanya field yang aman untuk browser: isCorrect dan explanation tidak dikirim.
   const convertedQuiz = {
     id: quiz.id,
     title: quiz.title,

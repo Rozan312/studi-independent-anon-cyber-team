@@ -1,12 +1,13 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
-import { primaryButtonClass } from "@/components/instructor/form-styles";
+import { secondaryButtonClass } from "@/components/instructor/form-styles";
 
+/** Default sekunder: hanya aksi utama satu tampilan yang diberi primaryButtonClass secara eksplisit (satu tombol cyan per tampilan). */
 export function SubmitButton({
   label,
   pendingLabel = "Saving…",
-  className = primaryButtonClass,
+  className = secondaryButtonClass,
   disabled = false
 }: {
   label: string;

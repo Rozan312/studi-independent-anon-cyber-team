@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { NightModeToggle } from "@/components/theme/night-mode";
+import { SiteFooter } from "@/components/site-footer";
 import { logoutAction } from "@/lib/actions/auth-actions";
 
 type NavLink = { href: string; label: string; icon: IconName };
@@ -272,7 +273,7 @@ export function AppShellFrame({
                       aria-current={active ? "page" : undefined}
                       title={isCollapsed ? collapsedName : undefined}
                       aria-label={isCollapsed ? collapsedName : undefined}
-                      className={`flex min-h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-[0.9375rem] transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out lg:min-h-9 ${
+                      className={`flex min-h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-[0.9375rem] transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out lg:min-h-9 coarse:!min-h-11 ${
                         isCollapsed ? "px-[17px]" : "px-3"
                       } ${
                         active
@@ -331,7 +332,7 @@ export function AppShellFrame({
             type="submit"
             title={isCollapsed ? "Sign out" : undefined}
             aria-label={isCollapsed ? "Sign out" : undefined}
-            className={`flex min-h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink ${
+            className={`flex min-h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink coarse:min-h-11 ${
               isCollapsed ? "px-[17px]" : "px-3"
             }`}
           >
@@ -349,8 +350,9 @@ export function AppShellFrame({
 
   return (
     <div className="min-h-screen bg-paper">
-      {/* Rail desktop: gradasi iris dengan grid titik halus. */}
-      <aside
+      {/* Rail desktop: gradasi iris dengan grid titik halus. Landmark header (banner); di layar kecil perannya
+          dipegang bar atas, dan hanya satu dari keduanya yang tampil. */}
+      <header
         className={`digital-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] motion-reduce:transition-none duration-300 ease-out lg:flex ${
           collapsed ? "w-[76px]" : "w-64"
         }`}
@@ -375,7 +377,7 @@ export function AppShellFrame({
           onClick={toggleCollapsed}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-3 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink ${
+          className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-3 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink coarse:min-h-11 ${
             collapsed ? "px-[17px]" : "px-3"
           }`}
         >
@@ -388,11 +390,11 @@ export function AppShellFrame({
         </button>
 
         {renderMemberCard(collapsed)}
-      </aside>
+      </header>
 
       {/* Bar atas mobile. */}
-      <div className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur lg:hidden">
-        <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5" aria-label="Anon Cyber Team, go to dashboard">
+      <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur lg:hidden">
+        <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5 coarse:min-h-11" aria-label="Anon Cyber Team, go to dashboard">
           <BrandMark size={32} />
           <span className="truncate text-sm font-bold text-ink">Anon Cyber Team</span>
         </Link>
@@ -412,7 +414,7 @@ export function AppShellFrame({
             Menu
           </button>
         </div>
-      </div>
+      </header>
 
       <main className={`transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         {/* Konten halaman masuk dengan fade halus setiap pindah menu (frame dipasang ulang per halaman). */}
@@ -427,6 +429,10 @@ export function AppShellFrame({
           {children}
         </div>
       </main>
+
+      <div className={`transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+        <SiteFooter className="mx-auto w-full max-w-[1240px] px-4 pb-8 sm:px-6 lg:px-10" />
+      </div>
 
       {/* Drawer mobile selalu terpasang agar bisa meluncur masuk/keluar; saat tertutup tidak terlihat dan inert. */}
       <div

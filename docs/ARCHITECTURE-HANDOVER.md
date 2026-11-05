@@ -293,3 +293,13 @@ Sumber kebenaran tampilan adalah `DESIGN.md` (token, tipografi, komponen, aturan
 - `prisma/seed-showcase.ts`: seed demo khusus database lokal. Membuat profil, `UserTaskSubmission`, `UserQuizAttempt`, `LeaderboardPoint` (dedup per task/quiz seperti `addLeaderboardPoints`), dan `UserRoomProgress` dengan aturan yang sama seperti `progress-service.ts`. Skor quiz selalu kelipatan jumlah pertanyaan. Tidak menyentuh konten (path/room/task/quiz).
 - `scripts/showcase/`: `capture.mjs` (Chrome headless lewat DevTools protocol, tema per shot lewat `localStorage`, skala dari `shots.json`) dan `compose.py` (bingkai + kolase via Chrome headless, butuh Pillow).
 
+## 17. State Halaman, Error, dan Target Sentuh (ditambahkan 5 November 2026)
+
+- `components/ui/route-progress.tsx` dipasang di `app/layout.tsx` dalam `<Suspense>` (karena `useSearchParams`). Navigasi dideteksi dari klik link internal (fase capture, sebelum `next/link` memanggil `preventDefault`) dan `popstate`, lalu dianggap selesai saat pathname/search berubah. Muncul setelah 150 ms, hilang sendiri setelah 8 detik. Gaya di `.route-progress*` (`app/globals.css`).
+- `app/error.tsx`, `app/global-error.tsx`, `app/not-found.tsx` memakai `AuthFrame` (kecuali global-error yang harus punya `<html>` sendiri). Digest error ditampilkan sebagai "Error reference", `error.message` tidak pernah ditampilkan.
+- `lib/errors.ts`: `UserFacingError` untuk pesan yang ditulis untuk pengguna (service melempar ini), `userMessage(error, fallback)` dipakai di semua server action dan `jsonError` (`lib/http.ts`). Fungsi ini melempar ulang error kontrol Next.js (`NEXT_REDIRECT`, `NEXT_NOT_FOUND`, `DYNAMIC_SERVER_USAGE`), memetakan Prisma P2002 pada slug, dan mencatat error lain ke log server. `ContentAccessError` adalah turunan `UserFacingError`.
+- `lib/services/page-title-service.ts`: `generateMetadata` di halaman room/quiz/lab/path hanya membaca konten terbit.
+- `components/paper/fallback-image.tsx` (client): menampilkan `fallback` bila gambar gagal, termasuk gagal sebelum hydrate (`complete && naturalWidth === 0`, dikonfirmasi `decode()`).
+- Target sentuh: varian `coarse:` di `tailwind.config.ts` dan blok `@media (pointer: coarse)` tanpa layer di `app/globals.css` (setelah utilities, jadi mengalahkan kelas komponen `.btn-*`, `.input`, `select`). Kelas `.tap-target` memberi area sentuh 44 px lewat `::after` tanpa mengubah tampilan.
+- Token baru `--line-input` (tepi field dan titik hari kosong heatmap) didefinisikan untuk tema terang dan malam, dipetakan ke `border-line-input` / `ring-line-input`.
+

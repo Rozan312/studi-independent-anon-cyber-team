@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { CircuitField } from "@/components/paper/circuit";
+import { SiteFooter } from "@/components/site-footer";
 
 /**
  * Bingkai halaman publik dan auth (tanpa AppShell).
@@ -22,7 +23,7 @@ export function AuthFrame({
 }) {
   const brand = (
     <>
-      <BrandMark size={96} className="h-auto w-11 lg:w-24" />
+      <BrandMark size={96} className="h-auto w-11 lg:w-24" priority />
       <span className="text-base font-bold leading-tight tracking-[-0.01em] text-ink lg:text-[1.75rem] lg:tracking-[-0.018em]">
         Anon Cyber Team
       </span>
@@ -32,16 +33,18 @@ export function AuthFrame({
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[minmax(360px,5fr)_minmax(0,7fr)]">
-      <aside
+      <header
         className="digital-surface relative overflow-hidden border-b border-line lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r"
       >
         {/* Jalur sirkuit di bagian bawah panel, memudar ke atas agar logo dan teks tetap bersih. */}
         <CircuitField className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-[60%] w-full [mask-image:linear-gradient(to_top,black_40%,transparent)] lg:block" />
         <div className="relative px-4 py-4 sm:px-6 lg:px-12 lg:pt-14 xl:px-16 xl:pt-16">
           {brandHref ? (
-            <Link href={brandHref} aria-label="Anon Cyber Team home" className={brandClass}>
-              {brand}
-            </Link>
+            <nav aria-label="Site">
+              <Link href={brandHref} aria-label="Anon Cyber Team home" className={`${brandClass} coarse:min-h-11`}>
+                {brand}
+              </Link>
+            </nav>
           ) : (
             <div className={brandClass}>{brand}</div>
           )}
@@ -49,15 +52,18 @@ export function AuthFrame({
             Self-paced cybersecurity learning paths from the Anon Cyber Team community.
           </p>
         </div>
-      </aside>
+      </header>
 
-      <main className="flex justify-center px-4 py-8 sm:px-6 sm:py-12 lg:items-center lg:px-10 lg:py-16">
-        <div className="sheet w-full max-w-md p-6 sm:p-8">
-          <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.018em] text-ink [text-wrap:balance]">{title}</h1>
-          {description ? <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-2">{description}</p> : null}
-          <div className="mt-6">{children}</div>
-        </div>
-      </main>
+      <div className="flex min-h-full flex-col px-4 sm:px-6 lg:min-h-screen lg:px-10">
+        <main className="flex flex-1 justify-center py-8 sm:py-12 lg:items-center lg:py-16">
+          <div className="sheet w-full max-w-md p-6 sm:p-8">
+            <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.018em] text-ink [text-wrap:balance]">{title}</h1>
+            {description ? <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-2">{description}</p> : null}
+            <div className="mt-6">{children}</div>
+          </div>
+        </main>
+        <SiteFooter className="pb-8" />
+      </div>
     </div>
   );
 }

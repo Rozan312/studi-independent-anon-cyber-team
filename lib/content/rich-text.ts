@@ -248,9 +248,7 @@ export function isRichHtmlEmpty(html: string) {
   return richHtmlToPlainText(html).length === 0;
 }
 
-// ---------------------------------------------------------------------------
-// Konversi Markdown lama -> HTML yang kompatibel dengan editor (TipTap)
-// ---------------------------------------------------------------------------
+// Konversi Markdown lama -> HTML yang kompatibel dengan editor (TipTap).
 
 type HastNode = {
   type: string;
@@ -408,9 +406,7 @@ function wrapTablesForDisplay(html: string) {
   return html.replace(/<table\b/gi, '<div class="table-scroll"><table').replace(/<\/table>/gi, "</table></div>");
 }
 
-// ---------------------------------------------------------------------------
-// Pelindung keterbacaan warna di kertas terang
-// ---------------------------------------------------------------------------
+// Pelindung keterbacaan warna di kertas terang.
 
 /**
  * Satu deklarasi CSS dari output sanitizer ("prop:nilai", dipisah ";"). Entitas seperti &quot; di

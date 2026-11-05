@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormState } from "react-dom";
 import { addRoomToPathAction, moveRoomInPathAction } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { EmptyState, StatusPill } from "@/components/card";
 import { StateTag, type StateTone } from "@/components/paper/state-tag";
 import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { MoveButton } from "@/components/instructor/move-button";
 
 export type PathRoomItem = {
   id: string;
@@ -36,27 +37,6 @@ function scheduleTone(label: string): StateTone {
   return label.startsWith("Closed") ? "red" : "amber";
 }
 
-function MoveButton({ direction, describedBy, disabled }: { direction: "up" | "down"; describedBy: string; disabled: boolean }) {
-  const { pending } = useFormStatus();
-  const label = direction === "up" ? "Move up" : "Move down";
-
-  return (
-    <button
-      type="submit"
-      className="btn-ghost btn-sm px-2"
-      disabled={disabled || pending}
-      aria-busy={pending || undefined}
-      aria-label={label}
-      aria-describedby={describedBy}
-      title={label}
-    >
-      <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-        <path d={direction === "up" ? "m4 10 4-4 4 4" : "m4 6 4 4 4-4"} strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    </button>
-  );
-}
-
 function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFirst: boolean; isLast: boolean; disabled: boolean }) {
   const [moveState, moveAction] = useFormState(moveRoomInPathAction, idleActionState);
   const titleId = useId();
@@ -72,7 +52,7 @@ function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFi
             <Link
               id={titleId}
               href={`/instructor/rooms/${room.id}`}
-              className="min-w-0 font-semibold leading-6 text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
+              className="tap-target min-w-0 font-semibold leading-6 text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
             >
               {room.title}
             </Link>

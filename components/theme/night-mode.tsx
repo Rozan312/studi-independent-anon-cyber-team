@@ -67,7 +67,7 @@ export function NightModeToggle({ variant = "button", collapsed = false }: { var
 
   if (variant === "icon") {
     return (
-      <button type="button" onClick={toggle} aria-pressed={night} aria-label="Night mode" title="Night mode" className="btn-secondary btn-sm px-2.5">
+      <button type="button" onClick={toggle} aria-pressed={night} aria-label="Night mode" title="Night mode" className="btn-secondary btn-sm px-2.5 coarse:min-w-11">
         <ThemeIcon night={night} />
       </button>
     );
@@ -81,7 +81,7 @@ export function NightModeToggle({ variant = "button", collapsed = false }: { var
         aria-pressed={night}
         aria-label={collapsed ? "Night mode" : undefined}
         title={collapsed ? "Night mode" : undefined}
-        className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] duration-300 ease-out hover:bg-sheet/60 hover:text-ink motion-reduce:transition-none ${
+        className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] duration-300 ease-out hover:bg-sheet/60 hover:text-ink motion-reduce:transition-none coarse:min-h-11 ${
           collapsed ? "px-[17px]" : "px-3"
         }`}
       >
@@ -91,8 +91,8 @@ export function NightModeToggle({ variant = "button", collapsed = false }: { var
         <span className={`flex flex-1 items-center justify-between gap-2 transition-opacity duration-200 motion-reduce:transition-none ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
           Night mode
           {/* Sakelar visual; status sebenarnya diumumkan lewat aria-pressed pada tombol. */}
-          <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors ${night ? "bg-cyan" : "bg-line-strong/70"}`} aria-hidden="true">
-            <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-sheet shadow-sheet transition-[left] duration-200 ${night ? "left-3.5" : "left-0.5"}`} />
+          <span className={`relative h-4 w-7 shrink-0 rounded-full transition-colors motion-reduce:transition-none ${night ? "bg-ink-2" : "bg-line-strong/70"}`} aria-hidden="true">
+            <span className={`absolute top-0.5 h-3 w-3 rounded-full bg-sheet shadow-sheet transition-[left] duration-200 motion-reduce:transition-none ${night ? "left-3.5" : "left-0.5"}`} />
           </span>
         </span>
       </button>

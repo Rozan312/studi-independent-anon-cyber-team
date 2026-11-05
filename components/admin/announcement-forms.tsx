@@ -10,7 +10,7 @@ import {
 } from "@/lib/actions/admin-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { helpClass, inputClass, labelClass, panelClass } from "@/components/instructor/form-styles";
+import { helpClass, inputClass, labelClass, panelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 
 const initialState: AdminActionState = {
   tone: "idle",
@@ -80,7 +80,7 @@ export function AnnouncementCreateForm() {
       </div>
 
       <ActionMessage state={state} />
-      <SubmitButton label="Create announcement" pendingLabel="Creating…" />
+      <SubmitButton label="Create announcement" pendingLabel="Creating…" className={primaryButtonClass} />
     </form>
   );
 }

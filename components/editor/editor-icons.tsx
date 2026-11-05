@@ -145,7 +145,8 @@ export const ClearFormatIcon = (p: IconProps) => (
 export const TextColorIcon = ({ color, className = "h-4 w-4" }: IconProps & { color?: string }) => (
   <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
     <path d="M7 16 12 4l5 12M8.6 12h6.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    <rect x="4" y="18.5" width="16" height="3" rx="1" fill={color || "currentColor"} />
+    {/* swatch-ink membalik warna pilihan di tema malam, sama dengan teks berwarna di materi (globals.css). */}
+    <rect x="4" y="18.5" width="16" height="3" rx="1" fill={color || "currentColor"} className={color ? "swatch-ink" : undefined} />
   </svg>
 );
 

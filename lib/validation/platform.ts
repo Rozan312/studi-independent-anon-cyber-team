@@ -84,9 +84,7 @@ export const labSessionStatusSchema = z.object({
   targetIp: z.string().ip().nullable().optional()
 });
 
-// ---------------------------------------------------------------------------
-// Content authoring (learning path, room material, tasks, quiz, media)
-// ---------------------------------------------------------------------------
+// Validasi authoring konten: path, materi room, task, quiz, media.
 
 export const slugSchema = z
   .string()

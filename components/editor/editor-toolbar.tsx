@@ -54,16 +54,19 @@ const ALIGNMENTS = [
   { value: "justify", label: "Justify", shortcut: "Ctrl/⌘+Shift+J", Icon: AlignJustifyIcon }
 ] as const;
 
-/** Pilihan gaya, font, dan ukuran: lembar kecil bergaris di atas well toolbar. */
+/**
+ * Pilihan gaya, font, dan ukuran: lembar kecil bergaris di atas well toolbar.
+ * Di perangkat sentuh tingginya 44 px dan teksnya 16 px (iOS Safari memperbesar halaman bila di bawah 16 px).
+ */
 const selectClass =
-  "h-8 rounded-md border border-line bg-sheet px-2 text-xs font-semibold text-ink shadow-sheet transition-colors hover:border-line-strong focus-visible:border-cyan-ink disabled:cursor-not-allowed disabled:opacity-50";
+  "h-8 rounded-md border border-line bg-sheet px-2 text-xs font-semibold text-ink shadow-sheet transition-colors hover:border-line-strong focus-visible:border-cyan-ink disabled:cursor-not-allowed disabled:opacity-50 coarse:h-11 coarse:text-base";
 
 /** Tombol teks kecil di dalam popover (aksi tabel, hapus format warna). */
 const popoverButtonClass =
-  "rounded-md border border-line bg-sheet px-2 py-1.5 text-xs font-semibold text-ink-2 transition-colors hover:border-line-strong hover:bg-well hover:text-ink disabled:cursor-not-allowed disabled:opacity-40";
+  "rounded-md border border-line bg-sheet px-2 py-1.5 text-xs font-semibold text-ink-2 transition-colors hover:border-line-strong hover:bg-well hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 coarse:min-h-11";
 
 const popoverDangerButtonClass =
-  "rounded-md border border-red/30 bg-sheet px-2 py-1.5 text-xs font-semibold text-red transition-colors hover:border-red hover:bg-red-soft disabled:cursor-not-allowed disabled:opacity-40";
+  "rounded-md border border-red/30 bg-sheet px-2 py-1.5 text-xs font-semibold text-red transition-colors hover:border-red hover:bg-red-soft disabled:cursor-not-allowed disabled:opacity-40 coarse:min-h-11";
 
 /**
  * Tombol toolbar. `active` hanya diisi untuk tombol toggle (dibacakan sebagai "pressed");
@@ -103,7 +106,7 @@ function ToolButton({
       disabled={disabled}
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
-      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+      className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 coarse:h-11 coarse:min-w-11 ${
         isOn ? "bg-sheet text-ink ring-1 ring-ink/60" : "text-ink-2 hover:bg-sheet hover:text-ink"
       }`}
     >
@@ -209,7 +212,7 @@ function ToolbarPopover({
           role="dialog"
           aria-label={label}
           style={shiftX ? { transform: `translateX(${shiftX}px)` } : undefined}
-          className={`sheet absolute top-full z-30 mt-1.5 w-64 max-w-[calc(100vw-1rem)] p-3 shadow-lift ${
+          className={`sheet absolute top-full z-30 mt-1.5 w-64 max-w-[calc(100vw-1rem)] p-3 shadow-lift coarse:w-72 ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -239,7 +242,8 @@ function ColorGrid({
 
   return (
     <div>
-      <div className="grid grid-cols-6 gap-1.5">
+      {/* Di layar sentuh 5 kolom dalam panel w-72 agar tiap swatch selebar 44 px atau lebih. */}
+      <div className="grid grid-cols-6 gap-1.5 coarse:grid-cols-5">
         {options.map((option) => {
           const selected = normalizedCurrent !== "" && normalizeColor(option.value) === normalizedCurrent;
           return (
@@ -251,12 +255,13 @@ function ColorGrid({
               aria-pressed={selected}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onPick(option.value)}
-              className={`flex h-8 items-center justify-center rounded-md bg-sheet text-sm font-bold transition-shadow ${
+              className={`flex h-8 items-center justify-center rounded-md bg-sheet text-sm font-bold transition-shadow coarse:h-11 ${
                 selected ? "ring-2 ring-ink ring-offset-1 ring-offset-sheet" : "ring-1 ring-line hover:ring-line-strong"
               } ${swatchKind === "highlight" ? "text-ink" : ""}`}
               style={swatchKind === "text" ? { color: option.value } : { backgroundColor: option.value }}
             >
-              A
+              {/* swatch-ink: di tema malam huruf contoh dibalik seperti teks berwarna di materi (lihat globals.css). */}
+              {swatchKind === "text" ? <span className="swatch-ink">A</span> : "A"}
             </button>
           );
         })}
@@ -452,6 +457,15 @@ export function EditorToolbar({
     { key: "hr", label: "Horizontal line", run: () => chain().setHorizontalRule().run(), content: <HorizontalRuleIcon /> }
   ];
 
+  const alignActions: ToolbarAction[] = ALIGNMENTS.map(({ value, label, shortcut, Icon }) => ({
+    key: value,
+    label,
+    shortcut,
+    active: state.align === value,
+    run: () => chain().setTextAlign(value).run(),
+    content: <Icon />
+  }));
+
   function renderActions(actions: ToolbarAction[], afterRun?: () => void) {
     return actions.map((action) => (
       <ToolButton
@@ -472,7 +486,7 @@ export function EditorToolbar({
 
   return (
     <div className="rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well px-2 py-1.5" role="group" aria-label="Material formatting">
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="flex flex-wrap items-center gap-1 coarse:gap-1.5">
         <ToolButton label="Undo" shortcut="Ctrl/⌘+Z" disabled={isOff || !state.canUndo} onClick={() => chain().undo().run()}>
           <UndoIcon />
         </ToolButton>
@@ -487,7 +501,7 @@ export function EditorToolbar({
         </label>
         <select
           id="editor-block-style"
-          className={`${selectClass} w-[7.5rem]`}
+          className={`${selectClass} w-[7.5rem] coarse:w-32`}
           value={state.blockStyle}
           disabled={isOff}
           title="Paragraph style"
@@ -619,18 +633,7 @@ export function EditorToolbar({
 
         <Divider />
 
-        {ALIGNMENTS.map(({ value, label, shortcut, Icon }) => (
-          <ToolButton
-            key={value}
-            label={label}
-            shortcut={shortcut}
-            active={state.align === value}
-            disabled={isOff}
-            onClick={() => chain().setTextAlign(value).run()}
-          >
-            <Icon />
-          </ToolButton>
-        ))}
+        <div className="hidden sm:contents">{renderActions(alignActions)}</div>
 
         <Divider />
 
@@ -658,8 +661,9 @@ export function EditorToolbar({
             onOpenChange={(open) => setOpenMenu(open ? "more" : null)}
             buttonContent={<span className="px-0.5 text-xs font-semibold">More</span>}
           >
-            <div className="grid grid-cols-4 gap-1">
-              {renderActions([...scriptActions, ...indentActions, ...blockActions], () => setOpenMenu(null))}
+            {/* Tiga baris berisi empat: perataan; indentasi, superskrip, subskrip; lalu kode inline dan blok. */}
+            <div className="grid grid-cols-4 gap-1 coarse:gap-1.5">
+              {renderActions([...alignActions, ...indentActions, ...scriptActions, ...blockActions], () => setOpenMenu(null))}
             </div>
           </ToolbarPopover>
         </div>

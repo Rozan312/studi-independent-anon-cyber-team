@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -9,8 +10,14 @@ import { hasRoleAccess } from "@/lib/auth/rbac";
 import { getRoomAvailability } from "@/lib/learning/availability";
 import { RESPONSIBLE_LAB_USE_TEXT, getLatestLabSessionForRoom } from "@/lib/services/lab-session-service";
 import { getRoomBySlug } from "@/lib/services/room-service";
+import { publishedRoomTitle } from "@/lib/services/page-title-service";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const room = await publishedRoomTitle(params.slug);
+  return { title: room ? `${room} lab` : "Lab" };
+}
 
 /** Nilai enum status (READY, DISCONNECTED, ...) ditampilkan dalam huruf kalimat. */
 function humanize(value: string) {
@@ -32,7 +39,7 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
 
   // Lab belum terhubung ke VM/VPN: semua nilai sesi di bawah adalah catatan placeholder, bukan status langsung.
   const sessionFields = [
-    { label: "Lab", value: humanize(session?.status ?? "READY"), mono: false },
+    { label: "Lab", value: session && session.status !== "READY" ? humanize(session.status) : "Not connected", mono: false },
     { label: "VPN", value: humanize(session?.vpnStatus ?? "DISCONNECTED"), mono: false },
     { label: "Machine", value: humanize(session?.machineStatus ?? "OFFLINE"), mono: false },
     { label: "Target IP", value: session?.targetIp ?? "Not assigned", mono: Boolean(session?.targetIp) }
@@ -152,6 +159,8 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
                 : "No lab session has been recorded for this room. These are default placeholder values, not live machine status."}
             </p>
             <div className="flex flex-wrap gap-2 border-t border-line-soft p-4">
+              {/* TODO: aktifkan "Reset lab" dan "Submit flag" saat integrasi VM/VPN lab tersedia; sampai saat itu
+                  keduanya nonaktif dengan penjelasan yang terlihat di bawahnya. */}
               <button type="button" disabled className="btn-secondary flex-1">
                 Reset lab
               </button>

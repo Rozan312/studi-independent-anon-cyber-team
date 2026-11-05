@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, StatusPill } from "@/components/card";
@@ -7,6 +8,7 @@ import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { getPlatformStatistics } from "@/lib/services/admin-service";
 
+export const metadata: Metadata = { title: "Admin overview" };
 export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -30,7 +32,6 @@ export default async function AdminPage() {
   const profile = await requireRole(["ADMIN"]);
   const now = new Date();
 
-  // Angka tambahan (read-only) untuk ringkasan admin: komposisi role, konten terbit, jawaban task, dan item terbaru.
   const [stats, roleCounts, publishedPaths, publishedRooms, taskAnswers, correctTaskAnswers, publishedAnnouncements, recentUsers, recentAnnouncements] =
     await Promise.all([
       getPlatformStatistics(),
@@ -187,7 +188,7 @@ export default async function AdminPage() {
                 Latest announcements
               </h2>
               <Link href="/admin/announcements" className="text-link text-sm">
-                View all
+                All announcements
               </Link>
             </div>
             {recentAnnouncements.length > 0 ? (

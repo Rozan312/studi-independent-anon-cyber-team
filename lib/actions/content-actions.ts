@@ -6,9 +6,9 @@ import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
 import type { ActionMessageState } from "@/components/ui/action-message";
 import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
+import { userMessage } from "@/lib/errors";
 import { formatScheduleDate, getRoomAvailability } from "@/lib/learning/availability";
 import {
-  ContentAccessError,
   addQuizQuestion,
   addRoomTask,
   addRoomToLearningPath,
@@ -29,10 +29,6 @@ import {
 } from "@/lib/services/content-service";
 
 export type ContentActionState = ActionMessageState;
-
-// ---------------------------------------------------------------------------
-// FormData helpers
-// ---------------------------------------------------------------------------
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -149,11 +145,7 @@ function fail(error: unknown, fallback: string, labels: FieldLabels = NO_FIELDS)
     return { tone: "error", message: zodErrorMessage(error, labels, fallback) };
   }
 
-  if (error instanceof ContentAccessError) {
-    return { tone: "error", message: error.message };
-  }
-
-  return { tone: "error", message: error instanceof Error && error.message ? error.message : fallback };
+  return { tone: "error", message: userMessage(error, fallback) };
 }
 
 function revalidateRoomPaths(room: { id?: string; slug: string; learningPath?: { slug: string } | null }, roomId?: string) {
@@ -176,10 +168,6 @@ function revalidatePathPages(pathId: string, slug?: string) {
   if (slug) revalidatePath(`/learning-paths/${slug}`);
   revalidatePath("/dashboard");
 }
-
-// ---------------------------------------------------------------------------
-// Learning paths
-// ---------------------------------------------------------------------------
 
 export async function createLearningPathAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
   let createdId: string | null = null;
@@ -247,10 +235,6 @@ export async function toggleLearningPathPublishAction(_state: ContentActionState
   }
 }
 
-// ---------------------------------------------------------------------------
-// Path composition
-// ---------------------------------------------------------------------------
-
 export async function addRoomToPathAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
   try {
     const actor = await requireRole(["INSTRUCTOR"]);
@@ -286,10 +270,6 @@ export async function moveRoomInPathAction(_state: ContentActionState, formData:
     return fail(error, "Couldn't reorder the room.");
   }
 }
-
-// ---------------------------------------------------------------------------
-// Rooms
-// ---------------------------------------------------------------------------
 
 export async function updateRoomMetadataAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
   try {
@@ -366,10 +346,6 @@ export async function toggleRoomPublishAction(_state: ContentActionState, formDa
   }
 }
 
-// ---------------------------------------------------------------------------
-// Tasks
-// ---------------------------------------------------------------------------
-
 export async function addRoomTaskAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
   try {
     const actor = await requireRole(["INSTRUCTOR"]);
@@ -436,10 +412,6 @@ export async function moveRoomTaskAction(_state: ContentActionState, formData: F
     return fail(error, "Couldn't reorder the task.");
   }
 }
-
-// ---------------------------------------------------------------------------
-// Quiz
-// ---------------------------------------------------------------------------
 
 export async function upsertQuizAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
   try {

@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, SectionHeader } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
 import { formatNumber } from "@/lib/format/date";
 import { getGlobalLeaderboard, getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 
+export const metadata: Metadata = { title: "Leaderboard" };
 export const dynamic = "force-dynamic";
 
 const LEADERBOARD_LIMIT = 50;
@@ -51,7 +53,8 @@ export default async function LeaderboardPage() {
         ) : (
           <>
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
-              <table className="w-full min-w-[480px] text-sm">
+              {/* Di bawah sm kolom Name disembunyikan dan nama pindah ke bawah username, agar kolom Points tetap terlihat di ponsel. */}
+              <table className="w-full text-sm sm:min-w-[480px]">
                 <thead>
                   <tr>
                     <th scope="col" className="field-label w-20 border-b border-line px-3 py-2.5 pl-5 text-left sm:pl-6">
@@ -60,7 +63,7 @@ export default async function LeaderboardPage() {
                     <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
                       Username
                     </th>
-                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
+                    <th scope="col" className="field-label hidden border-b border-line px-3 py-2.5 text-left sm:table-cell">
                       Name
                     </th>
                     <th scope="col" className="field-label border-b border-line px-3 py-2.5 pr-5 text-right sm:pr-6">
@@ -78,8 +81,9 @@ export default async function LeaderboardPage() {
                         <td className="px-3 py-2.5">
                           <span className="font-semibold text-ink">{row.user?.username ?? "unknown"}</span>
                           {isYou ? <span className="ml-1.5 text-ink-3">(you)</span> : null}
+                          {row.user?.fullName ? <span className="block text-xs text-ink-3 sm:hidden">{row.user.fullName}</span> : null}
                         </td>
-                        <td className="px-3 py-2.5 text-ink-2">{row.user?.fullName ?? "–"}</td>
+                        <td className="hidden px-3 py-2.5 text-ink-2 sm:table-cell">{row.user?.fullName ?? "–"}</td>
                         <td className="figure whitespace-nowrap px-3 py-2.5 pr-5 text-right font-semibold text-ink sm:pr-6">
                           {formatNumber(row.points)}
                         </td>

@@ -215,7 +215,9 @@ export function RichTextEditor({
       {editor ? (
         <EditorToolbar editor={editor} disabled={disabled} onPickImages={(files) => uploadAndInsert(files)} />
       ) : (
-        <div className="h-[92px] rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well" aria-hidden="true" />
+        // Tinggi toolbar yang terukur agar isi editor tidak bergeser saat dimuat: ponsel sentuh 375-430 px
+        // 5 baris tombol 44 px (257 px); sm sampai lg umumnya 3 baris (117 px); xl 2 baris (81 px).
+        <div className="h-[257px] rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well sm:h-[117px] xl:h-[81px]" aria-hidden="true" />
       )}
 
       {uploadStatus ? (

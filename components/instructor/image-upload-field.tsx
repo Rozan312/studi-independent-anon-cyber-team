@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { ActionMessage } from "@/components/ui/action-message";
 import { helpClass, inputClass, labelClass } from "@/components/instructor/form-styles";
 
@@ -10,6 +10,7 @@ type UploadResponse = {
 };
 
 const UPLOAD_FALLBACK_ERROR = "Upload failed. Try a PNG, JPEG, GIF, or WebP under the size limit.";
+const PREVIEW_LOAD_ERROR = "This image couldn't be loaded. Check the URL or upload the file again.";
 
 /**
  * Field URL gambar dengan tombol upload dan area seret-lepas. Upload dikirim ke POST /api/media dan
@@ -37,12 +38,30 @@ export function ImageUploadField({
   const [uploading, setUploading] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // URL pratinjau yang gagal dimuat; pesannya hanya tampil selama URL itu masih yang terisi.
+  const [brokenPreview, setBrokenPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<HTMLImageElement>(null);
   const uid = useId();
   const labelId = `${uid}-label`;
   const helpId = `${uid}-help`;
   const urlId = `${uid}-url`;
   const inactive = disabled || uploading;
+  const message = error ?? (value && brokenPreview === value ? PREVIEW_LOAD_ERROR : null);
+
+  // Pratinjau dari HTML server bisa gagal sebelum hydrate sehingga onError tidak terpanggil.
+  // decode() hanya ditolak bila gambar memang rusak (SVG tanpa ukuran intrinsik juga ber-naturalWidth 0).
+  useEffect(() => {
+    const image = previewRef.current;
+    if (!value || !image || !image.complete || image.naturalWidth > 0) return;
+    let active = true;
+    image.decode().catch(() => {
+      if (active) setBrokenPreview(value);
+    });
+    return () => {
+      active = false;
+    };
+  }, [value]);
 
   async function uploadFile(file: File) {
     setUploading(true);
@@ -109,7 +128,14 @@ export function ImageUploadField({
       >
         {value ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={value} alt={`${label} preview`} className={`${previewClassName} rounded-md border border-line bg-well object-cover`} />
+          <img
+            ref={previewRef}
+            src={value}
+            alt={`${label} preview`}
+            onError={() => setBrokenPreview(value)}
+            onLoad={() => setBrokenPreview(null)}
+            className={`${previewClassName} rounded-md border border-line bg-well object-cover`}
+          />
         ) : (
           <div className="flex flex-col items-center gap-1.5 px-2 py-5 text-center">
             <svg viewBox="0 0 24 24" className="h-6 w-6 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
@@ -164,9 +190,9 @@ export function ImageUploadField({
         aria-describedby={help ? helpId : undefined}
       />
 
-      {error ? (
+      {message ? (
         <div className="mt-2">
-          <ActionMessage state={{ tone: "error", message: error }} />
+          <ActionMessage state={{ tone: "error", message }} />
         </div>
       ) : null}
     </div>

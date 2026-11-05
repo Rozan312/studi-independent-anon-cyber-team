@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/guards";
 import { readMediaAssetFile } from "@/lib/services/media-service";
+import { userMessage } from "@/lib/errors";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;
 
@@ -38,6 +39,6 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       return NextResponse.json({ error: "The media file is missing from storage." }, { status: 404 });
     }
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unexpected error." }, { status: 500 });
+    return NextResponse.json({ error: userMessage(error, "Couldn't load this media file.") }, { status: 500 });
   }
 }

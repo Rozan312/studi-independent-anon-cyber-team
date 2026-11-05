@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
@@ -11,6 +12,7 @@ import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 import { EntityLogo } from "@/components/paper/entity-logo";
 import { ActivityHeatmap, WEEKDAYS } from "@/components/paper/activity-heatmap";
 
+export const metadata: Metadata = { title: "Progress" };
 export const dynamic = "force-dynamic";
 
 /** Daftar "Completed" dan tabel attempt memuat maksimal 100 attempt terbaru; angka ringkasan memakai agregat. */
@@ -139,13 +141,29 @@ export default async function ProgressPage() {
       </section>
 
       <section className="sheet mt-5 p-5 sm:p-6" aria-label="Activity">
-        <SectionHeader title="Activity" description="Task answers and quiz attempts per day. Hover a square for the date." />
+        <SectionHeader title="Activity" description="Task answers and quiz attempts per day. Darker squares mean more activity." />
         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
           <ActivityHeatmap calendar={calendar} className="min-w-0 shrink-0" />
           <div className="grid grid-cols-3 gap-4 border-t border-line-soft pt-5 lg:flex-1 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
             <Figure label="Longest streak" value={calendar.longestStreak} unit={calendar.longestStreak === 1 ? "day" : "days"} />
             <Figure label="This week" value={formatNumber(thisWeek)} unit={thisWeek === 1 ? "activity" : "activities"} />
-            <Figure label="Busiest day" size="sm" value={calendar.busiestWeekday === null ? "–" : WEEKDAYS[calendar.busiestWeekday]} />
+            {/* Di bawah sm sel ini sekitar 95px, "Wednesday" tidak muat; tampilkan singkatan tiga huruf seperti label baris heatmap. */}
+            <Figure
+              label="Busiest day"
+              size="sm"
+              value={
+                calendar.busiestWeekday === null ? (
+                  "–"
+                ) : (
+                  <>
+                    <span className="sm:hidden" aria-hidden="true">
+                      {WEEKDAYS[calendar.busiestWeekday].slice(0, 3)}
+                    </span>
+                    <span className="sr-only sm:not-sr-only">{WEEKDAYS[calendar.busiestWeekday]}</span>
+                  </>
+                )
+              }
+            />
           </div>
         </div>
       </section>
@@ -164,7 +182,7 @@ export default async function ProgressPage() {
         ) : (
           <EmptyState
             title="Nothing completed yet"
-            message="Finished rooms and passed quizzes show up here."
+            message="Passed rooms and quizzes show up here."
             action={
               <Link href="/learning-paths" className="text-link text-sm">
                 Choose a learning path
@@ -213,7 +231,8 @@ export default async function ProgressPage() {
               <EmptyState title="No quiz attempts yet" message="Finish a room's tasks, then take its quiz to see your scores here." />
             ) : (
               <div className="-mx-5 overflow-x-auto sm:-mx-6">
-                <table className="w-full min-w-[520px] text-sm">
+                {/* Di bawah sm kolom Date disembunyikan dan tanggalnya pindah ke sel pertama, agar Result tetap terlihat tanpa gulir. */}
+                <table className="w-full text-sm sm:min-w-[520px]">
                   <thead>
                     <tr>
                       <th scope="col" className="field-label border-b border-line px-3 py-2.5 pl-5 text-left sm:pl-6">
@@ -222,10 +241,10 @@ export default async function ProgressPage() {
                       <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-right">
                         Score
                       </th>
-                      <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
+                      <th scope="col" className="field-label border-b border-line px-3 py-2.5 pr-5 text-left sm:pr-3">
                         Result
                       </th>
-                      <th scope="col" className="field-label border-b border-line px-3 py-2.5 pr-5 text-right sm:pr-6">
+                      <th scope="col" className="field-label hidden border-b border-line px-3 py-2.5 pr-5 text-right sm:table-cell sm:pr-6">
                         Date
                       </th>
                     </tr>
@@ -234,18 +253,19 @@ export default async function ProgressPage() {
                     {quizAttempts.map((attempt) => (
                       <tr key={attempt.id} className="hover:bg-well">
                         <td className="px-3 py-2.5 pl-5 sm:pl-6">
-                          <Link href={`/rooms/${attempt.quiz.room.slug}/quiz`} className="font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4">
+                          <Link href={`/rooms/${attempt.quiz.room.slug}/quiz`} className="tap-target font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4">
                             {attempt.quiz.room.title}
                           </Link>
+                          <span className="block text-xs text-ink-3 sm:hidden">{formatShortDate(attempt.completedAt as Date)}</span>
                         </td>
                         <td className="figure px-3 py-2.5 text-right">
                           <span className="font-semibold text-ink">{attempt.score}%</span>
                           <span className="block text-xs text-ink-3">pass {attempt.quiz.passingScore}%</span>
                         </td>
-                        <td className="px-3 py-2.5">
+                        <td className="px-3 py-2.5 pr-5 sm:pr-3">
                           <StatusPill tone={attempt.passed ? "success" : "danger"}>{attempt.passed ? "Passed" : "Retry"}</StatusPill>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-2.5 pr-5 text-right text-ink-2 sm:pr-6">
+                        <td className="hidden whitespace-nowrap px-3 py-2.5 pr-5 text-right text-ink-2 sm:table-cell sm:pr-6">
                           {formatShortDate(attempt.completedAt as Date)}
                         </td>
                       </tr>

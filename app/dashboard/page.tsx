@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AnnouncementAudience } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
@@ -18,6 +19,7 @@ import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { earnablePoints } from "@/lib/learning/points";
 import { EntityLogo } from "@/components/paper/entity-logo";
 
+export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = Record<string, string | string[] | undefined>;
@@ -187,8 +189,8 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
     <AppShell title={`${greeting(now)}, ${firstName}`} subtitle={subtitle} role={profile.role}>
       {notice ? <PageNotice tone={notice.tone} title={notice.title} message={notice.message} className="mb-6" /> : null}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        {/* Langkah berikutnya */}
+      {/* Kolom samping 340px baru dibuka di xl: di lg rail 256px masih terbuka, kolom utama tinggal di bawah 330px. */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="sheet flex flex-col overflow-hidden" aria-labelledby="next-step-title">
           {activePath ? <CircuitStrip className="border-b border-line-soft bg-paper/60" /> : null}
           <div className="flex flex-1 flex-col gap-6 p-5 sm:flex-row sm:items-start sm:p-7">
@@ -288,7 +290,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
               </h2>
               <EmptyState
                 title="No learning paths are published yet"
-                message="Instructors are still preparing material. Check back soon."
+                message="Your next room shows up here once instructors publish a learning path."
               />
             </div>
           )}
@@ -301,14 +303,16 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
                 const isNext = room.id === nextRoom?.id;
                 const open = getRoomAvailability(room, now).isOpen;
                 const state = done ? "passed" : isNext ? "next" : open ? "not started" : "not open";
+                // Nomor seri yang terlihat juga dipakai di aria-label agar perintah suara "click 01" cocok.
+                const serial = String(index + 1).padStart(2, "0");
                 return (
                   <li key={room.id} className="shrink-0">
                     <Link
                       href={`/rooms/${room.slug}`}
-                      aria-label={`Room ${index + 1}: ${room.title}, ${state}`}
+                      aria-label={`Room ${serial}: ${room.title}, ${state}`}
                       title={room.title}
                       aria-current={isNext ? "step" : undefined}
-                      className={`figure inline-flex h-8 min-w-[2.75rem] items-center justify-center gap-1 rounded-md px-2 text-xs font-bold transition-colors ${
+                      className={`figure inline-flex h-8 min-w-[2.75rem] items-center justify-center gap-1 coarse:h-11 rounded-md px-2 text-xs font-bold transition-colors ${
                         done
                           ? "bg-violet-soft text-violet hover:bg-violet/15"
                           : isNext
@@ -323,7 +327,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
                           <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       ) : null}
-                      {String(index + 1).padStart(2, "0")}
+                      {serial}
                     </Link>
                   </li>
                 );
@@ -332,7 +336,6 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
           ) : null}
         </section>
 
-        {/* Angka utama dan papan peringkat */}
         <div className="flex flex-col gap-5">
           <section className="sheet overflow-hidden" aria-label="Your numbers">
             <div className="grid grid-cols-2">
@@ -391,7 +394,6 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         </div>
       </div>
 
-      {/* Riwayat selesai */}
       <section className="sheet mt-5 p-5 sm:p-6" aria-labelledby="completed-title">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
@@ -407,12 +409,12 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         <div className="mt-4">
           <CompletionList entries={completionRows} next={nextRoom?.title} />
           {completionRows.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-3">Finished rooms and quiz scores show up here.</p>
+            <p className="mt-3 text-sm text-ink-3">Passed rooms and quiz scores show up here.</p>
           ) : null}
         </div>
       </section>
 
-      <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="sheet p-5 sm:p-6" aria-labelledby="paths-title">
           <SectionHeader
             id="paths-title"
@@ -457,7 +459,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
                 <li key={item.id}>
                   <p className="text-xs text-ink-3">{formatRelativeTime(item.createdAt, now)}</p>
                   <p className="mt-0.5 font-semibold leading-snug text-ink">{item.title}</p>
-                  <p className="mt-1 line-clamp-3 text-sm text-ink-2">{item.content}</p>
+                  <p className="mt-1 whitespace-pre-line break-words text-sm text-ink-2">{item.content}</p>
                 </li>
               ))}
             </ul>

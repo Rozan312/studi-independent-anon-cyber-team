@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -15,6 +16,8 @@ import { describeAvailability, getRoomAvailability } from "@/lib/learning/availa
 import { PathRoomsEditor } from "@/components/instructor/path-rooms-editor";
 import { EntityLogo } from "@/components/paper/entity-logo";
 
+// Judul statis: halaman editor bisa memuat path yang belum terbit, jadi namanya tidak ditaruh di <title>.
+export const metadata: Metadata = { title: "Path editor" };
 export const dynamic = "force-dynamic";
 
 const UUID_PATTERN = /^[0-9a-fA-F-]{36}$/;

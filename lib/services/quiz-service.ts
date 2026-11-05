@@ -2,6 +2,7 @@ import "server-only";
 
 import { LeaderboardSourceType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { UserFacingError } from "@/lib/errors";
 import { addLeaderboardPoints } from "@/lib/services/leaderboard-service";
 import { recalculateRoomProgress } from "@/lib/services/progress-service";
 import { quizAttemptSchema } from "@/lib/validation/platform";
@@ -81,10 +82,10 @@ export async function submitQuizAttempt(userId: string, input: { quizId: string;
     }
   });
 
-  if (!quiz) throw new Error("Quiz not found.");
+  if (!quiz) throw new UserFacingError("Quiz not found.");
 
   const availability = getRoomAvailability(quiz.room);
-  if (!availability.isOpen) throw new Error(availabilityErrorMessage(availability));
+  if (!availability.isOpen) throw new UserFacingError(availabilityErrorMessage(availability));
 
   const review: QuizReviewItem[] = quiz.questions.map((question) => {
     const selectedOptionId = data.answers[question.id] ?? null;

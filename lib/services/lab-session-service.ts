@@ -2,6 +2,7 @@ import "server-only";
 
 import { LabStatus, MachineStatus, VpnStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { UserFacingError } from "@/lib/errors";
 import { labSessionCreateSchema, labSessionStatusSchema } from "@/lib/validation/platform";
 import { availabilityErrorMessage, getRoomAvailability } from "@/lib/learning/availability";
 
@@ -13,10 +14,10 @@ export async function createLabSessionPlaceholder(userId: string, input: { roomI
 
   const room = await prisma.room.findUnique({ where: { id: data.roomId } });
 
-  if (!room) throw new Error("Room not found.");
+  if (!room) throw new UserFacingError("Room not found.");
 
   const availability = getRoomAvailability(room);
-  if (!availability.isOpen) throw new Error(availabilityErrorMessage(availability));
+  if (!availability.isOpen) throw new UserFacingError(availabilityErrorMessage(availability));
 
   return prisma.labSession.create({
     data: {
@@ -66,7 +67,7 @@ export async function stopLabSession(userId: string, sessionId: string) {
     select: { id: true }
   });
 
-  if (!session) throw new Error("Lab session not found.");
+  if (!session) throw new UserFacingError("Lab session not found.");
 
   return prisma.labSession.update({
     where: { id: session.id },

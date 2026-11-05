@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, SectionHeader, StatusPill } from "@/components/card";
@@ -11,6 +12,7 @@ import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { canManageContent, listLearningPathsForManagement } from "@/lib/services/content-service";
 import { EntityLogo } from "@/components/paper/entity-logo";
 
+export const metadata: Metadata = { title: "Path manager" };
 export const dynamic = "force-dynamic";
 
 export default async function InstructorPathsPage() {
@@ -59,7 +61,7 @@ export default async function InstructorPathsPage() {
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
                         <Link
                           href={`/instructor/paths/${path.id}`}
-                          className="font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
+                          className="tap-target font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
                         >
                           {path.title}
                         </Link>

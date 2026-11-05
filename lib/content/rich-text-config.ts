@@ -37,9 +37,11 @@ export const FONT_SIZE_OPTIONS: FontOption[] = [
 export type ColorOption = { label: string; value: string };
 
 /**
- * Warna teks pilihan instruktur. Setiap nilai mencapai kontras minimal 4,5:1 di lembar (#FCFDFD),
+ * Warna teks pilihan instruktur. Di tema terang setiap nilai mencapai kontras minimal 4,5:1 di lembar (#FCFDFD),
  * kertas (#F3F7F8), well (#ECF3F5) tempat kutipan, kode inline, dan judul tabel berada, serta di atas
  * setiap stabilo palet (dan stabilo bawaan) yang diletakkan di lembar maupun well.
+ * Tema malam tidak memakai angka ini: warnanya dibalik di app/globals.css, dan teks berstabilo memakai tinta malam
+ * (aturan `.prose-cyber mark`).
  * Nilainya adalah keluaran readableTextColor untuk palet awal, sehingga materi lama ikut terpetakan tepat ke sini.
  */
 export const TEXT_COLOR_OPTIONS: ColorOption[] = [
@@ -122,9 +124,7 @@ export function normalizeLinkHref(input: string) {
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// Keterbacaan warna materi di kertas terang (dipakai pelindung warna server dan normalisasi paste di browser)
-// ---------------------------------------------------------------------------
+// Keterbacaan warna materi di kertas terang (dipakai pelindung warna server dan normalisasi paste di browser).
 
 /** Warna sebagai [r, g, b, a] dengan kanal 0-255 dan alpha 0-1. */
 export type Rgba = [number, number, number, number];

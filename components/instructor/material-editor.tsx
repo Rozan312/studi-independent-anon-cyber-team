@@ -7,6 +7,7 @@ import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
 import { updateRoomContentAction, type MaterialActionState } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { primaryButtonClass } from "@/components/instructor/form-styles";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
 import { MAX_RICH_CONTENT_LENGTH } from "@/lib/content/rich-text-config";
 
@@ -227,7 +228,7 @@ export function MaterialEditor({
             Ctrl/⌘+S to save.
           </p>
         </div>
-        <SubmitButton label="Save material" pendingLabel="Saving…" disabled={disabled || tooLong} />
+        <SubmitButton label="Save material" pendingLabel="Saving…" className={primaryButtonClass} disabled={disabled || tooLong} />
       </div>
     </form>
   );

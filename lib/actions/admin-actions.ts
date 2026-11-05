@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
+import { userMessage } from "@/lib/errors";
 import { createAnnouncement, publishAnnouncement, updateAnnouncement, updateUserRole } from "@/lib/services/admin-service";
 import type { ActionMessageState } from "@/components/ui/action-message";
 import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
@@ -44,7 +45,7 @@ function actionError(error: unknown, labels: FieldLabels = ANNOUNCEMENT_FIELDS):
 
   return {
     tone: "error",
-    message: error instanceof Error ? error.message : "Couldn't complete that action."
+    message: userMessage(error, "Couldn't complete that action.")
   };
 }
 

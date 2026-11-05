@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { Archivo, JetBrains_Mono } from "next/font/google";
+import { RouteProgress } from "@/components/ui/route-progress";
 import "./globals.css";
 
 // Archivo variabel (berat + lebar): label kolom memakai versi condensed lewat font-stretch.
@@ -34,6 +36,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Script id="act-theme-init" strategy="beforeInteractive">
           {`try{if(localStorage.getItem("act-night-mode")==="true")document.documentElement.dataset.theme="night"}catch(e){}`}
         </Script>
+        {/* useSearchParams di RouteProgress butuh batas Suspense agar halaman tetap bisa dirender di server. */}
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
         {children}
       </body>
     </html>

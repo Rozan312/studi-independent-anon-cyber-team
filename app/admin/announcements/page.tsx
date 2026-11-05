@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, StatusPill } from "@/components/card";
 import { StateTag } from "@/components/paper/state-tag";
@@ -6,6 +7,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { listAnnouncements } from "@/lib/services/admin-service";
 
+export const metadata: Metadata = { title: "Announcements" };
 export const dynamic = "force-dynamic";
 
 const AUDIENCE_LABEL: Record<string, string> = {
@@ -32,12 +34,13 @@ export default async function AdminAnnouncementsPage() {
 
   return (
     <AppShell title="Announcements" subtitle={subtitle} role={profile.role}>
-      <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="lg:col-start-2 lg:row-start-1">
+      {/* Kolom samping 340px baru dibuka di xl, sama dengan dasbor: di lg rail 256px masih terbuka dan form edit jadi terlalu sempit. */}
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="xl:col-start-2 xl:row-start-1">
           <AnnouncementCreateForm />
         </div>
 
-        <section className="sheet overflow-hidden lg:col-start-1 lg:row-start-1" aria-labelledby="announcement-list-title">
+        <section className="sheet overflow-hidden xl:col-start-1 xl:row-start-1" aria-labelledby="announcement-list-title">
           <div className="border-b border-line px-5 pb-4 pt-5">
             <h2 id="announcement-list-title" className="text-lg font-bold text-ink">
               All announcements

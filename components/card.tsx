@@ -94,7 +94,7 @@ export function ProgressBar({
       aria-valuemax={100}
       aria-valuenow={safeValue}
     >
-      <div className={`h-full rounded-full transition-[width] duration-500 ease-out ${progressToneClass[tone]}`} style={{ width: `${safeValue}%` }} />
+      <div className={`h-full rounded-full transition-[width] duration-500 ease-out motion-reduce:transition-none ${progressToneClass[tone]}`} style={{ width: `${safeValue}%` }} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
@@ -11,8 +12,14 @@ import { getRoomAvailability } from "@/lib/learning/availability";
 import { getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
 import { earnablePoints } from "@/lib/learning/points";
 import { EntityLogo } from "@/components/paper/entity-logo";
+import { FallbackImage } from "@/components/paper/fallback-image";
+import { publishedPathTitle } from "@/lib/services/page-title-service";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  return { title: (await publishedPathTitle(params.slug)) ?? "Learning path" };
+}
 
 export default async function LearningPathDetailPage({ params }: { params: { slug: string } }) {
   const profile = await requireRole(["STUDENT"]);
@@ -68,8 +75,7 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
     >
       <section className="sheet overflow-hidden" aria-label="Path overview">
         {path.coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={path.coverImageUrl} alt="" className="h-32 w-full border-b border-line object-cover sm:h-44" />
+          <FallbackImage src={path.coverImageUrl} alt="" fetchPriority="high" className="h-32 w-full border-b border-line object-cover sm:h-44" fallback={null} />
         ) : null}
         <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-7">
           <ProgressRing

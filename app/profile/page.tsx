@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
@@ -11,7 +12,9 @@ import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 import { memberSerial } from "@/lib/format/member";
 import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
 import { EntityLogo } from "@/components/paper/entity-logo";
+import { FallbackImage } from "@/components/paper/fallback-image";
 
+export const metadata: Metadata = { title: "Profile" };
 export const dynamic = "force-dynamic";
 
 function formatDateTime(date: Date) {
@@ -51,7 +54,6 @@ export default async function ProfilePage() {
     submissions,
     attempts,
     pointsBySource,
-    labSessionCount,
     submissionTotal,
     correctSubmissions,
     attemptStats,
@@ -85,7 +87,6 @@ export default async function ProfilePage() {
       where: { userId: profile.id },
       _sum: { points: true }
     }),
-    prisma.labSession.count({ where: { userId: profile.id } }),
     // Agregat seluruh riwayat (bukan hanya 25 baris tabel), sama seperti halaman Progress.
     prisma.userTaskSubmission.count({ where: { userId: profile.id } }),
     prisma.userTaskSubmission.count({ where: { userId: profile.id, isCorrect: true } }),
@@ -149,18 +150,25 @@ export default async function ProfilePage() {
     { label: "Joined", value: formatShortDate(profile.createdAt) }
   ];
 
+  const avatarTile = <EntityLogo name={profile.fullName} person size="xl" className="!h-[140px] !w-[140px] !rounded-xl !text-4xl" />;
+
   return (
     <AppShell title="Profile" subtitle="Your member record: identity, points, and the trail of rooms, tasks, and quizzes behind them." role={profile.role}>
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        {/* Data anggota */}
+      {/* Kolom samping 340px baru dibuka di xl: di lg rail 256px masih terbuka dan kolom identitas jadi terlalu sempit. */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="sheet p-5 sm:p-7" aria-label="Member details">
           <div className="flex flex-col gap-6 sm:flex-row sm:items-start">
             <div className="mx-auto shrink-0 sm:mx-0">
+              {/* URL foto yang mati diganti kotak inisial yang sama dengan member tanpa foto. */}
               {profile.avatarUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={profile.avatarUrl} alt={`Photo of ${profile.fullName}`} className="h-[140px] w-[140px] rounded-lg border border-line object-cover" />
+                <FallbackImage
+                  src={profile.avatarUrl}
+                  alt={`Photo of ${profile.fullName}`}
+                  className="h-[140px] w-[140px] rounded-lg border border-line object-cover"
+                  fallback={avatarTile}
+                />
               ) : (
-                <EntityLogo name={profile.fullName} person size="xl" className="!h-[140px] !w-[140px] !rounded-xl !text-4xl" />
+                avatarTile
               )}
             </div>
             <dl className="grid min-w-0 flex-1 grid-cols-1 gap-x-6 gap-y-4 border-line-soft sm:grid-cols-2 sm:border-l sm:pl-6">
@@ -185,18 +193,17 @@ export default async function ProfilePage() {
               <dt className="text-ink-2">Quizzes</dt>
               <dd className="figure font-semibold text-ink">{formatNumber(quizPoints)}</dd>
             </div>
-            <div className="flex items-baseline justify-between gap-3 py-2">
-              <dt className="text-ink-2">Adjustments</dt>
-              <dd className="figure font-semibold text-ink">{formatNumber(adjustmentPoints)}</dd>
-            </div>
+            {adjustmentPoints !== 0 ? (
+              <div className="flex items-baseline justify-between gap-3 py-2">
+                <dt className="text-ink-2">Adjustments</dt>
+                <dd className="figure font-semibold text-ink">{formatNumber(adjustmentPoints)}</dd>
+              </div>
+            ) : null}
             <div className="flex items-baseline justify-between gap-3 border-t border-line py-2">
               <dt className="font-semibold text-ink">Total</dt>
               <dd className="figure font-bold text-ink">{formatNumber(standing.points)}</dd>
             </div>
           </dl>
-          <p className="mt-3 text-sm text-ink-3">
-            {labSessionCount} lab {labSessionCount === 1 ? "session" : "sessions"} started
-          </p>
         </section>
       </div>
 
@@ -247,7 +254,7 @@ export default async function ProfilePage() {
           <div className="mt-4">
             <CompletionList entries={recentCompletions} columns={2} />
             {recentCompletions.length === 0 ? (
-              <p className="mt-3 text-sm text-ink-3">Finished rooms and passed quizzes show up here.</p>
+              <p className="mt-3 text-sm text-ink-3">Passed rooms and quizzes show up here.</p>
             ) : null}
           </div>
         </section>
@@ -269,7 +276,8 @@ export default async function ProfilePage() {
             <EmptyState title="No quizzes taken yet" message="Open a room, finish its tasks, then take the quiz." />
           ) : (
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
-              <table className="w-full min-w-[520px] text-sm">
+              {/* Di bawah sm kolom Taken disembunyikan dan tanggalnya pindah ke sel pertama, agar Result tetap terlihat tanpa gulir. */}
+              <table className="w-full text-sm sm:min-w-[520px]">
                 <thead>
                   <tr>
                     <th scope="col" className={`${thClass} pl-5 text-left sm:pl-6`}>
@@ -278,10 +286,10 @@ export default async function ProfilePage() {
                     <th scope="col" className={`${thClass} text-right`}>
                       Score
                     </th>
-                    <th scope="col" className={`${thClass} text-left`}>
+                    <th scope="col" className={`${thClass} pr-5 text-left sm:pr-3`}>
                       Result
                     </th>
-                    <th scope="col" className={`${thClass} pr-5 text-right sm:pr-6`}>
+                    <th scope="col" className={`${thClass} hidden pr-5 text-right sm:table-cell sm:pr-6`}>
                       Taken
                     </th>
                   </tr>
@@ -292,20 +300,21 @@ export default async function ProfilePage() {
                       <td className="px-3 py-2.5 pl-5 sm:pl-6">
                         <Link
                           href={`/rooms/${attempt.quiz.room.slug}/quiz`}
-                          className="block font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
+                          className="tap-target block font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
                         >
                           {attempt.quiz.title}
                         </Link>
                         <span className="block text-xs text-ink-3">{attempt.quiz.room.title}</span>
+                        <span className="block text-xs text-ink-3 sm:hidden">{formatDateTime(attempt.startedAt)}</span>
                       </td>
                       <td className="figure px-3 py-2.5 text-right">
                         <span className={`font-semibold ${attempt.passed ? "text-green" : "text-red"}`}>{attempt.score}%</span>
                         <span className="block text-xs text-ink-3">pass {attempt.quiz.passingScore}%</span>
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 pr-5 sm:pr-3">
                         <StatusPill tone={attempt.passed ? "success" : "danger"}>{attempt.passed ? "Passed" : "Retry"}</StatusPill>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 pr-5 text-right text-xs text-ink-2 sm:pr-6">{formatDateTime(attempt.startedAt)}</td>
+                      <td className="hidden whitespace-nowrap px-3 py-2.5 pr-5 text-right text-xs text-ink-2 sm:table-cell sm:pr-6">{formatDateTime(attempt.startedAt)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -329,19 +338,20 @@ export default async function ProfilePage() {
             <EmptyState title="No answers submitted yet" message="Answers you submit to room tasks are listed here." />
           ) : (
             <div className="-mx-5 overflow-x-auto sm:-mx-6">
-              <table className="w-full min-w-[520px] text-sm">
+              {/* Di bawah sm kolom Answer dan Submitted disembunyikan; isinya pindah ke sel pertama agar Result tetap terlihat. */}
+              <table className="w-full text-sm sm:min-w-[520px]">
                 <thead>
                   <tr>
                     <th scope="col" className={`${thClass} pl-5 text-left sm:pl-6`}>
                       Task
                     </th>
-                    <th scope="col" className={`${thClass} text-left`}>
+                    <th scope="col" className={`${thClass} hidden text-left sm:table-cell`}>
                       Answer
                     </th>
-                    <th scope="col" className={`${thClass} text-left`}>
+                    <th scope="col" className={`${thClass} pr-5 text-left sm:pr-3`}>
                       Result
                     </th>
-                    <th scope="col" className={`${thClass} pr-5 text-right sm:pr-6`}>
+                    <th scope="col" className={`${thClass} hidden pr-5 text-right sm:table-cell sm:pr-6`}>
                       Submitted
                     </th>
                   </tr>
@@ -352,21 +362,24 @@ export default async function ProfilePage() {
                       <td className="px-3 py-2.5 pl-5 sm:pl-6">
                         <Link
                           href={`/rooms/${submission.task.room.slug}`}
-                          className="block font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
+                          className="tap-target block font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
                         >
                           {submission.task.title}
                         </Link>
                         <span className="block text-xs text-ink-3">{submission.task.room.title}</span>
+                        {/* max-w perlu agar truncate berlaku di sel tabel; lebarnya sama dengan kolom Answer di layar lebar. */}
+                        <span className="block max-w-[12rem] truncate font-mono text-xs text-ink-2 sm:hidden">{submission.answer}</span>
+                        <span className="block text-xs text-ink-3 sm:hidden">{formatDateTime(submission.submittedAt)}</span>
                       </td>
-                      <td className="max-w-[12rem] truncate px-3 py-2.5 font-mono text-xs text-ink-2" title={submission.answer}>
+                      <td className="hidden max-w-[12rem] truncate px-3 py-2.5 font-mono text-xs text-ink-2 sm:table-cell" title={submission.answer}>
                         {submission.answer}
                       </td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-3 py-2.5 pr-5 sm:pr-3">
                         <StatusPill tone={submission.isCorrect ? "success" : "danger"}>
                           {submission.isCorrect ? `+${submission.task.points} pts` : "Wrong"}
                         </StatusPill>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-2.5 pr-5 text-right text-xs text-ink-2 sm:pr-6">{formatDateTime(submission.submittedAt)}</td>
+                      <td className="hidden whitespace-nowrap px-3 py-2.5 pr-5 text-right text-xs text-ink-2 sm:table-cell sm:pr-6">{formatDateTime(submission.submittedAt)}</td>
                     </tr>
                   ))}
                 </tbody>

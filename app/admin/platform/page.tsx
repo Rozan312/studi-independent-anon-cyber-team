@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { Figure, StatusPill, type StatusTone } from "@/components/card";
@@ -6,6 +7,7 @@ import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { getLabSessionOverview, getPlatformStatistics } from "@/lib/services/admin-service";
 
+export const metadata: Metadata = { title: "Platform" };
 export const dynamic = "force-dynamic";
 
 // Warna status menurut makna: hijau berjalan, merah gagal, amber sedang disiapkan; sisanya netral (cyan khusus langkah berikutnya).
@@ -55,7 +57,6 @@ export default async function AdminPlatformPage() {
   const profile = await requireRole(["ADMIN"]);
   const now = new Date();
 
-  // Distribusi tambahan (read-only): role akun dan status terbit konten.
   const [stats, labs, roleCounts, publishedPaths, publishedRooms] = await Promise.all([
     getPlatformStatistics(),
     getLabSessionOverview(6),

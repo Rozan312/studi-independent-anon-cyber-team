@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState } from "@/components/card";
@@ -5,6 +6,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { getInstructorClasses } from "@/lib/services/instructor-service";
 
+export const metadata: Metadata = { title: "Classes" };
 export const dynamic = "force-dynamic";
 
 export default async function InstructorClassesPage() {

@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import plugin from "tailwindcss/plugin";
 
 /** Warna diambil dari variabel CSS di app/globals.css (format "R G B") agar modifier opasitas tetap berfungsi. */
 const token = (name: string) => `rgb(var(--${name}) / <alpha-value>)`;
@@ -14,7 +15,8 @@ const config: Config = {
         line: {
           DEFAULT: token("line"),
           soft: token("line-soft"),
-          strong: token("line-strong")
+          strong: token("line-strong"),
+          input: token("line-input")
         },
         ink: {
           DEFAULT: token("ink"),
@@ -54,7 +56,12 @@ const config: Config = {
       }
     }
   },
-  plugins: []
+  plugins: [
+    // `coarse:` untuk perangkat sentuh: target sentuh 44 px tanpa mengubah tampilan desktop bermouse.
+    plugin(({ addVariant }) => {
+      addVariant("coarse", "@media (pointer: coarse)");
+    })
+  ]
 };
 
 export default config;

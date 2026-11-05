@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
 import { CircuitField, CircuitStrip } from "@/components/paper/circuit";
+import { SiteFooter } from "@/components/site-footer";
 
 /** Contoh riwayat untuk pengunjung. Diberi label "Example" di halaman; bukan progres siapa pun. */
 const EXAMPLE_COMPLETIONS: CompletionEntry[] = [
@@ -38,14 +39,14 @@ export default function HomePage() {
               Learning paths made of rooms, written and run by the Anon Cyber Team community. Read, practise, pass the quiz, and
               see your progress add up.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <nav aria-label="Account" className="mt-7 flex flex-wrap gap-3">
               <Link href="/login" className="btn-primary min-h-11 px-6 text-[0.9375rem]">
                 Sign in
               </Link>
               <Link href="/register" className="btn-secondary min-h-11 px-6 text-[0.9375rem]">
                 Create account
               </Link>
-            </div>
+            </nav>
           </div>
         </div>
         <CircuitStrip className="relative border-t border-line-soft bg-paper/40" />
@@ -86,11 +87,9 @@ export default function HomePage() {
           </div>
         </section>
 
-        <footer className="mt-14 flex flex-col gap-2 border-t border-line pt-6 text-sm text-ink-3 sm:flex-row sm:items-center sm:justify-between">
-          <span>Anon Cyber Team community learning platform</span>
-          <span>Safe, defensive practice only: placeholder labs, no real targets.</span>
-        </footer>
       </main>
+
+      <SiteFooter className="mx-auto max-w-6xl px-4 pb-10 sm:px-6 lg:px-10" />
     </div>
   );
 }

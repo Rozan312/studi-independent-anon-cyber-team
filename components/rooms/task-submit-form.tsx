@@ -105,8 +105,8 @@ export function TaskSubmitForm({
           </p>
 
           {hint ? (
-            <div className="mt-3 rounded-lg border border-amber/30 bg-amber-soft px-3.5 py-3" role="note">
-              <p className="field-label text-amber">Hint</p>
+            <div className="mt-3 rounded-lg border border-line bg-well px-3.5 py-3" role="note">
+              <p className="field-label">Hint</p>
               <p className="mt-1 text-sm leading-relaxed text-ink">{hint}</p>
             </div>
           ) : hasHint ? (

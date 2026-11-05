@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, StatusPill } from "@/components/card";
 import { UserRoleForm } from "@/components/admin/user-role-form";
@@ -5,6 +6,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { getUserList } from "@/lib/services/admin-service";
 
+export const metadata: Metadata = { title: "Users" };
 export const dynamic = "force-dynamic";
 
 const ROLE_LABEL: Record<string, string> = {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { LeaderboardSourceType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { UserFacingError } from "@/lib/errors";
 import { addLeaderboardPoints } from "@/lib/services/leaderboard-service";
 import { recalculateRoomProgress } from "@/lib/services/progress-service";
 import { taskSubmissionSchema } from "@/lib/validation/platform";
@@ -28,10 +29,10 @@ export async function submitTaskAnswer(userId: string, input: { taskId: string; 
     include: { room: { select: { id: true, isPublished: true, availableFrom: true, availableUntil: true } } }
   });
 
-  if (!task) throw new Error("Task not found.");
+  if (!task) throw new UserFacingError("Task not found.");
 
   const availability = getRoomAvailability(task.room);
-  if (!availability.isOpen) throw new Error(availabilityErrorMessage(availability));
+  if (!availability.isOpen) throw new UserFacingError(availabilityErrorMessage(availability));
 
   const isCorrect = isAnswerAccepted(data.answer, task);
 

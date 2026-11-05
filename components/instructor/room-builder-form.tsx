@@ -252,7 +252,7 @@ export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathO
       action={formAction}
       noValidate
       onSubmit={handleSubmit}
-      className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_340px] lg:items-start"
+      className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px] xl:items-start"
     >
       <div className="flex min-w-0 flex-col gap-5">
         <section className={panelClass}>

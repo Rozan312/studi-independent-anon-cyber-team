@@ -3,6 +3,7 @@ import "server-only";
 import { AnswerType, ContentFormat, Role } from "@prisma/client";
 import { prepareRichHtmlForStorage } from "@/lib/content/rich-text";
 import { prisma } from "@/lib/db/prisma";
+import { UserFacingError } from "@/lib/errors";
 import {
   addQuizQuestionSchema,
   addRoomTaskSchema,
@@ -36,7 +37,7 @@ import {
 
 export type ContentActor = { id: string; role: Role };
 
-export class ContentAccessError extends Error {
+export class ContentAccessError extends UserFacingError {
   constructor(message = "You don't have permission to manage this content.") {
     super(message);
     this.name = "ContentAccessError";
@@ -50,9 +51,7 @@ export function canManageContent(actor: ContentActor, createdById: string | null
 
 const authorSelect = { select: { id: true, username: true, fullName: true } } as const;
 
-// ---------------------------------------------------------------------------
-// Ownership guards
-// ---------------------------------------------------------------------------
+// Pemeriksaan kepemilikan konten.
 
 async function requireManagedPath(actor: ContentActor, pathId: string) {
   const path = await prisma.learningPath.findUnique({
@@ -60,7 +59,7 @@ async function requireManagedPath(actor: ContentActor, pathId: string) {
     select: { id: true, slug: true, createdById: true }
   });
 
-  if (!path) throw new Error("Learning path not found.");
+  if (!path) throw new UserFacingError("Learning path not found.");
   if (!canManageContent(actor, path.createdById)) throw new ContentAccessError();
   return path;
 }
@@ -71,7 +70,7 @@ async function requireManagedRoom(actor: ContentActor, roomId: string) {
     select: { id: true, slug: true, title: true, createdById: true, learningPathId: true, learningPath: { select: { id: true, slug: true } } }
   });
 
-  if (!room) throw new Error("Room not found.");
+  if (!room) throw new UserFacingError("Room not found.");
   if (!canManageContent(actor, room.createdById)) throw new ContentAccessError();
   return room;
 }
@@ -86,7 +85,7 @@ async function requireManagedTask(actor: ContentActor, taskId: string) {
     }
   });
 
-  if (!task) throw new Error("Task not found.");
+  if (!task) throw new UserFacingError("Task not found.");
   if (!canManageContent(actor, task.room.createdById)) throw new ContentAccessError();
   return task;
 }
@@ -101,7 +100,7 @@ async function requireManagedQuiz(actor: ContentActor, quizId: string) {
     }
   });
 
-  if (!quiz) throw new Error("Quiz not found.");
+  if (!quiz) throw new UserFacingError("Quiz not found.");
   if (!canManageContent(actor, quiz.room.createdById)) throw new ContentAccessError();
   return quiz;
 }
@@ -121,7 +120,7 @@ async function requireManagedQuestion(actor: ContentActor, questionId: string) {
     }
   });
 
-  if (!question) throw new Error("Question not found.");
+  if (!question) throw new UserFacingError("Question not found.");
   if (!canManageContent(actor, question.quiz.room.createdById)) throw new ContentAccessError();
   return question;
 }
@@ -130,10 +129,6 @@ async function requireManagedQuestion(actor: ContentActor, questionId: string) {
 export async function assertCanManageRoom(actor: ContentActor, roomId: string) {
   return requireManagedRoom(actor, roomId);
 }
-
-// ---------------------------------------------------------------------------
-// Learning paths
-// ---------------------------------------------------------------------------
 
 export async function listLearningPathsForManagement() {
   return prisma.learningPath.findMany({
@@ -188,9 +183,7 @@ export async function setLearningPathPublished(actor: ContentActor, input: unkno
   return prisma.learningPath.update({ where: { id: pathId }, data: { isPublished } });
 }
 
-// ---------------------------------------------------------------------------
-// Path composition: rooms as modules inside a learning path
-// ---------------------------------------------------------------------------
+// Komposisi path: room sebagai modul di dalam learning path.
 
 async function renumberRoomsInPath(pathId: string, orderedIds?: string[]) {
   const ids =
@@ -232,7 +225,7 @@ export async function addRoomToLearningPath(actor: ContentActor, input: unknown)
   const room = await requireManagedRoom(actor, roomId);
 
   if (room.learningPathId === pathId) {
-    throw new Error("This room is already in that path.");
+    throw new UserFacingError("This room is already in that path.");
   }
 
   const { _max } = await prisma.room.aggregate({ where: { learningPathId: pathId }, _max: { orderIndex: true } });
@@ -260,7 +253,7 @@ export async function moveRoomInPath(actor: ContentActor, input: unknown) {
     select: { id: true, slug: true, learningPathId: true, learningPath: { select: { id: true, slug: true, createdById: true } } }
   });
 
-  if (!room) throw new Error("Room not found.");
+  if (!room) throw new UserFacingError("Room not found.");
   if (!canManageContent(actor, room.learningPath.createdById)) throw new ContentAccessError();
 
   const ordered = (
@@ -282,10 +275,6 @@ export async function moveRoomInPath(actor: ContentActor, input: unknown) {
 
   return room;
 }
-
-// ---------------------------------------------------------------------------
-// Rooms
-// ---------------------------------------------------------------------------
 
 export async function listRoomsForManagement() {
   return prisma.room.findMany({
@@ -328,7 +317,7 @@ export async function updateRoomMetadata(actor: ContentActor, input: unknown) {
   await requireManagedRoom(actor, roomId);
 
   const path = await prisma.learningPath.findUnique({ where: { id: data.learningPathId }, select: { id: true } });
-  if (!path) throw new Error("The target learning path wasn't found.");
+  if (!path) throw new UserFacingError("The target learning path wasn't found.");
 
   return prisma.room.update({ where: { id: roomId }, data });
 }
@@ -352,10 +341,6 @@ export async function setRoomPublished(actor: ContentActor, input: unknown) {
 
   return prisma.room.update({ where: { id: roomId }, data: { isPublished } });
 }
-
-// ---------------------------------------------------------------------------
-// Tasks
-// ---------------------------------------------------------------------------
 
 async function renumberTasks(roomId: string, orderedIds?: string[]) {
   const ids =
@@ -442,10 +427,6 @@ export async function moveRoomTask(actor: ContentActor, input: unknown) {
 
   return existing;
 }
-
-// ---------------------------------------------------------------------------
-// Quiz
-// ---------------------------------------------------------------------------
 
 async function renumberQuestions(quizId: string, orderedIds?: string[]) {
   const ids =

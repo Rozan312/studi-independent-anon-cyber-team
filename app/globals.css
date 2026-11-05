@@ -2,11 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ---------------------------------------------------------------------------
-   Token tampilan terang: kertas berwarna lembut, teks tinta, motif digital (grid titik, sirkuit),
+/* Token tampilan terang: kertas berwarna lembut, teks tinta, motif digital (grid titik, sirkuit),
    cyan logo khusus untuk langkah berikutnya, warna status untuk selesai/benar/ulang/terjadwal.
-   Nilai berformat "R G B" agar bisa dipakai Tailwind dengan opasitas.
-   --------------------------------------------------------------------------- */
+   Nilai berformat "R G B" agar bisa dipakai Tailwind dengan opasitas. */
 :root {
   color-scheme: light;
 
@@ -16,6 +14,8 @@
   --line: 204 220 225;
   --line-soft: 223 232 235;
   --line-strong: 150 175 184;
+  /* Tepi field teks: minimal 3:1 terhadap sheet dan paper (kontras non-teks WCAG 1.4.11). */
+  --line-input: 118 140 149;
 
   --ink: 16 22 31;
   --ink-2: 58 71 80;
@@ -63,6 +63,7 @@
   --line: 41 54 63;
   --line-soft: 32 43 51;
   --line-strong: 70 88 99;
+  --line-input: 92 112 124;
 
   --ink: 230 238 242;
   --ink-2: 182 196 204;
@@ -116,6 +117,19 @@
   background: #0a1015;
   border-color: rgb(var(--line));
 }
+/* Teks berstabilo di tema malam: stabilo tidak dibalik, jadi teksnya memakai tinta malam (minimal 4,5:1 di atas
+   setiap stabilo palet, di lembar maupun well). !important mengalahkan `color: inherit` inline dari TipTap. */
+:root[data-theme="night"] .prose-cyber mark {
+  color: rgb(var(--ink)) !important;
+}
+/* Stabilo di dalam teks berwarna mengikuti warna induknya yang sudah dibalik. */
+:root[data-theme="night"] .prose-cyber :is([style^="color"], [style*=" color:"], [style*=";color:"]) mark {
+  color: inherit !important;
+}
+/* Contoh warna teks di toolbar editor dibalik sama seperti di materi, jadi pratinjaunya sesuai warna yang tampil. */
+:root[data-theme="night"] .swatch-ink {
+  filter: invert(1) hue-rotate(180deg);
+}
 
 html {
   -webkit-text-size-adjust: 100%;
@@ -153,6 +167,104 @@ dd {
 :focus-visible {
   outline: 2px solid rgb(var(--cyan-ink));
   outline-offset: 2px;
+}
+
+/* Kursor tangan untuk semua kontrol yang bisa diklik; kontrol nonaktif memakai not-allowed. */
+a[href],
+button,
+summary,
+select,
+label[for],
+label:has(> input[type="checkbox"], > input[type="radio"]),
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+[role="button"],
+[role="tab"],
+[role="switch"] {
+  cursor: pointer;
+}
+
+:is(button, select, input, textarea, [role="button"]):disabled,
+:is(a[href], button, [role="button"], [role="tab"])[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Target sentuh minimal 44 px di perangkat sentuh; dengan mouse, desktop tetap rapat seperti desainnya.
+   Tombol dan field ikut tinggi minimum; link teks mendapat area sentuh tak terlihat tanpa berubah tampilan. */
+@media (pointer: coarse) {
+  /* Kelas varian menyalin .btn lewat @apply, jadi setiap varian disebut langsung. */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger,
+  .btn-sm,
+  .input,
+  select {
+    min-height: 2.75rem;
+  }
+  /* Tombol kecil (termasuk tombol ikon w-8) juga minimal 44 px lebarnya; min-width menang atas width. */
+  .btn-sm {
+    min-width: 2.75rem;
+  }
+  /* Teks field minimal 16 px agar iOS Safari tidak memperbesar halaman saat field difokus.
+     Blok ini berada setelah utilitas Tailwind, jadi .input juga menang atas text-sm/text-xs yang ditambahkan. */
+  .input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+  .text-link,
+  .tap-target {
+    position: relative;
+  }
+  .text-link::after,
+  .tap-target::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Garis loading antarhalaman (components/ui/route-progress.tsx): cyan logo, tumbuh pelan lalu penuh saat selesai. */
+.route-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 70;
+  height: 3px;
+  background: rgb(var(--cyan));
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  pointer-events: none;
+}
+.route-progress-loading {
+  opacity: 1;
+  transform: scaleX(0.85);
+  transition:
+    transform 8s cubic-bezier(0.08, 0.7, 0.2, 1),
+    opacity 150ms;
+}
+.route-progress-done {
+  opacity: 0;
+  transform: scaleX(1);
+  transition:
+    transform 200ms ease-out,
+    opacity 250ms 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-progress-loading {
+    transform: scaleX(1);
+    transition: none;
+  }
+  .route-progress-done {
+    transition: none;
+  }
 }
 
 input,
@@ -226,7 +338,6 @@ textarea::placeholder {
   .btn {
     @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition-[background-color,border-color,color,transform] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-55 active:translate-y-px;
   }
-  /* Tombol langkah berikutnya: wajah cyan bergaris tinta, seperti logo. */
   /* Tombol langkah berikutnya: isian cyan logo dengan tepi cyan tipis, menyatu dengan latar. */
   .btn-primary {
     @apply btn border border-cyan-ink/25 bg-cyan text-[rgb(var(--on-cyan))] shadow-[0_1px_2px_rgb(0_108_138/0.18)] hover:bg-cyan-hover;
@@ -245,7 +356,7 @@ textarea::placeholder {
   }
 
   .input {
-    @apply w-full rounded-lg border border-line-strong/80 bg-sheet px-3 py-2 text-[0.9375rem] text-ink shadow-[inset_0_1px_1px_rgb(16_22_31/0.04)] transition-colors placeholder:text-ink-3 hover:border-ink-3 focus:border-cyan-ink focus:outline-none focus:ring-2 focus:ring-cyan/35 disabled:cursor-not-allowed disabled:bg-well disabled:text-ink-3;
+    @apply w-full rounded-lg border border-line-input bg-sheet px-3 py-2 text-[0.9375rem] text-ink shadow-[inset_0_1px_1px_rgb(16_22_31/0.04)] transition-colors placeholder:text-ink-3 hover:border-ink-3 focus:border-cyan-ink focus:outline-none focus:ring-2 focus:ring-cyan/35 disabled:cursor-not-allowed disabled:bg-well disabled:text-ink-3;
   }
 
   .text-link {
@@ -259,9 +370,7 @@ textarea::placeholder {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Penanda selesai: centang yang baru didapat digambar sekali.
-   --------------------------------------------------------------------------- */
+/* Penanda selesai: centang yang baru didapat digambar sekali. */
 @keyframes check-draw {
   from {
     stroke-dashoffset: 1;
@@ -321,9 +430,7 @@ textarea::placeholder {
   }
 }
 
-/* ---------------------------------------------------------------------------
-   Materi room (mode baca): sama di editor dan tampilan student.
-   --------------------------------------------------------------------------- */
+/* Materi room (mode baca): sama di editor dan tampilan student. */
 .prose-cyber {
   color: rgb(var(--prose-ink));
   font-size: 1.0625rem;
@@ -548,11 +655,10 @@ textarea::placeholder {
   margin: 0;
 }
 
-/* ---------------------------------------------------------------------------
-   Editor visual (TipTap / ProseMirror)
-   --------------------------------------------------------------------------- */
+/* Editor visual (TipTap / ProseMirror). Outline fokus global digambar ke dalam (offset -2px) agar tidak
+   terpotong oleh wadah overflow-y-auto di sekeliling editor. */
 .rich-editor .ProseMirror {
-  outline: none;
+  outline-offset: -2px;
   min-height: 380px;
   padding: 1.25rem 1.4rem 2.25rem;
   caret-color: rgb(var(--cyan-ink));
@@ -673,4 +779,12 @@ textarea::placeholder {
 .rich-editor .ProseMirror [data-resize-handle="top-right"],
 .rich-editor .ProseMirror [data-resize-handle="bottom-left"] {
   cursor: nesw-resize;
+}
+/* Di perangkat sentuh, pegangan 12 px mendapat area sentuh tak terlihat 44 px tanpa mengubah tampilannya. */
+@media (pointer: coarse) {
+  .rich-editor .ProseMirror [data-resize-handle]::after {
+    content: "";
+    position: absolute;
+    inset: -16px;
+  }
 }

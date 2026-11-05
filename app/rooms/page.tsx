@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
@@ -10,13 +11,14 @@ import { formatDayMonth, formatNumber } from "@/lib/format/date";
 import { earnablePoints } from "@/lib/learning/points";
 import { EntityLogo } from "@/components/paper/entity-logo";
 
+export const metadata: Metadata = { title: "Rooms" };
 export const dynamic = "force-dynamic";
 
 export default async function RoomsPage() {
   const profile = await requireRole(["STUDENT"]);
   const [publishedRooms, progressRows, roomPointRows] = await Promise.all([
     listPublishedRooms(),
-    // Status belajar anggota per room (hanya baca) untuk label Passed / progres / Not started.
+    // Status belajar anggota per room untuk label Passed / progres / Not started.
     prisma.userRoomProgress.findMany({
       where: { userId: profile.id },
       select: { roomId: true, status: true, progressPercentage: true }
@@ -133,7 +135,7 @@ export default async function RoomsPage() {
       ) : (
         <EmptyState
           title="No rooms are published yet"
-          message="Instructors are still preparing rooms. Published rooms will be listed here by category."
+          message="Published rooms will be listed here by category."
           action={
             <Link href="/learning-paths" className="btn-secondary">
               Browse learning paths

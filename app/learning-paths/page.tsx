@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
@@ -7,6 +8,7 @@ import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { listPublishedLearningPaths } from "@/lib/services/learning-path-service";
 import { EntityLogo } from "@/components/paper/entity-logo";
 
+export const metadata: Metadata = { title: "Learning paths" };
 export const dynamic = "force-dynamic";
 
 export default async function LearningPathsPage() {

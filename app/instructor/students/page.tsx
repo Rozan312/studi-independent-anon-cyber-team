@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, ProgressBar, SectionHeader } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
@@ -5,6 +6,7 @@ import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { getStudentProgress } from "@/lib/services/instructor-service";
 
+export const metadata: Metadata = { title: "Members" };
 export const dynamic = "force-dynamic";
 
 const headCell = "field-label whitespace-nowrap border-b border-line px-3 py-2.5 text-left first:pl-5 last:pr-5";
@@ -32,7 +34,7 @@ export default async function InstructorMembersPage() {
   const profile = await requireRole(["INSTRUCTOR"]);
   const now = new Date();
 
-  // Room terbit di dalam path terbit (baca saja): penyebut "Rooms done", dan hanya room ini yang dihitung di pembilangnya,
+  // Room terbit di dalam path terbit: penyebut "Rooms completed", dan hanya room ini yang dihitung di pembilangnya,
   // agar room yang sudah ditarik ke draft atau berada di path draft tidak menghasilkan "3 of 2" atau "2 of 0".
   const [progress, publishedRooms] = await Promise.all([
     getStudentProgress(profile.id),
@@ -68,7 +70,6 @@ export default async function InstructorMembersPage() {
   const memberRows = Array.from(members.values());
   const memberIds = memberRows.map((member) => member.id);
 
-  // Poin (baca saja) untuk kolom Points.
   const pointRows = await prisma.leaderboardPoint.groupBy({
     by: ["userId"],
     where: { userId: { in: memberIds } },
@@ -86,7 +87,7 @@ export default async function InstructorMembersPage() {
             title="Member progress"
             description={
               memberRows.length > 0
-                ? `${formatNumber(memberRows.length)} ${memberRows.length === 1 ? "member has" : "members have"} opened at least one room. Rooms done counts the ${formatNumber(publishedRoomCount)} published ${roomNoun(publishedRoomCount)} in published learning paths.`
+                ? `${formatNumber(memberRows.length)} ${memberRows.length === 1 ? "member has" : "members have"} opened at least one room. Rooms completed counts the ${formatNumber(publishedRoomCount)} published ${roomNoun(publishedRoomCount)} in published learning paths.`
                 : undefined
             }
           />
@@ -105,7 +106,7 @@ export default async function InstructorMembersPage() {
               <thead>
                 <tr>
                   <th className={headCell}>Member</th>
-                  <th className={headCell}>Rooms done</th>
+                  <th className={headCell}>Rooms completed</th>
                   <th className={`${headCell} text-right`}>In progress</th>
                   <th className={`${headCell} text-right`}>Points</th>
                   <th className={headCell}>Latest room</th>

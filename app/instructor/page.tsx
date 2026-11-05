@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
@@ -9,6 +10,7 @@ import { getRoomAvailability, type RoomScheduleFields } from "@/lib/learning/ava
 import { getInstructorClasses, getStudentProgress } from "@/lib/services/instructor-service";
 import { EntityLogo } from "@/components/paper/entity-logo";
 
+export const metadata: Metadata = { title: "Teaching overview" };
 export const dynamic = "force-dynamic";
 
 const PROGRESS_LABEL: Record<string, string> = {
@@ -49,7 +51,7 @@ export default async function InstructorPage() {
   const [classes, progress, paths, recentRooms, roomCount, publishedRoomCount] = await Promise.all([
     getInstructorClasses(profile.id),
     getStudentProgress(profile.id),
-    // Ringkasan konten (baca saja): semua path, room yang terakhir diubah, dan jumlah room.
+    // Ringkasan konten: semua path, room yang terakhir diubah, dan jumlah room.
     prisma.learningPath.findMany({
       select: { id: true, title: true, slug: true, logoUrl: true, isPublished: true, updatedAt: true, _count: { select: { rooms: true } } },
       orderBy: { updatedAt: "desc" }

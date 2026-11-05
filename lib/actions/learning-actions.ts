@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
+import { userMessage } from "@/lib/errors";
 import { submitTaskAnswer } from "@/lib/services/task-service";
 
 export type LearningActionState = {
@@ -20,16 +21,9 @@ function toActionError(error: unknown): LearningActionState {
     };
   }
 
-  if (error instanceof Error) {
-    return {
-      tone: "error",
-      message: error.message || defaultErrorMessage
-    };
-  }
-
   return {
     tone: "error",
-    message: defaultErrorMessage
+    message: userMessage(error, defaultErrorMessage)
   };
 }
 
@@ -68,12 +62,11 @@ export async function submitTaskAnswerAction(
       };
     }
 
-    let message = `Not quite (wrong attempt ${result.wrongAttempts}).`;
+    // Jumlah percobaan dan sisa menuju hint hanya ditampilkan oleh catatan di form, agar tidak dobel.
+    let message = "Not quite.";
 
     if (result.hasHint) {
-      message += result.hintUnlocked
-        ? " The hint is now open below the answer field."
-        : ` The hint opens after ${result.hintUnlockAfter} wrong attempts.`;
+      message += result.hintUnlocked ? " The hint is unlocked below the answer field." : " Try again.";
     } else {
       message += " Review the material and task instructions, then try again.";
     }

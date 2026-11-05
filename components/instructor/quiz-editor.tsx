@@ -12,6 +12,7 @@ import {
 import { EmptyState } from "@/components/card";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
+import { MoveButton } from "@/components/instructor/move-button";
 import { dangerButtonClass, helpClass, idleActionState, inputClass, labelClass, secondaryButtonClass } from "@/components/instructor/form-styles";
 
 export type EditorOption = { id: string; label: string; isCorrect: boolean };
@@ -44,14 +45,6 @@ function toDraftOptions(options?: EditorOption[]): DraftOption[] {
     { key: 2, label: "", isCorrect: false },
     { key: 3, label: "", isCorrect: false }
   ];
-}
-
-function ChevronIcon({ direction }: { direction: "up" | "down" }) {
-  return (
-    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-      <path d={direction === "up" ? "m4 10 4-4 4 4" : "m4 6 4 4 4-4"} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
 }
 
 function QuestionFields({ question, disabled }: { question?: EditorQuestion; disabled: boolean }) {
@@ -118,7 +111,7 @@ function QuestionFields({ question, disabled }: { question?: EditorQuestion; dis
               }`}
             >
               <div className="flex items-center gap-1.5">
-                <label className="flex h-10 w-8 shrink-0 cursor-pointer items-center justify-center" title="Mark as the correct answer">
+                <label className="flex h-10 w-8 shrink-0 cursor-pointer items-center justify-center coarse:h-11 coarse:w-11" title="Mark as the correct answer">
                   <input
                     type="radio"
                     name={`${id}-correct`}
@@ -286,16 +279,12 @@ function QuestionRow({
           <form action={moveAction}>
             <input type="hidden" name="questionId" value={question.id} />
             <input type="hidden" name="direction" value="up" />
-            <button type="submit" className={iconButtonClass} disabled={disabled || isFirst} aria-label="Move up" title="Move up">
-              <ChevronIcon direction="up" />
-            </button>
+            <MoveButton direction="up" disabled={disabled || isFirst} describedBy={headingId} className={iconButtonClass} />
           </form>
           <form action={moveAction}>
             <input type="hidden" name="questionId" value={question.id} />
             <input type="hidden" name="direction" value="down" />
-            <button type="submit" className={iconButtonClass} disabled={disabled || isLast} aria-label="Move down" title="Move down">
-              <ChevronIcon direction="down" />
-            </button>
+            <MoveButton direction="down" disabled={disabled || isLast} describedBy={headingId} className={iconButtonClass} />
           </form>
           <form
             action={deleteAction}
@@ -304,9 +293,7 @@ function QuestionRow({
             }}
           >
             <input type="hidden" name="questionId" value={question.id} />
-            <button type="submit" className={`${dangerButtonClass} ml-1`} disabled={disabled}>
-              Delete
-            </button>
+            <SubmitButton label="Delete" pendingLabel="Deleting…" className={`${dangerButtonClass} ml-1`} disabled={disabled} />
           </form>
         </div>
       </div>

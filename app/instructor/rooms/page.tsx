@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, StatusPill } from "@/components/card";
@@ -9,6 +10,7 @@ import { formatDayMonth, formatNumber } from "@/lib/format/date";
 import { canManageContent, listRoomsForManagement } from "@/lib/services/content-service";
 import { describeAvailability, getRoomAvailability, type RoomAvailability } from "@/lib/learning/availability";
 
+export const metadata: Metadata = { title: "Room manager" };
 export const dynamic = "force-dynamic";
 
 const headCell = "field-label whitespace-nowrap border-b border-line px-3 py-2.5 text-left first:pl-5 last:pr-5";
@@ -98,7 +100,7 @@ export default async function InstructorRoomsPage() {
                       <td className={`${bodyCell} max-w-[18rem]`}>
                         <Link
                           href={`/instructor/rooms/${room.id}`}
-                          className="font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
+                          className="tap-target font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
                         >
                           {room.title}
                         </Link>
