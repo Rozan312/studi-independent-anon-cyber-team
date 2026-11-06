@@ -55,24 +55,24 @@ const ALIGNMENTS = [
 ] as const;
 
 /**
- * Pilihan gaya, font, dan ukuran: lembar kecil bergaris di atas well toolbar.
+ * Pilihan gaya, font, dan ukuran: field kecil seperti .input (dasar halaman, tepi line-input, fokus cyan).
  * Di perangkat sentuh tingginya 44 px dan teksnya 16 px (iOS Safari memperbesar halaman bila di bawah 16 px).
  */
 const selectClass =
-  "h-8 rounded-md border border-line bg-sheet px-2 text-xs font-semibold text-ink shadow-sheet transition-colors hover:border-line-strong focus-visible:border-cyan-ink disabled:cursor-not-allowed disabled:opacity-50 coarse:h-11 coarse:text-base";
+  "h-8 rounded-md border border-line-input bg-paper px-2 font-display text-xs font-semibold text-ink transition-colors hover:border-ink-3 focus-visible:border-cyan-ink disabled:cursor-not-allowed disabled:opacity-50 coarse:h-11 coarse:text-base";
 
 /** Tombol teks kecil di dalam popover (aksi tabel, hapus format warna). */
 const popoverButtonClass =
-  "rounded-md border border-line bg-sheet px-2 py-1.5 text-xs font-semibold text-ink-2 transition-colors hover:border-line-strong hover:bg-well hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 coarse:min-h-11";
+  "rounded-md border border-line-strong px-2 py-1.5 font-display text-xs font-semibold text-ink-2 transition-colors enabled:hover:bg-well enabled:hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 coarse:min-h-11";
 
 const popoverDangerButtonClass =
-  "rounded-md border border-red/30 bg-sheet px-2 py-1.5 text-xs font-semibold text-red transition-colors hover:border-red hover:bg-red-soft disabled:cursor-not-allowed disabled:opacity-40 coarse:min-h-11";
+  "rounded-md border border-red/35 px-2 py-1.5 font-display text-xs font-semibold text-red transition-colors enabled:hover:border-red enabled:hover:bg-red-soft disabled:cursor-not-allowed disabled:opacity-40 coarse:min-h-11";
 
 /**
  * Tombol toolbar. `active` hanya diisi untuk tombol toggle (dibacakan sebagai "pressed");
  * `expanded` dipakai tombol pembuka popover; `highlighted` hanya efek visual.
- * Keadaan aktif: tombol lembar dengan garis tinta 60% (sekitar 4,6:1 terhadap well toolbar, di atas 3:1
- * yang dibutuhkan indikator keadaan), sehingga berbeda jelas dari hover yang hanya mengganti latar.
+ * Biasa: tinta ink-2; hover: latar well. Aktif: latar cyan-soft, teks cyan, dan garis dalam cyan, sama dengan
+ * menu aktif di rail, sehingga berbeda dari hover lewat warna sekaligus garis (bukan warna saja).
  */
 function ToolButton({
   label,
@@ -107,7 +107,7 @@ function ToolButton({
       onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       className={`inline-flex h-8 min-w-8 items-center justify-center rounded-md px-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-40 coarse:h-11 coarse:min-w-11 ${
-        isOn ? "bg-sheet text-ink ring-1 ring-ink/60" : "text-ink-2 hover:bg-sheet hover:text-ink"
+        isOn ? "bg-cyan-soft text-cyan-ink ring-1 ring-inset ring-cyan-ink/45" : "text-ink-2 enabled:hover:bg-well enabled:hover:text-ink"
       }`}
     >
       {children}
@@ -116,7 +116,7 @@ function ToolButton({
 }
 
 function Divider() {
-  return <span className="mx-1 hidden h-6 w-px bg-line-soft sm:inline-block" aria-hidden="true" />;
+  return <span className="mx-1 hidden h-5 w-px bg-line-strong sm:inline-block" aria-hidden="true" />;
 }
 
 /** Panel kecil di bawah tombol; tertutup saat klik di luar atau menekan Escape. */
@@ -207,12 +207,14 @@ function ToolbarPopover({
         </span>
       </ToolButton>
       {open ? (
+        // Popover melayang di atas isi editor: satu-satunya tempat bayangan (shadow-lift) dipakai di editor,
+        // sebagai penanda elevasi, dengan sambungan line-strong agar tepinya tetap terbaca di atas teks.
         <div
           ref={panelRef}
           role="dialog"
           aria-label={label}
           style={shiftX ? { transform: `translateX(${shiftX}px)` } : undefined}
-          className={`sheet absolute top-full z-30 mt-1.5 w-64 max-w-[calc(100vw-1rem)] p-3 shadow-lift coarse:w-72 ${
+          className={`sheet absolute top-full z-30 mt-1.5 w-64 max-w-[calc(100vw-1rem)] border-line-strong p-3 shadow-lift coarse:w-72 ${
             align === "right" ? "right-0" : "left-0"
           }`}
         >
@@ -255,12 +257,12 @@ function ColorGrid({
               aria-pressed={selected}
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => onPick(option.value)}
-              className={`flex h-8 items-center justify-center rounded-md bg-sheet text-sm font-bold transition-shadow coarse:h-11 ${
-                selected ? "ring-2 ring-ink ring-offset-1 ring-offset-sheet" : "ring-1 ring-line hover:ring-line-strong"
+              className={`flex h-8 items-center justify-center rounded-md bg-sheet font-display text-sm font-bold transition-shadow coarse:h-11 ${
+                selected ? "ring-2 ring-cyan-ink ring-offset-2 ring-offset-sheet" : "ring-1 ring-line-strong hover:ring-ink-3"
               } ${swatchKind === "highlight" ? "text-ink" : ""}`}
               style={swatchKind === "text" ? { color: option.value } : { backgroundColor: option.value }}
             >
-              {/* swatch-ink: di tema malam huruf contoh dibalik seperti teks berwarna di materi (lihat globals.css). */}
+              {/* swatch-ink: di tema gelap huruf contoh dibalik seperti teks berwarna di materi (lihat globals.css). */}
               {swatchKind === "text" ? <span className="swatch-ink">A</span> : "A"}
             </button>
           );
@@ -485,7 +487,7 @@ export function EditorToolbar({
   }
 
   return (
-    <div className="rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well px-2 py-1.5" role="group" aria-label="Material formatting">
+    <div className="rounded-t-[calc(0.625rem-1px)] border-b border-line bg-sheet px-2 py-1.5" role="group" aria-label="Material formatting">
       <div className="flex flex-wrap items-center gap-1 coarse:gap-1.5">
         <ToolButton label="Undo" shortcut="Ctrl/⌘+Z" disabled={isOff || !state.canUndo} onClick={() => chain().undo().run()}>
           <UndoIcon />

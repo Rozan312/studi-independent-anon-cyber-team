@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
+import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
 import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
-import { getLearningActivity } from "@/lib/services/activity-service";
+import { ACTIVITY_CALENDAR_WEEKS_WIDE, getLearningActivity } from "@/lib/services/activity-service";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
 import { EntityLogo } from "@/components/paper/entity-logo";
 import { ActivityHeatmap, WEEKDAYS } from "@/components/paper/activity-heatmap";
@@ -27,6 +27,36 @@ function plural(count: number, singular: string, pluralForm = `${singular}s`) {
 
 type CompletionRow = CompletionEntry & { at: Date };
 
+/** Kepala panel bergaris: judul, keterangan pendek, aksi di kanan; isi panel di bawahnya rata ke tepi. */
+function PanelHeader({ id, title, description, action }: { id: string; title: string; description?: React.ReactNode; action?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-5 pb-3 pt-4 sm:px-6">
+      <div className="min-w-0">
+        <h2 id={id} className="text-base font-bold text-ink">
+          {title}
+        </h2>
+        {description ? <p className="mt-0.5 max-w-2xl text-sm text-ink-3">{description}</p> : null}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  );
+}
+
+/** Satu pasangan label/nilai sebaris di dalam <dl>; catatan kecil menempel setelah nilai. */
+function InlineStat({ label, value, note }: { label: string; value: React.ReactNode; note?: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-2">
+      <dt className="text-ink-3">{label}</dt>
+      <dd className="figure font-semibold text-ink">
+        {value}
+        {note ? <span className="ml-1.5 font-normal text-ink-3">{note}</span> : null}
+      </dd>
+    </div>
+  );
+}
+
+const thClass = "field-label border-b border-line px-3 py-2.5";
+
 export default async function ProgressPage() {
   const profile = await requireRole(["STUDENT"]);
   const now = new Date();
@@ -38,7 +68,8 @@ export default async function ProgressPage() {
       orderBy: { updatedAt: "desc" }
     }),
     getUserLeaderboardStanding(profile.id),
-    getLearningActivity(profile.id, now),
+    // Kalender lebar 26 minggu: heatmap menjadi fokus halaman ini (Profile tetap 17 minggu).
+    getLearningActivity(profile.id, now, ACTIVITY_CALENDAR_WEEKS_WIDE),
     prisma.userQuizAttempt.findMany({
       where: { userId: profile.id, completedAt: { not: null } },
       select: {
@@ -115,201 +146,206 @@ export default async function ProgressPage() {
 
   return (
     <AppShell title="Progress" subtitle="Every room you've passed, every quiz score, and where each path stands." role={profile.role}>
-      <section className="sheet overflow-hidden" aria-label="Your numbers">
-        <div className="grid grid-cols-2 gap-px bg-line-soft lg:grid-cols-4">
-          <Figure className="bg-sheet p-4 sm:p-5" label="Points" value={formatNumber(standing.points)} note={standing.rank ? `Rank #${standing.rank}` : "Earn points to rank"} />
-          <Figure
-            className="bg-sheet p-4 sm:p-5"
-            label="Rooms completed"
-            value={formatNumber(completedPublishedRooms)}
-            note={`of ${formatNumber(publishedRoomTotal)} published`}
-          />
-          <Figure
-            className="bg-sheet p-4 sm:p-5"
-            label="Quizzes passed"
-            value={formatNumber(quizzesPassed)}
-            note={attemptTotal === 0 ? "No attempts yet" : plural(attemptTotal, "attempt")}
-          />
-          <Figure
-            className="bg-sheet p-4 sm:p-5"
-            label="Streak"
-            value={activity.streakDays}
-            unit={activity.streakDays === 1 ? "day" : "days"}
-            note={`${plural(activity.windowActiveDays, "active day")} in the last ${ACTIVITY_WINDOW_DAYS} days`}
-          />
-        </div>
-      </section>
-
-      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Activity">
-        <SectionHeader title="Activity" description="Task answers and quiz attempts per day. Darker squares mean more activity." />
-        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:gap-12">
-          <ActivityHeatmap calendar={calendar} className="min-w-0 shrink-0" />
-          <div className="grid grid-cols-3 gap-4 border-t border-line-soft pt-5 lg:flex-1 lg:border-l lg:border-t-0 lg:pl-12 lg:pt-0">
-            <Figure label="Longest streak" value={calendar.longestStreak} unit={calendar.longestStreak === 1 ? "day" : "days"} />
-            <Figure label="This week" value={formatNumber(thisWeek)} unit={thisWeek === 1 ? "activity" : "activities"} />
-            {/* Di bawah sm sel ini sekitar 95px, "Wednesday" tidak muat; tampilkan singkatan tiga huruf seperti label baris heatmap. */}
-            <Figure
-              label="Busiest day"
-              size="sm"
-              value={
-                calendar.busiestWeekday === null ? (
-                  "–"
-                ) : (
-                  <>
-                    <span className="sm:hidden" aria-hidden="true">
-                      {WEEKDAYS[calendar.busiestWeekday].slice(0, 3)}
-                    </span>
-                    <span className="sr-only sm:not-sr-only">{WEEKDAYS[calendar.busiestWeekday]}</span>
-                  </>
-                )
-              }
+      <div className="flex flex-col gap-5">
+        {/* Ringkasan satu baris di bawah judul: pasangan label/nilai sebaris, bukan strip angka besar
+            (strip angka hanya ada di dasbor). Ditarik sedikit ke atas agar terbaca sebagai bagian kepala halaman. */}
+        <section className="-mt-2" aria-label="Your numbers">
+          <dl className="flex flex-wrap gap-x-7 gap-y-2 text-sm">
+            <InlineStat
+              label="Points"
+              value={`${formatNumber(standing.points)} pts`}
+              note={standing.rank ? `· rank #${standing.rank}` : "· earn points to rank"}
             />
-          </div>
-        </div>
-      </section>
+            <InlineStat label="Rooms completed" value={formatNumber(completedPublishedRooms)} note={`of ${formatNumber(publishedRoomTotal)} published`} />
+            <InlineStat
+              label="Quizzes passed"
+              value={formatNumber(quizzesPassed)}
+              note={attemptTotal === 0 ? "· no attempts yet" : `in ${plural(attemptTotal, "attempt")}`}
+            />
+            <InlineStat
+              label="Streak"
+              value={plural(activity.streakDays, "day")}
+              note={`· ${plural(activity.windowActiveDays, "active day")} in the last ${ACTIVITY_WINDOW_DAYS} days`}
+            />
+          </dl>
+        </section>
 
-      <section className="sheet mt-5 p-4 sm:p-6" aria-label="Completed">
-        <SectionHeader
-          title="Completed"
-          description={
-            attemptsCapped
-              ? `Every passed room, plus the quizzes passed in your latest ${ATTEMPT_LIMIT} attempts, most recent first.`
-              : "Every passed room and quiz, most recent first."
-          }
-        />
-        {completions.length > 0 ? (
-          <CompletionList entries={completions} />
-        ) : (
-          <EmptyState
-            title="Nothing completed yet"
-            message="Passed rooms and quizzes show up here."
+        {/* Heatmap lebar (26 minggu, sel besar) adalah fokus halaman: selebar panel tanpa kolom samping, di tengah bila
+            panel lebih lebar dari kisinya. Tiga angka aktivitas menjadi satu baris label/nilai di kaki panel. */}
+        <section className="sheet overflow-hidden" aria-labelledby="activity-title">
+          <PanelHeader id="activity-title" title="Activity" description="Task answers and quiz attempts per day." />
+          <div className="flex justify-center p-5 sm:p-6">
+            <ActivityHeatmap calendar={calendar} size="lg" className="min-w-0 max-w-full" />
+          </div>
+          <dl className="flex flex-wrap gap-x-8 gap-y-2 border-t border-line px-5 py-3.5 text-sm sm:px-6">
+            <InlineStat label="Longest streak" value={plural(calendar.longestStreak, "day")} />
+            <InlineStat label="This week" value={plural(thisWeek, "activity", "activities")} />
+            <InlineStat label="Busiest day" value={calendar.busiestWeekday === null ? "–" : WEEKDAYS[calendar.busiestWeekday]} />
+          </dl>
+        </section>
+
+        <section className="sheet overflow-hidden" aria-labelledby="completed-title">
+          <PanelHeader
+            id="completed-title"
+            title="Completed"
+            description={
+              attemptsCapped
+                ? `Every passed room, plus the quizzes passed in your latest ${ATTEMPT_LIMIT} attempts, most recent first.`
+                : "Every passed room and quiz, most recent first."
+            }
+          />
+          {completions.length > 0 ? (
+            // -mb-px menyembunyikan garis baris terakhir di bawah tepi panel, jadi tidak ada garis ganda.
+            <div className="-mb-px px-5 sm:px-6">
+              <CompletionList entries={completions} />
+            </div>
+          ) : (
+            <div className="p-5 sm:p-6">
+              <EmptyState
+                title="Nothing completed yet"
+                message="Passed rooms and quizzes show up here."
+                action={
+                  <Link href="/learning-paths" className="text-link text-sm">
+                    Choose a learning path
+                  </Link>
+                }
+              />
+            </div>
+          )}
+        </section>
+
+        {/* Room berjalan dan tabel attempt ditumpuk selebar penuh: dipasang berdampingan, panjang keduanya jarang seimbang. */}
+        {inProgressRows.length > 0 ? (
+          <section className="sheet overflow-hidden" aria-labelledby="in-progress-title">
+            <PanelHeader id="in-progress-title" title="Rooms in progress" />
+            <ul className="divide-y divide-line">
+              {inProgressRows.map((row) => (
+                <li key={row.id}>
+                  <Link href={`/rooms/${row.room.slug}`} className="group flex items-center gap-4 px-5 py-3 transition-colors hover:bg-well focus-visible:outline-offset-[-2px] sm:px-6">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink">{row.room.title}</span>
+                      <span className="mt-0.5 block text-sm text-ink-3">
+                        {row.room.difficulty} · {formatRelativeTime(row.updatedAt, now)}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2">
+                      {/* Bilah hanya visual; persentasenya tertulis di sebelahnya. */}
+                      <span aria-hidden="true">
+                        <ProgressBar value={row.progressPercentage} label={`${row.room.title} progress`} className="w-16 sm:w-32" />
+                      </span>
+                      <span className="figure w-9 text-right text-xs font-semibold text-ink-2">{row.progressPercentage}%</span>
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
+
+        <section className="sheet min-w-0 overflow-hidden" aria-labelledby="attempts-title">
+          <PanelHeader
+            id="attempts-title"
+            title="Quiz attempts"
+            description={`${attemptsCapped ? `Your latest ${quizAttempts.length} of ${plural(attemptTotal, "attempt")}. ` : ""}Pass mark is set per quiz by its instructor.`}
+          />
+          {quizAttempts.length === 0 ? (
+            <div className="p-5 sm:p-6">
+              <EmptyState title="No quiz attempts yet" message="Finish a room's tasks, then take its quiz to see your scores here." />
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              {/* Di bawah sm kolom Date disembunyikan dan tanggalnya pindah ke sel pertama, agar Result tetap terlihat tanpa gulir. */}
+              <table className="w-full text-sm sm:min-w-[520px]">
+                <thead>
+                  <tr>
+                    <th scope="col" className={`${thClass} pl-5 text-left sm:pl-6`}>
+                      Room
+                    </th>
+                    <th scope="col" className={`${thClass} text-right`}>
+                      Score
+                    </th>
+                    <th scope="col" className={`${thClass} pr-5 text-left sm:pr-3`}>
+                      Result
+                    </th>
+                    <th scope="col" className={`${thClass} hidden pr-5 text-right sm:table-cell sm:pr-6`}>
+                      Date
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-line">
+                  {quizAttempts.map((attempt) => (
+                    <tr key={attempt.id} className="group transition-colors hover:bg-well">
+                      <td className="px-3 py-2.5 pl-5 sm:pl-6">
+                        <Link
+                          href={`/rooms/${attempt.quiz.room.slug}/quiz`}
+                          className="tap-target font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink"
+                        >
+                          {attempt.quiz.room.title}
+                        </Link>
+                        <span className="block text-xs text-ink-3 sm:hidden">{formatShortDate(attempt.completedAt as Date)}</span>
+                      </td>
+                      <td className="figure px-3 py-2.5 text-right">
+                        <span className="font-semibold text-ink">{attempt.score}%</span>
+                        <span className="block whitespace-nowrap text-xs text-ink-3">pass {attempt.quiz.passingScore}%</span>
+                      </td>
+                      <td className="px-3 py-2.5 pr-5 sm:pr-3">
+                        <StatusPill tone={attempt.passed ? "success" : "danger"}>{attempt.passed ? "Passed" : "Retry"}</StatusPill>
+                      </td>
+                      <td className="hidden whitespace-nowrap px-3 py-2.5 pr-5 text-right text-ink-2 sm:table-cell sm:pr-6">
+                        {formatShortDate(attempt.completedAt as Date)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="sheet overflow-hidden" aria-labelledby="paths-title">
+          <PanelHeader
+            id="paths-title"
+            title="Learning paths"
             action={
               <Link href="/learning-paths" className="text-link text-sm">
-                Choose a learning path
+                All paths
               </Link>
             }
           />
-        )}
-      </section>
-
-      <div className={`mt-5 grid grid-cols-1 gap-5 ${inProgressRows.length > 0 ? "xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]" : ""}`}>
-        <>
-          {inProgressRows.length > 0 ? (
-            <section className="sheet p-5 sm:p-6" aria-label="Rooms in progress">
-              <SectionHeader title="Rooms in progress" />
-              <ul className="-mx-2 space-y-1">
-                {inProgressRows.map((row) => (
-                  <li key={row.id}>
-                    <Link href={`/rooms/${row.room.slug}`} className="group flex items-center gap-4 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                          {row.room.title}
-                        </p>
-                        <p className="mt-0.5 text-sm text-ink-3">
-                          {row.room.difficulty} · {formatRelativeTime(row.updatedAt, now)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-2">
-                        <ProgressBar value={row.progressPercentage} label={`${row.room.title} progress`} className="w-16 sm:w-28" />
-                        <span className="figure w-9 text-right text-xs font-semibold text-ink-2">{row.progressPercentage}%</span>
-                      </div>
+          {pathRows.length > 0 ? (
+            <ul className="divide-y divide-line">
+              {pathRows.map(({ path, total, done }) => {
+                const complete = total > 0 && done === total;
+                return (
+                  <li key={path.id}>
+                    <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 px-5 py-3 transition-colors hover:bg-well focus-visible:outline-offset-[-2px] sm:px-6">
+                      <EntityLogo name={path.title} src={path.logoUrl} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink">{path.title}</span>
+                        <span className="mt-0.5 block text-sm text-ink-3">
+                          {total === 0 ? "No rooms yet" : `${done} of ${total} ${total === 1 ? "room" : "rooms"}`} · {path.difficulty}
+                        </span>
+                      </span>
+                      {complete ? (
+                        <StatusPill tone="done">Complete</StatusPill>
+                      ) : total > 0 ? (
+                        // Bilah hanya visual (jumlah room tertulis di teks); disembunyikan di ponsel agar judul tidak terpotong.
+                        <span className="hidden w-32 shrink-0 sm:block" aria-hidden="true">
+                          <ProgressBar value={(done / total) * 100} label={`${path.title} progress`} />
+                        </span>
+                      ) : null}
                     </Link>
                   </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
-
-          <section className="sheet p-5 sm:p-6" aria-label="Quiz attempts">
-            <SectionHeader
-              title="Quiz attempts"
-              description={`${
-                attemptsCapped ? `Your latest ${quizAttempts.length} of ${plural(attemptTotal, "attempt")}. ` : ""
-              }Pass mark is set per quiz by its instructor.`}
-            />
-            {quizAttempts.length === 0 ? (
-              <EmptyState title="No quiz attempts yet" message="Finish a room's tasks, then take its quiz to see your scores here." />
-            ) : (
-              <div className="-mx-5 overflow-x-auto sm:-mx-6">
-                {/* Di bawah sm kolom Date disembunyikan dan tanggalnya pindah ke sel pertama, agar Result tetap terlihat tanpa gulir. */}
-                <table className="w-full text-sm sm:min-w-[520px]">
-                  <thead>
-                    <tr>
-                      <th scope="col" className="field-label border-b border-line px-3 py-2.5 pl-5 text-left sm:pl-6">
-                        Room
-                      </th>
-                      <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-right">
-                        Score
-                      </th>
-                      <th scope="col" className="field-label border-b border-line px-3 py-2.5 pr-5 text-left sm:pr-3">
-                        Result
-                      </th>
-                      <th scope="col" className="field-label hidden border-b border-line px-3 py-2.5 pr-5 text-right sm:table-cell sm:pr-6">
-                        Date
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line-soft">
-                    {quizAttempts.map((attempt) => (
-                      <tr key={attempt.id} className="hover:bg-well">
-                        <td className="px-3 py-2.5 pl-5 sm:pl-6">
-                          <Link href={`/rooms/${attempt.quiz.room.slug}/quiz`} className="tap-target font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4">
-                            {attempt.quiz.room.title}
-                          </Link>
-                          <span className="block text-xs text-ink-3 sm:hidden">{formatShortDate(attempt.completedAt as Date)}</span>
-                        </td>
-                        <td className="figure px-3 py-2.5 text-right">
-                          <span className="font-semibold text-ink">{attempt.score}%</span>
-                          <span className="block text-xs text-ink-3">pass {attempt.quiz.passingScore}%</span>
-                        </td>
-                        <td className="px-3 py-2.5 pr-5 sm:pr-3">
-                          <StatusPill tone={attempt.passed ? "success" : "danger"}>{attempt.passed ? "Passed" : "Retry"}</StatusPill>
-                        </td>
-                        <td className="hidden whitespace-nowrap px-3 py-2.5 pr-5 text-right text-ink-2 sm:table-cell sm:pr-6">
-                          {formatShortDate(attempt.completedAt as Date)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-        </>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="p-5 sm:p-6">
+              <EmptyState title="No learning paths yet" message="Published paths will appear here." />
+            </div>
+          )}
+        </section>
       </div>
-
-      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Learning paths">
-        <SectionHeader
-          title="Learning paths"
-          action={
-            <Link href="/learning-paths" className="text-link text-sm">
-              All paths
-            </Link>
-          }
-        />
-        {pathRows.length > 0 ? (
-          <ul className="-mx-2 grid grid-cols-1 gap-x-4 gap-y-1 sm:grid-cols-2 xl:grid-cols-3">
-            {pathRows.map(({ path, total, done }) => (
-              <li key={path.id}>
-                <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
-                  <EntityLogo name={path.title} src={path.logoUrl} size="md" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                      {path.title}
-                    </p>
-                    <p className="mt-0.5 text-sm text-ink-3">
-                      {total === 0 ? "No rooms yet" : `${done} of ${total} ${total === 1 ? "room" : "rooms"}`} · {path.difficulty}
-                    </p>
-                  </div>
-                  {total > 0 && done === total ? <StatusPill tone="done">Complete</StatusPill> : null}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <EmptyState title="No learning paths yet" message="Published paths will appear here." />
-        )}
-      </section>
     </AppShell>
   );
 }

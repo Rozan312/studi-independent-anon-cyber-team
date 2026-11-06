@@ -10,7 +10,7 @@ import {
 } from "@/lib/actions/admin-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { helpClass, inputClass, labelClass, panelClass, primaryButtonClass } from "@/components/instructor/form-styles";
+import { checkboxClass, helpClass, inputClass, labelClass, panelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 
 const initialState: AdminActionState = {
   tone: "idle",
@@ -34,10 +34,10 @@ export function AnnouncementCreateForm() {
   return (
     <form action={formAction} noValidate className={`${panelClass} space-y-4`} aria-labelledby="new-announcement-heading">
       <div>
-        <h2 id="new-announcement-heading" className="text-lg font-bold text-ink">
+        <h2 id="new-announcement-heading" className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink">
           New announcement
         </h2>
-        <p className="mt-0.5 text-sm text-ink-2">Once published, it shows under Announcements on the dashboard of the chosen audience.</p>
+        <p className="mt-1 text-sm text-ink-2">Once published, it shows under Announcements on the dashboard of the chosen audience.</p>
       </div>
 
       <div>
@@ -72,15 +72,19 @@ export function AnnouncementCreateForm() {
       </div>
 
       <div>
-        <label className="flex items-center gap-2.5 text-sm font-semibold text-ink">
-          <input name="isPublished" type="checkbox" className="h-4 w-4 rounded border-line-strong accent-[rgb(var(--violet))]" />
+        <label className="flex items-center gap-2.5 font-display text-sm font-semibold text-ink">
+          <input name="isPublished" type="checkbox" aria-describedby="new-announcement-publish-help" className={checkboxClass} />
           Publish immediately
         </label>
-        <p className={helpClass}>Leave unchecked to save it as a draft.</p>
+        <p id="new-announcement-publish-help" className={`${helpClass} pl-[1.625rem]`}>
+          Leave unchecked to save it as a draft.
+        </p>
       </div>
 
-      <ActionMessage state={state} />
-      <SubmitButton label="Create announcement" pendingLabel="Creating…" className={primaryButtonClass} />
+      <div className="space-y-3 border-t border-line pt-4">
+        <ActionMessage state={state} />
+        <SubmitButton label="Create announcement" pendingLabel="Creating…" className={`${primaryButtonClass} w-full`} />
+      </div>
     </form>
   );
 }
@@ -130,13 +134,14 @@ export function AnnouncementEditForm({
         </div>
       ) : null}
 
-      {/* Form edit tetap ter-mount saat ditutup agar pesan hasil simpan dan isian tidak hilang. */}
+      {/* Form edit tetap ter-mount saat ditutup agar pesan hasil simpan dan isian tidak hilang.
+          Kotak terangkat (well + sambungan tegas) karena sedang dikerjakan, beda dari baris daftar di sekitarnya. */}
       <form
         id={`${fieldId}-editor`}
         hidden={!editing}
         action={updateAction}
         noValidate
-        className="mt-3 space-y-4 rounded-lg bg-well p-4"
+        className="mt-3 space-y-4 rounded-lg border border-line-strong bg-well p-4"
         aria-label={`Edit ${announcement.title}`}
       >
         <input type="hidden" name="announcementId" value={announcement.id} />

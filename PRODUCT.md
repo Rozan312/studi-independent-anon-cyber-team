@@ -40,6 +40,7 @@ A community-run learning space: material is written and maintained by the Anon C
 - Name: "Anon Cyber Team".
 - Official logo: https://anoncyberteam.or.id/images/act.png, an isometric hexagonal cube with cyan faces, black outline and A-C-T letterforms, and a white border. Use the original logo in the app (sidebar, login, favicon).
 - Older internal names such as "CyberGuard Academy" or "Controlled Intelligence" are not brand commitments.
+- Standing preference (owner, 6 Nov 2026): the category standard for cybersecurity learning platforms, executed at the craft level of Hack The Box (its seamless, flush dark panels), without copying it and without its green. Dark is the default theme with a light option. Colour comes from the ACT logo (cyan on near-black) and is applied to type, borders, and the primary action rather than large fills; at most one soft gradient. No hacker cliché (neon, glow, terminal, matrix green).
 
 ## Evidence on Hand
 

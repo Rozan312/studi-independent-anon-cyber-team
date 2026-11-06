@@ -113,7 +113,7 @@ export function RegisterForm({ isLocalAuth, nextPath = null }: { isLocalAuth: bo
           </span>
         </p>
       ) : null}
-      <p className="mt-6 border-t border-line-soft pt-5 text-sm">
+      <p className="mt-6 border-t border-line pt-5 text-sm">
         <Link href="/login" className="text-link">
           Already a member? Sign in
         </Link>

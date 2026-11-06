@@ -5,7 +5,7 @@ Semua gambar diambil dari aplikasi lokal dengan **data demo**, bukan data anggot
 
 | Folder | Isi |
 | --- | --- |
-| `screens/` | Screenshot mentah 2× (desktop 1440×900 → 2880×1800, ponsel 390×844 → 780×1688), terang (`light`) dan malam (`night`). Akhiran `-full` = satu halaman penuh. |
+| `screens/` | Screenshot mentah 2× (desktop 1440×900 → 2880×1800, ponsel 390×844 → 780×1688), gelap (`night`, bawaan aplikasi) dan terang (`light`). Akhiran `-full` = satu halaman penuh. |
 | `framed/` | Screenshot yang sama dalam bingkai browser atau ponsel, PNG latar transparan, siap ditempel di desain. |
 | `banner/` | Contoh kolase 3200×1680 (desktop + ponsel di atas latar warna merek) sebagai titik awal desainer. |
 

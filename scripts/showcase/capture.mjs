@@ -80,13 +80,14 @@ async function go(path) {
   await sleep(400);
   await settle();
 }
-// Tema per shot lewat localStorage (dibaca skrip awal app/layout.tsx sebelum render).
+// Tema per shot lewat localStorage (dibaca skrip awal app/layout.tsx sebelum render). Gelap adalah bawaan;
+// "night" atau "dark" di spec berarti gelap, "light" berarti terang.
 async function theme(shot) {
   if (!shot.theme) return false;
-  const want = shot.theme === "night" ? "true" : "false";
-  const have = await evaluate(`localStorage.getItem("act-night-mode") === "true" ? "true" : "false"`);
+  const want = shot.theme === "light" ? "light" : "dark";
+  const have = await evaluate(`localStorage.getItem("act-theme") === "light" ? "light" : "dark"`);
   if (have === want) return false;
-  await evaluate(`localStorage.setItem("act-night-mode", "${want}")`);
+  await evaluate(`localStorage.setItem("act-theme", "${want}")`);
   return true;
 }
 async function capture(shot) {

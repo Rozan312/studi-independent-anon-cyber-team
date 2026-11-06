@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
-import { NightModeToggle } from "@/components/theme/night-mode";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SiteFooter } from "@/components/site-footer";
 import { logoutAction } from "@/lib/actions/auth-actions";
 
@@ -120,20 +120,25 @@ export type ShellMember = {
   serial: string;
 };
 
+/** Poin dan peringkat anggota untuk pil di bar atas (hanya untuk member). */
+export type ShellStats = { points: number; rank: number | null };
+
 export function AppShellFrame({
   children,
   title,
   subtitle,
   actions,
   role,
-  member
+  member,
+  stats
 }: {
   children: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   subtitle?: React.ReactNode;
   actions?: React.ReactNode;
   role?: string | null;
   member?: ShellMember | null;
+  stats?: ShellStats | null;
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
@@ -154,6 +159,10 @@ export function AppShellFrame({
     .flatMap((group) => group.links.map((link) => link.href))
     .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
     .sort((a, b) => b.length - a.length)[0];
+  // Breadcrumb bar atas: grup menu ("Learn" untuk menu anggota) dan nama menu yang aktif.
+  const activeGroup = groups.find((group) => group.links.some((link) => link.href === activeHref));
+  const activeGroupLabel = activeGroup?.label ?? "Learn";
+  const activeLabel = activeGroup?.links.find((link) => link.href === activeHref)?.label;
 
   useEffect(() => {
     try {
@@ -277,8 +286,8 @@ export function AppShellFrame({
                         isCollapsed ? "px-[17px]" : "px-3"
                       } ${
                         active
-                          ? "bg-sheet font-semibold text-ink shadow-sheet ring-1 ring-line"
-                          : "text-ink-2 hover:bg-sheet/60 hover:text-ink"
+                          ? "bg-cyan-soft font-semibold text-cyan-ink ring-1 ring-inset ring-cyan-ink/30"
+                          : "text-ink-2 hover:bg-well/70 hover:text-ink"
                       }`}
                     >
                       <span className={active ? "text-cyan-ink" : "text-ink-3"}>
@@ -316,10 +325,10 @@ export function AppShellFrame({
                 href="/profile"
                 onClick={onNavigate}
                 tabIndex={isCollapsed ? -1 : undefined}
-                className="mb-2 block whitespace-nowrap rounded-lg border border-line bg-sheet/80 px-3 py-2.5 transition-colors hover:border-line-strong"
+                className="mb-2 block whitespace-nowrap rounded-lg border border-line bg-paper/60 px-3 py-2.5 transition-colors hover:border-cyan-ink/50"
               >
                 <span className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm font-semibold text-ink">{member.name}</span>
+                  <span className="truncate font-display text-sm font-semibold text-ink">{member.name}</span>
                   <span className="field-label shrink-0">{ROLE_LABEL[role ?? ""] ?? "Member"}</span>
                 </span>
                 <span className="serial mt-1 block">{member.serial}</span>
@@ -350,10 +359,10 @@ export function AppShellFrame({
 
   return (
     <div className="min-h-screen bg-paper">
-      {/* Rail desktop: gradasi iris dengan grid titik halus. Landmark header (banner); di layar kecil perannya
+      {/* Rail desktop dengan satu-satunya gradasi. Landmark header (banner); di layar kecil perannya
           dipegang bar atas, dan hanya satu dari keduanya yang tampil. */}
       <header
-        className={`digital-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] motion-reduce:transition-none duration-300 ease-out lg:flex ${
+        className={`rail-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] motion-reduce:transition-none duration-300 ease-out lg:flex ${
           collapsed ? "w-[76px]" : "w-64"
         }`}
       >
@@ -363,14 +372,14 @@ export function AppShellFrame({
           className={`flex items-center gap-3 overflow-hidden whitespace-nowrap pb-5 pt-5 transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "px-[19px]" : "px-5"}`}
         >
           <BrandMark size={38} />
-          <span className={`text-[0.9375rem] font-bold leading-tight tracking-[-0.01em] text-ink transition-opacity motion-reduce:transition-none duration-200 ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
+          <span className={`font-display text-base font-bold leading-tight tracking-[-0.01em] text-ink transition-opacity motion-reduce:transition-none duration-200 ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
             Anon Cyber Team
           </span>
         </Link>
 
         {renderNav(collapsed, "Main navigation")}
 
-        <NightModeToggle variant="rail" collapsed={collapsed} />
+        <ThemeToggle variant="rail" collapsed={collapsed} />
 
         <button
           type="button"
@@ -399,7 +408,7 @@ export function AppShellFrame({
           <span className="truncate text-sm font-bold text-ink">Anon Cyber Team</span>
         </Link>
         <div className="flex items-center gap-2">
-          <NightModeToggle variant="icon" />
+          <ThemeToggle variant="icon" />
           <button
             type="button"
             ref={menuButtonRef}
@@ -417,11 +426,30 @@ export function AppShellFrame({
       </header>
 
       <main className={`transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+        {/* Bar atas desktop: posisi di menu (grup / halaman) dan poin anggota, menempel saat halaman digulir. */}
+        <div className="sticky top-0 z-20 hidden h-14 items-center justify-between gap-4 border-b border-line bg-paper px-10 lg:flex">
+          <p className="min-w-0 truncate text-sm text-ink-3">
+            {activeGroupLabel}
+            <span className="px-1.5 text-line-strong" aria-hidden="true">
+              /
+            </span>
+            <span className="font-semibold text-ink">{activeLabel ?? title}</span>
+          </p>
+          {stats ? (
+            <Link
+              href="/leaderboard"
+              className="figure shrink-0 rounded-lg border border-line-strong px-3 py-1.5 text-sm font-semibold text-ink-2 transition-colors hover:border-cyan-ink/60"
+            >
+              <span className="text-cyan-ink">{stats.points.toLocaleString("en-US")}</span> pts
+              {stats.rank ? <span> · Rank #{stats.rank}</span> : null}
+            </Link>
+          ) : null}
+        </div>
         {/* Konten halaman masuk dengan fade halus setiap pindah menu (frame dipasang ulang per halaman). */}
-        <div className="page-enter mx-auto w-full max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-9">
+        <div className="page-enter mx-auto w-full max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-10 lg:pt-8">
           <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0">
-              <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.018em] text-ink [text-wrap:balance] lg:text-[2rem]">{title}</h1>
+              <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance] lg:text-[2rem]">{title}</h1>
               {subtitle ? <p className="mt-1.5 max-w-2xl text-[0.9375rem] text-ink-2">{subtitle}</p> : null}
             </div>
             {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
@@ -454,7 +482,7 @@ export function AppShellFrame({
         <aside
           ref={drawerRef}
           id="mobile-navigation"
-          className={`digital-surface absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-line shadow-lift transition-transform motion-reduce:transition-none duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+          className={`rail-surface absolute inset-y-0 left-0 flex w-[min(18rem,86vw)] flex-col border-r border-line shadow-lift transition-transform motion-reduce:transition-none duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
             drawerOpen ? "translate-x-0" : "-translate-x-full"
           }`}
         >
@@ -468,7 +496,7 @@ export function AppShellFrame({
             </button>
           </div>
           {renderNav(false, "Mobile navigation", closeDrawer)}
-          <NightModeToggle variant="rail" />
+          <ThemeToggle variant="rail" />
           {renderMemberCard(false, closeDrawer)}
         </aside>
       </div>

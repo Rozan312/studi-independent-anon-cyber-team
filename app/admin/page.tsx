@@ -1,8 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, Figure, StatusPill } from "@/components/card";
-import { StateTag } from "@/components/paper/state-tag";
+import { EmptyState, StatusPill } from "@/components/card";
+import { PublishPill } from "@/components/instructor/publish-state";
+import {
+  bodyCellClass,
+  headCellClass,
+  listPanelClass,
+  panelHeadClass,
+  panelTitleClass,
+  rowLinkClass,
+  tableRowClass
+} from "@/components/instructor/form-styles";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
@@ -59,15 +68,18 @@ export default async function AdminPage() {
   const admins = roleCount("ADMIN");
   const draftAnnouncements = stats.announcements - publishedAnnouncements;
 
-  const figures = [
-    { label: "Members", value: formatNumber(members), note: `${plural(stats.users, "account")} in total` },
-    { label: "Instructors", value: formatNumber(instructors), note: plural(admins, "admin") },
+  // Jumlah baris genap agar dua kolom ringkasan sama panjang.
+  const summaryRows: { label: string; value: string; note?: string }[] = [
+    { label: "Accounts", value: formatNumber(stats.users) },
+    { label: "Members", value: formatNumber(members) },
+    { label: "Instructors", value: formatNumber(instructors) },
+    { label: "Admins", value: formatNumber(admins) },
     { label: "Learning paths", value: formatNumber(stats.learningPaths), note: `${formatNumber(publishedPaths)} published` },
     { label: "Rooms", value: formatNumber(stats.rooms), note: `${formatNumber(publishedRooms)} published` },
-    { label: "Rooms completed", value: formatNumber(stats.completedRooms), note: "Across all members" },
+    { label: "Rooms completed", value: formatNumber(stats.completedRooms), note: "all members" },
     { label: "Task answers", value: formatNumber(taskAnswers), note: `${formatNumber(correctTaskAnswers)} correct` },
     { label: "Announcements", value: formatNumber(stats.announcements), note: `${formatNumber(publishedAnnouncements)} published` },
-    { label: "Lab sessions", value: formatNumber(stats.labSessions), note: "Placeholder records" }
+    { label: "Lab sessions", value: formatNumber(stats.labSessions), note: "placeholders" }
   ];
 
   const adminPages = [
@@ -97,83 +109,104 @@ export default async function AdminPage() {
       subtitle={`${plural(stats.users, "account")} · ${formatNumber(publishedRooms)} of ${plural(stats.rooms, "room")} published`}
       role={profile.role}
     >
-      <section className="sheet overflow-hidden" aria-label="Platform figures">
-        <div className="grid grid-cols-2 gap-px bg-line-soft sm:grid-cols-4">
-          {figures.map((figure) => (
-            <Figure key={figure.label} className="bg-sheet p-4" label={figure.label} value={figure.value} note={figure.note} />
-          ))}
-        </div>
-      </section>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          {/*
+            Ringkasan bergaris (label kiri, nilai kanan) dalam dua kolom; strip angka besar hanya ada di dasbor member.
+            -mt-px menyembunyikan garis atas baris pertama tiap kolom di balik tepi panel (panel memotong luapan).
+          */}
+          <section className="sheet overflow-hidden px-5 sm:px-6" aria-label="Platform figures">
+            <dl className="-mt-px grid text-sm md:grid-cols-2 md:gap-x-10">
+              {summaryRows.map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-3 border-t border-line py-3">
+                  <dt className="shrink-0 text-ink-2">{row.label}</dt>
+                  <dd className="min-w-0 text-right">
+                    <span className="figure font-semibold text-ink">{row.value}</span>
+                    {row.note ? <span className="text-ink-3"> · {row.note}</span> : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-      <div className="mt-5 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="sheet p-5 sm:p-6" aria-labelledby="newest-accounts-title">
-          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="newest-accounts-title" className="text-lg font-bold text-ink">
-              Newest accounts
-            </h2>
-            <Link href="/admin/users" className="text-link text-sm">
-              All users
-            </Link>
-          </div>
-          {recentUsers.length > 0 ? (
-            <div className="-mx-3 overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr>
-                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
-                      Name
-                    </th>
-                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-left">
-                      Role
-                    </th>
-                    <th scope="col" className="field-label border-b border-line px-3 py-2.5 text-right">
-                      Joined
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line-soft">
-                  {recentUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-well">
-                      <td className="px-3 py-2.5">
-                        <span className="block font-semibold text-ink">
-                          {user.fullName || user.username}
-                          {user.id === profile.id ? <span className="ml-1.5 font-normal text-ink-3">(you)</span> : null}
-                        </span>
-                        <span className="block text-xs text-ink-3">{user.username}</span>
-                      </td>
-                      <td className="px-3 py-2.5">
-                        <StatusPill tone="neutral">{ROLE_LABEL[user.role] ?? user.role}</StatusPill>
-                      </td>
-                      <td className="figure whitespace-nowrap px-3 py-2.5 text-right text-ink-2">{formatShortDate(user.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <section className={listPanelClass} aria-labelledby="newest-accounts-title">
+            <div className={panelHeadClass}>
+              <h2 id="newest-accounts-title" className={panelTitleClass}>
+                Newest accounts
+              </h2>
+              <Link href="/admin/users" className="text-link text-sm">
+                All users
+              </Link>
             </div>
-          ) : (
-            <EmptyState title="No accounts yet" message="Accounts appear here as soon as people sign up." />
-          )}
-        </section>
+            {recentUsers.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th scope="col" className={headCellClass}>
+                        Name
+                      </th>
+                      <th scope="col" className={headCellClass}>
+                        Role
+                      </th>
+                      <th scope="col" className={`${headCellClass} text-right`}>
+                        Joined
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {recentUsers.map((user) => (
+                      <tr key={user.id} className={tableRowClass}>
+                        <td className={bodyCellClass}>
+                          <span className="block font-display font-semibold text-ink">
+                            {user.fullName || user.username}
+                            {user.id === profile.id ? <span className="ml-1.5 font-sans font-normal text-ink-3">(you)</span> : null}
+                          </span>
+                          <span className="block text-xs text-ink-3">{user.username}</span>
+                        </td>
+                        <td className={bodyCellClass}>
+                          <StatusPill tone="neutral">{ROLE_LABEL[user.role] ?? user.role}</StatusPill>
+                        </td>
+                        <td className={`${bodyCellClass} figure whitespace-nowrap text-right text-ink-2`}>{formatShortDate(user.createdAt)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="p-5 sm:p-6">
+                <EmptyState title="No accounts yet" message="Accounts appear here as soon as people sign up." />
+              </div>
+            )}
+          </section>
+        </div>
 
         <div className="flex flex-col gap-5">
-          <section className="sheet p-4" aria-labelledby="admin-pages-title">
-            <h2 id="admin-pages-title" className="px-1 font-semibold text-ink">
-              Manage
-            </h2>
-            <ul className="mt-1 divide-y divide-line-soft">
+          <section className={listPanelClass} aria-labelledby="admin-pages-title">
+            <div className={panelHeadClass}>
+              <h2 id="admin-pages-title" className={panelTitleClass}>
+                Manage
+              </h2>
+            </div>
+            <ul className="divide-y divide-line">
               {adminPages.map((page) => (
                 <li key={page.href}>
-                  <Link href={page.href} className="group -mx-1 flex items-center gap-3 rounded-lg px-2 py-3 transition-colors hover:bg-well">
+                  <Link href={page.href} className={rowLinkClass}>
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-baseline gap-x-2">
-                        <span className="font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                          {page.title}
-                        </span>
+                        <span className="font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink">{page.title}</span>
                         {page.meta ? <span className="figure text-xs text-ink-3">{page.meta}</span> : null}
                       </span>
                       <span className="mt-0.5 block text-sm text-ink-2">{page.description}</span>
                     </span>
-                    <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 16 16"
+                      className="h-4 w-4 shrink-0 text-ink-3 transition-colors group-hover:text-cyan-ink"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      aria-hidden="true"
+                    >
                       <path d="m6 3.5 4.5 4.5L6 12.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   </Link>
@@ -182,9 +215,9 @@ export default async function AdminPage() {
             </ul>
           </section>
 
-          <section className="sheet p-5" aria-labelledby="latest-announcements-title">
-            <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 id="latest-announcements-title" className="font-semibold text-ink">
+          <section className={listPanelClass} aria-labelledby="latest-announcements-title">
+            <div className={panelHeadClass}>
+              <h2 id="latest-announcements-title" className={panelTitleClass}>
                 Latest announcements
               </h2>
               <Link href="/admin/announcements" className="text-link text-sm">
@@ -192,25 +225,21 @@ export default async function AdminPage() {
               </Link>
             </div>
             {recentAnnouncements.length > 0 ? (
-              <ul className="mt-3 space-y-4">
+              <ul className="divide-y divide-line">
                 {recentAnnouncements.map((item) => (
-                  <li key={item.id}>
+                  <li key={item.id} className="px-5 py-3 sm:px-6">
                     <p className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
-                      {item.isPublished ? (
-                        <StatusPill tone="success">Published</StatusPill>
-                      ) : (
-                        <StateTag tone="muted">Draft</StateTag>
-                      )}
+                      <PublishPill published={item.isPublished} />
                       <span>{AUDIENCE_LABEL[item.audience] ?? item.audience}</span>
                       <span aria-hidden="true">·</span>
                       <span>{formatRelativeTime(item.createdAt, now)}</span>
                     </p>
-                    <p className="mt-1 font-semibold leading-snug text-ink">{item.title}</p>
+                    <p className="mt-1 font-display font-semibold leading-snug text-ink">{item.title}</p>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="mt-2 text-sm text-ink-3">No announcements yet. Write one from the Announcements page.</p>
+              <p className="px-5 py-4 text-sm text-ink-3 sm:px-6">No announcements yet. Write one from the Announcements page.</p>
             )}
           </section>
         </div>

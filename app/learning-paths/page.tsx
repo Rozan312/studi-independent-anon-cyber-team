@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
+import { EmptyState, ProgressBar } from "@/components/card";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
@@ -46,44 +46,65 @@ export default async function LearningPathsPage() {
         <EmptyState title="No learning paths yet" message="Instructors haven't published a path yet. Check back soon." />
       ) : (
         <section className="sheet overflow-hidden" aria-label="All learning paths">
-          {/* Sel bergaris rambut seperti halaman album: margin negatif menyembunyikan garis tepi kanan/bawah terakhir. */}
-          <ul className="-mb-px -mr-px grid md:grid-cols-2 xl:grid-cols-3">
+          {/* Baris rata selebar panel, sama dengan halaman Rooms: logo, judul, meta, deskripsi satu baris, lalu status
+              path di kolom kanan selebar tetap agar bilah progres sejajar antarbaris (di ponsel pindah ke bawah teks). */}
+          <ul className="divide-y divide-line">
             {paths.map((path) => {
               const roomIds = roomIdsByPath.get(path.id) ?? [];
               const total = roomIds.length;
               const done = roomIds.filter((id) => completedRoomIds.has(id)).length;
               const complete = total > 0 && done === total;
+              const inProgress = done > 0 && done < total;
+              const percentage = total === 0 ? 0 : Math.round((done / total) * 100);
               const roomNoun = total === 1 ? "room" : "rooms";
-              const progressTitle = `${path.title}: ${done} of ${total} ${roomNoun} completed`;
 
               return (
-                <li key={path.id} className="border-b border-r border-line-soft">
+                <li key={path.id}>
                   <Link
                     href={`/learning-paths/${path.slug}`}
-                    className="group flex h-full gap-4 p-5 transition-colors hover:bg-well md:flex-col md:gap-0 md:p-6"
+                    className="group flex gap-4 px-5 py-4 transition-colors hover:bg-well focus-visible:outline-offset-[-2px] sm:items-center sm:px-6"
                   >
                     <EntityLogo name={path.title} src={path.logoUrl} size="lg" />
 
-                    <div className="flex min-w-0 flex-1 flex-col md:mt-4">
-                      <h2 className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink [text-wrap:balance] group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                        {path.title}
-                      </h2>
-                      <p className="mt-1 line-clamp-2 text-sm text-ink-2">{path.description}</p>
-                      <p className="mt-auto flex flex-wrap items-center gap-x-2 gap-y-1.5 pt-3 text-sm text-ink-3">
-                        <span>{path.difficulty}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>{total === 0 ? "No rooms yet" : `${total} ${total === 1 ? "room" : "rooms"}`}</span>
-                        <span aria-hidden="true">·</span>
-                        <span>~{path.estimatedHours} h</span>
-                        {complete ? <StatusPill tone="done">Complete</StatusPill> : null}
-                      </p>
+                    <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_12rem] sm:items-center sm:gap-8">
+                      <div className="min-w-0">
+                        <h2 className="font-display text-base font-semibold leading-snug text-ink transition-colors group-hover:text-cyan-ink">{path.title}</h2>
+                        <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-ink-3">
+                          <span>{path.difficulty}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="figure">{total === 0 ? "No rooms yet" : `${total} ${roomNoun}`}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="figure">~{path.estimatedHours} h</span>
+                        </p>
+                        <p className="mt-0.5 truncate text-sm text-ink-2">{path.description}</p>
+                      </div>
 
+                      {/* Status: bilah cyan dan persen untuk path yang berjalan, centang violet untuk path selesai,
+                          teks netral untuk path yang belum disentuh. Path tanpa room tidak punya status. */}
                       {total > 0 ? (
-                        <div className="mt-3">
-                          <p className="mb-1.5 text-xs text-ink-3">
-                            {done} of {total} {roomNoun} passed
-                          </p>
-                          <ProgressBar value={(done / total) * 100} label={progressTitle} />
+                        <div className="min-w-0">
+                          {inProgress ? (
+                            <>
+                              <div className="mb-1.5 flex justify-between gap-3 text-xs">
+                                <span className="text-ink-2">
+                                  {done} of {total} {roomNoun} passed
+                                </span>
+                                <span className="figure font-semibold text-ink-2">{percentage}%</span>
+                              </div>
+                              <ProgressBar value={percentage} label={`${path.title}: ${done} of ${total} ${roomNoun} passed`} />
+                            </>
+                          ) : complete ? (
+                            <span className="inline-flex items-center gap-2 font-display text-sm font-semibold text-violet">
+                              <span className="grid h-6 w-6 place-items-center rounded-full border border-violet/45 bg-violet-soft" aria-hidden="true">
+                                <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                  <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              </span>
+                              Complete
+                            </span>
+                          ) : (
+                            <p className="text-sm text-ink-3">Not started</p>
+                          )}
                         </div>
                       ) : null}
                     </div>

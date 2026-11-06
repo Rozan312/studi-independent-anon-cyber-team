@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
+import { EmptyState, ProgressBar } from "@/components/card";
 import { StateTag } from "@/components/paper/state-tag";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
@@ -54,16 +54,17 @@ export default async function RoomsPage() {
         <div className="flex flex-col gap-5">
           {groups.map((group, groupIndex) => (
             <section key={group.category} className="sheet overflow-hidden" aria-labelledby={`room-category-${groupIndex}`}>
-              <div className="flex items-baseline justify-between gap-3 px-5 pb-3 pt-4 sm:px-6">
-                <h2 id={`room-category-${groupIndex}`} className="text-lg font-bold leading-snug text-ink">
+              <div className="flex items-baseline justify-between gap-3 border-b border-line px-5 pb-3 pt-4 sm:px-6">
+                <h2 id={`room-category-${groupIndex}`} className="text-base font-bold leading-snug text-ink">
                   {group.category}
                 </h2>
-                <span className="figure shrink-0 text-sm text-ink-3">
+                <span className="figure shrink-0 text-xs text-ink-3">
                   {group.rooms.length} {group.rooms.length === 1 ? "room" : "rooms"}
                 </span>
               </div>
 
-              <ul className="divide-y divide-line-soft border-t border-line-soft">
+              {/* Baris rata selebar panel: sorotan bg-well sampai ke tepi, judul berubah cyan. */}
+              <ul className="divide-y divide-line">
                 {group.rooms.map((room) => {
                   const availability = getRoomAvailability(room);
                   const progress = progressByRoom.get(room.id);
@@ -82,20 +83,18 @@ export default async function RoomsPage() {
                     <li key={room.id}>
                       <Link
                         href={`/rooms/${room.slug}`}
-                        className="group flex gap-4 px-5 py-4 transition-colors hover:bg-well sm:items-center sm:px-6"
+                        className="group flex gap-4 px-5 py-4 transition-colors hover:bg-well focus-visible:outline-offset-[-2px] sm:items-center sm:px-6"
                       >
-                        <EntityLogo name={room.title} src={room.logoUrl} size="lg" className="!h-14 !w-14" />
+                        <EntityLogo name={room.title} src={room.logoUrl} size="lg" />
 
-                        <div className="grid grid-cols-1 min-w-0 flex-1 gap-3 sm:grid-cols-[minmax(0,1fr)_10rem] sm:items-center sm:gap-6">
+                        <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_11rem] sm:items-center sm:gap-8">
                           <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
-                              <span className="font-semibold leading-snug text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                                {room.title}
-                              </span>
+                            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                              <span className="font-display font-semibold leading-snug text-ink transition-colors group-hover:text-cyan-ink">{room.title}</span>
                               {stateTag}
                             </div>
-                            <p className="mt-0.5 truncate text-sm text-ink-3">{room.learningPath.title}</p>
-                            <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-2">
+                            <p className="mt-0.5 truncate text-sm text-ink-2">{room.learningPath.title}</p>
+                            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-sm text-ink-3">
                               <span>{room.difficulty}</span>
                               <span aria-hidden="true">·</span>
                               <span className="figure">{room.estimatedMinutes} min</span>
@@ -108,13 +107,21 @@ export default async function RoomsPage() {
                             </p>
                           </div>
 
+                          {/* Status: centang violet untuk room lulus, bilah cyan untuk room yang sedang dikerjakan. */}
                           <div className="min-w-0">
                             {progress?.status === "COMPLETED" ? (
-                              <StatusPill tone="done">Passed</StatusPill>
+                              <span className="inline-flex items-center gap-2 font-display text-sm font-semibold text-violet">
+                                <span className="grid h-6 w-6 place-items-center rounded-full border border-violet/45 bg-violet-soft" aria-hidden="true">
+                                  <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                    <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                  </svg>
+                                </span>
+                                Passed
+                              </span>
                             ) : progress && progress.status !== "NOT_STARTED" ? (
                               <div>
-                                <div className="mb-1.5 flex justify-between text-xs text-ink-3">
-                                  <span>In progress</span>
+                                <div className="mb-1.5 flex justify-between gap-3 text-xs">
+                                  <span className="text-ink-2">In progress</span>
                                   <span className="figure font-semibold text-ink-2">{percentage}%</span>
                                 </div>
                                 <ProgressBar value={percentage} label={`${room.title} progress`} />

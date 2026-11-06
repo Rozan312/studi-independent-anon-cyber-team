@@ -99,7 +99,7 @@ export function LoginForm({
           </span>
         </p>
       ) : null}
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line-soft pt-5 text-sm">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-line pt-5 text-sm">
         <Link href={registerHref} className="text-link">
           Create an account
         </Link>

@@ -210,14 +210,16 @@ export function RichTextEditor({
     }
   }, [editor, disabled]);
 
+  // Bingkai editor: sambungan line-strong agar area tulis terbaca sebagai satu kendali di dalam panel seksi.
+  // Toolbar, area tulis, dan baris status sama-sama di atas panel, dipisah sambungan tipis (tanpa kartu bertumpuk).
   return (
-    <div className={`rich-editor rounded-sheet border border-line bg-sheet ${disabled ? "opacity-70" : ""}`}>
+    <div className={`rich-editor rounded-sheet border border-line-strong bg-sheet ${disabled ? "opacity-70" : ""}`}>
       {editor ? (
         <EditorToolbar editor={editor} disabled={disabled} onPickImages={(files) => uploadAndInsert(files)} />
       ) : (
         // Tinggi toolbar yang terukur agar isi editor tidak bergeser saat dimuat: ponsel sentuh 375-430 px
         // 5 baris tombol 44 px (257 px); sm sampai lg umumnya 3 baris (117 px); xl 2 baris (81 px).
-        <div className="h-[257px] rounded-t-[calc(0.75rem-1px)] border-b border-line bg-well sm:h-[117px] xl:h-[81px]" aria-hidden="true" />
+        <div className="h-[257px] rounded-t-[calc(0.625rem-1px)] border-b border-line bg-sheet sm:h-[117px] xl:h-[81px]" aria-hidden="true" />
       )}
 
       {uploadStatus ? (
@@ -246,7 +248,7 @@ export function RichTextEditor({
         )}
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-b-[calc(0.75rem-1px)] border-t border-line-soft bg-sheet px-4 py-2 text-xs text-ink-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-b-[calc(0.625rem-1px)] border-t border-line bg-sheet px-4 py-2 text-xs text-ink-3">
         {editor ? <EditorStats editor={editor} /> : <span>{" "}</span>}
         <span>Paste or drop images into the editor to upload them.</span>
       </div>

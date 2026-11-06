@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
-import { CircuitField } from "@/components/paper/circuit";
 import { SiteFooter } from "@/components/site-footer";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 
 /**
- * Bingkai halaman publik dan auth (tanpa AppShell).
- * Kiri: panel iris bergrid titik dengan logo, nama, dan bidang jalur sirkuit sebagai latar dekoratif.
- * Kanan: satu lembar kertas berisi judul halaman (h1) dan formulirnya.
- * Di layar kecil panel menyusut menjadi pita atas yang ringkas (tanpa bidang sirkuit).
+ * Bingkai halaman auth (masuk, daftar, lupa dan atur ulang kata sandi) dan cadangan global-error, tanpa AppShell.
+ * Desktop: kolom merek sempit bergradasi rail (satu-satunya gradasi) dengan posisi logo sama seperti rail aplikasi,
+ * kalimat komunitas di bawahnya, dan baris Light mode di dasar kolom. Kanan: dasar halaman tanpa kotak; judul,
+ * deskripsi, formulir, dan link sekunder rata kiri dalam satu lebar baca, dipisah garis tipis seperti halaman aplikasi.
+ * Layar kecil: kolom merek menjadi bar atas rata (logo, nama, tombol tema ikon) seperti bar atas ponsel di aplikasi.
  */
 export function AuthFrame({
   title,
@@ -18,29 +19,23 @@ export function AuthFrame({
   title: string;
   description?: React.ReactNode;
   children: React.ReactNode;
-  /** Tujuan link logo; null di halaman depan agar tidak menautkan ke halaman itu sendiri. */
+  /** Tujuan link logo; null bila halaman itu sendiri adalah tujuannya. */
   brandHref?: string | null;
 }) {
   const brand = (
     <>
-      <BrandMark size={96} className="h-auto w-11 lg:w-24" priority />
-      <span className="text-base font-bold leading-tight tracking-[-0.01em] text-ink lg:text-[1.75rem] lg:tracking-[-0.018em]">
-        Anon Cyber Team
-      </span>
+      <BrandMark size={38} className="h-auto w-8 lg:w-[38px]" />
+      <span className="truncate font-display text-base font-bold leading-tight tracking-[-0.01em] text-ink">Anon Cyber Team</span>
     </>
   );
-  const brandClass = "inline-flex items-center gap-3 lg:flex-col lg:items-start lg:gap-6";
+  const brandClass = "flex min-w-0 items-center gap-3";
 
   return (
-    <div className="min-h-screen lg:grid lg:grid-cols-[minmax(360px,5fr)_minmax(0,7fr)]">
-      <header
-        className="digital-surface relative overflow-hidden border-b border-line lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r"
-      >
-        {/* Jalur sirkuit di bagian bawah panel, memudar ke atas agar logo dan teks tetap bersih. */}
-        <CircuitField className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-[60%] w-full [mask-image:linear-gradient(to_top,black_40%,transparent)] lg:block" />
-        <div className="relative px-4 py-4 sm:px-6 lg:px-12 lg:pt-14 xl:px-16 xl:pt-16">
+    <div className="flex min-h-screen flex-col bg-paper lg:grid lg:grid-cols-[18rem_minmax(0,1fr)] xl:grid-cols-[20rem_minmax(0,1fr)]">
+      <header className="border-b border-line lg:rail-surface lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:border-b-0 lg:border-r">
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-6 lg:px-5 lg:py-5">
           {brandHref ? (
-            <nav aria-label="Site">
+            <nav aria-label="Site" className="min-w-0">
               <Link href={brandHref} aria-label="Anon Cyber Team home" className={`${brandClass} coarse:min-h-11`}>
                 {brand}
               </Link>
@@ -48,21 +43,30 @@ export function AuthFrame({
           ) : (
             <div className={brandClass}>{brand}</div>
           )}
-          <p className="mt-3 hidden max-w-xs text-[0.9375rem] leading-relaxed text-ink-2 lg:block">
-            Self-paced cybersecurity learning paths from the Anon Cyber Team community.
-          </p>
+          {/* Tombol tema ikon hanya di bar atas layar kecil; di desktop tombolnya baris rail di dasar kolom. */}
+          <div className="lg:hidden">
+            <ThemeToggle variant="icon" />
+          </div>
+        </div>
+        <p className="hidden max-w-[20ch] px-5 pt-2 font-display text-lg font-semibold leading-snug tracking-[-0.01em] text-ink-2 [text-wrap:balance] lg:block">
+          Self-paced cybersecurity learning paths from the Anon Cyber Team community.
+        </p>
+        <div className="mt-auto hidden border-t border-line/80 pb-3 pt-3 lg:block">
+          <ThemeToggle variant="rail" />
         </div>
       </header>
 
-      <div className="flex min-h-full flex-col px-4 sm:px-6 lg:min-h-screen lg:px-10">
-        <main className="flex flex-1 justify-center py-8 sm:py-12 lg:items-center lg:py-16">
-          <div className="sheet w-full max-w-md p-6 sm:p-8">
-            <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.018em] text-ink [text-wrap:balance]">{title}</h1>
-            {description ? <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-ink-2">{description}</p> : null}
-            <div className="mt-6">{children}</div>
+      <div className="flex flex-1 flex-col lg:min-h-screen">
+        <main className="flex flex-1 flex-col px-4 py-10 sm:px-6 sm:py-14 lg:justify-center lg:px-12 lg:py-16 xl:px-16">
+          <div className="w-full max-w-[27rem]">
+            <div className="border-b border-line pb-5">
+              <h1 className="text-[1.75rem] font-bold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance] lg:text-[2rem]">{title}</h1>
+              {description ? <p className="mt-2 text-[0.9375rem] leading-relaxed text-ink-2">{description}</p> : null}
+            </div>
+            <div className="pt-6">{children}</div>
           </div>
         </main>
-        <SiteFooter className="pb-8" />
+        <SiteFooter className="px-4 pb-8 sm:px-6 lg:px-12 xl:px-16" />
       </div>
     </div>
   );

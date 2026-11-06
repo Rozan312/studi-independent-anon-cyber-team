@@ -12,7 +12,7 @@ export default function ResetPasswordPage() {
   return (
     <AuthFrame title="Set a new password" description="Choose the password you'll use to sign in from now on.">
       <ResetPasswordForm isLocalAuth={isLocalAuth} />
-      <p className="mt-6 border-t border-line-soft pt-5 text-sm">
+      <p className="mt-6 border-t border-line pt-5 text-sm">
         <Link className="text-link" href="/login">
           Back to sign in
         </Link>

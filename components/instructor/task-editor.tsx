@@ -241,7 +241,7 @@ function AddTaskForm({ roomId, disabled }: { roomId: string; disabled: boolean }
   );
 }
 
-/** Task tersusun sebagai daftar bergaris di dalam lembar seksi (bukan kartu di dalam kartu); form tambah dipisah garis putus-putus. */
+/** Task tersusun sebagai baris bergaris di dalam panel seksi (bukan kartu di dalam kartu); form tambah dipisah garis putus-putus. */
 export function TaskEditor({ roomId, tasks, disabled = false }: { roomId: string; tasks: EditorTask[]; disabled?: boolean }) {
   return (
     <div>
@@ -250,7 +250,7 @@ export function TaskEditor({ roomId, tasks, disabled = false }: { roomId: string
           <EmptyState title="No tasks yet" message="Add at least one task so members' room progress can be counted." />
         </div>
       ) : (
-        <div className="divide-y divide-line-soft">
+        <div className="divide-y divide-line">
           {tasks.map((task, index) => (
             <TaskRow
               key={task.id}

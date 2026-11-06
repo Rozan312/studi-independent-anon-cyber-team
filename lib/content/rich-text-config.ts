@@ -37,11 +37,11 @@ export const FONT_SIZE_OPTIONS: FontOption[] = [
 export type ColorOption = { label: string; value: string };
 
 /**
- * Warna teks pilihan instruktur. Di tema terang setiap nilai mencapai kontras minimal 4,5:1 di lembar (#FCFDFD),
- * kertas (#F3F7F8), well (#ECF3F5) tempat kutipan, kode inline, dan judul tabel berada, serta di atas
- * setiap stabilo palet (dan stabilo bawaan) yang diletakkan di lembar maupun well.
- * Tema malam tidak memakai angka ini: warnanya dibalik di app/globals.css, dan teks berstabilo memakai tinta malam
- * (aturan `.prose-cyber mark`).
+ * Warna teks pilihan instruktur. Di tema terang setiap nilai mencapai kontras minimal 4,5:1 di panel (#FFFFFF),
+ * dasar (#F4F7F9), well (#EDF2F5) tempat kutipan, kode inline, dan judul tabel berada, serta di atas
+ * setiap stabilo palet (dan stabilo bawaan) yang diletakkan di panel maupun well.
+ * Tema gelap (bawaan) tidak memakai angka ini: warnanya dibalik di app/globals.css, dan teks berstabilo memakai tinta
+ * tema gelap (aturan `.prose-cyber mark`).
  * Nilainya adalah keluaran readableTextColor untuk palet awal, sehingga materi lama ikut terpetakan tepat ke sini.
  */
 export const TEXT_COLOR_OPTIONS: ColorOption[] = [
@@ -132,12 +132,15 @@ export type Rgba = [number, number, number, number];
 /** Kontras minimal (WCAG AA teks normal) untuk teks materi. */
 export const MIN_TEXT_CONTRAST = 4.5;
 
-/** Lembar tempat materi dirender (.sheet). */
+/**
+ * Panel tempat materi dirender di tema terang. Palet teks dikalibrasi terhadap nilai ini (#FCFDFD); panel terang
+ * sekarang #FFFFFF, sedikit lebih terang, jadi kontras palet hanya naik. Jangan diubah tanpa mengkalibrasi ulang palet.
+ */
 export const SHEET_RGBA: Rgba = [252, 253, 253, 1];
 
 /**
- * Well (--well): latar kutipan, judul tabel, dan kode inline di dalam materi. Ini permukaan terang paling
- * gelap di bawah materi (kertas #F3F7F8 dan lembar lebih terang), jadi warna yang terbaca di sini terbaca di semuanya.
+ * Well tema terang: latar kutipan, judul tabel, dan kode inline di dalam materi, permukaan terang paling gelap di bawah
+ * materi. Kalibrasi palet memakai #ECF3F5; token sekarang #EDF2F5 (selisih kontras sekitar 0,3%).
  */
 export const WELL_RGBA: Rgba = [236, 243, 245, 1];
 

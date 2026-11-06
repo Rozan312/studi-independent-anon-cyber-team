@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { SectionHeader, StatusPill } from "@/components/card";
-import { StateTag } from "@/components/paper/state-tag";
+import { SectionHeader } from "@/components/card";
 import { MaterialEditor } from "@/components/instructor/material-editor";
 import { PublishToggleForm } from "@/components/instructor/publish-toggle-form";
+import { RoomStateMarks } from "@/components/instructor/publish-state";
 import { QuizEditor } from "@/components/instructor/quiz-editor";
 import { RoomMetadataForm } from "@/components/instructor/room-metadata-form";
 import { TaskEditor } from "@/components/instructor/task-editor";
@@ -13,7 +13,6 @@ import { panelClass } from "@/components/instructor/form-styles";
 import { PageNotice } from "@/components/ui/page-notice";
 import { toggleRoomPublishAction } from "@/lib/actions/content-actions";
 import { requireRole } from "@/lib/auth/guards";
-import { formatDayMonth } from "@/lib/format/date";
 import { getRoomForEditor, listLearningPathsForManagement } from "@/lib/services/content-service";
 import { roomMaterialToEditorHtml } from "@/lib/content/rich-text";
 import { describeAvailability, formatScheduleDate, getRoomAvailability, type RoomAvailability } from "@/lib/learning/availability";
@@ -32,22 +31,9 @@ const sections = [
   ["#quiz", "Quiz"]
 ] as const;
 
-// Jarak gulir anchor: di bawah lg ada bar atas mobile yang menempel; di xl ada bilah navigasi seksi yang menempel.
-const sectionClass = `${panelClass} scroll-mt-20 lg:scroll-mt-6 xl:scroll-mt-16`;
-
-/** Status terbit + label jadwal (terjadwal/ditutup) agar status room tidak pernah hilang dari pandangan. */
-function RoomStateMarks({ isPublished, availability }: { isPublished: boolean; availability: RoomAvailability }) {
-  if (!isPublished) return <StateTag tone="muted">Draft</StateTag>;
-  return (
-    <>
-      <StatusPill tone="success">Published</StatusPill>
-      {availability.state === "upcoming" && availability.opensAt ? (
-        <StateTag tone="amber">{`Opens ${formatDayMonth(availability.opensAt)}`}</StateTag>
-      ) : null}
-      {availability.state === "closed" ? <StateTag tone="red">Closed</StateTag> : null}
-    </>
-  );
-}
+// Jarak gulir anchor: bar atas yang menempel (mobile di bawah lg, desktop 56 px mulai lg); di xl ditambah
+// bilah navigasi seksi yang menempel di bawah bar atas desktop.
+const sectionClass = `${panelClass} scroll-mt-20 xl:scroll-mt-28`;
 
 /** Kalimat ketersediaan; untuk draft, tampilkan jadwal yang sudah direncanakan (bila ada). */
 function availabilityText(availability: RoomAvailability) {
@@ -146,13 +132,18 @@ export default async function InstructorRoomEditorPage({
         />
       ) : null}
 
-      {/* Navigasi seksi: baris biasa di layar kecil, menempel di atas pada xl. Lebar seksi Material tidak berubah. */}
+      {/* Navigasi seksi: baris biasa di layar kecil; pada xl menempel tepat di bawah bar atas desktop (h-14).
+          Lebar seksi Material tidak berubah. */}
       <nav
         aria-label="Room editor sections"
-        className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line pb-2.5 xl:sticky xl:top-0 xl:z-10 xl:-mt-2 xl:bg-paper xl:pt-3"
+        className="mb-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-line pb-2.5 xl:sticky xl:top-14 xl:z-10 xl:-mt-2 xl:bg-paper xl:pt-3"
       >
         {sections.map(([href, label]) => (
-          <a key={href} href={href} className="tap-target inline-flex items-center text-sm font-medium text-ink-2 transition-colors hover:text-ink coarse:min-h-11">
+          <a
+            key={href}
+            href={href}
+            className="tap-target inline-flex items-center font-display text-sm font-semibold text-ink-2 transition-colors hover:text-cyan-ink coarse:min-h-11"
+          >
             {label}
           </a>
         ))}
@@ -213,7 +204,7 @@ export default async function InstructorRoomEditorPage({
             </div>
           </div>
 
-          <div className="mt-5 border-t border-line-soft pt-4">
+          <div className="mt-5 border-t border-line pt-4">
             <p className="field-label">Content checklist</p>
             <ul className="mt-2 grid gap-2 sm:grid-cols-3">
               {readiness.map((item) => (

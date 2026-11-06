@@ -168,7 +168,7 @@ async function loadRooms() {
   });
 }
 
-/** Skor quiz yang benar-benar mungkin: kelipatan dari jumlah pertanyaan, seperti quiz-service. */
+/** Skor quiz yang benar-benar mungkin: persentase jawaban benar yang dibulatkan, seperti quiz-service. */
 function quizScore(questionCount: number, passingScore: number, pass: boolean) {
   const scores = Array.from({ length: questionCount + 1 }, (_, correct) => Math.round((correct / Math.max(questionCount, 1)) * 100));
   if (pass) return scores.filter((score) => score >= passingScore).pop() ?? 100;

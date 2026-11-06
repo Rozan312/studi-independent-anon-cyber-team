@@ -15,7 +15,7 @@ export default function ForgotPasswordPage() {
       description="Enter the email you signed up with and we'll send you a link to set a new password."
     >
       <ForgotPasswordForm isLocalAuth={isLocalAuth} />
-      <p className="mt-6 border-t border-line-soft pt-5 text-sm">
+      <p className="mt-6 border-t border-line pt-5 text-sm">
         <Link className="text-link" href="/login">
           Back to sign in
         </Link>

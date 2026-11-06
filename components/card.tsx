@@ -1,4 +1,4 @@
-/** Primitif bersama dunia "Security Paper": lembar, judul seksi, label status, bilah progres, angka bersel. */
+/** Primitif bersama: panel, judul seksi, label status, bilah progres, angka bersel. */
 
 export function Card({
   children,
@@ -44,19 +44,18 @@ export function SectionHeader({
 export type StatusTone = "neutral" | "primary" | "success" | "warning" | "danger" | "done";
 
 const statusToneClass: Record<StatusTone, string> = {
-  neutral: "border-line bg-well text-ink-2",
-  primary: "border-cyan-ink/25 bg-cyan-soft text-cyan-ink",
-  success: "border-green/25 bg-green-soft text-green",
-  warning: "border-amber/25 bg-amber-soft text-amber",
-  danger: "border-red/25 bg-red-soft text-red",
-  done: "border-violet/25 bg-violet-soft text-violet"
+  neutral: "border-line-strong bg-well text-ink-2",
+  primary: "border-cyan-ink/35 bg-cyan-soft text-cyan-ink",
+  success: "border-green/35 bg-green-soft text-green",
+  warning: "border-amber/35 bg-amber-soft text-amber",
+  danger: "border-red/35 bg-red-soft text-red",
+  done: "border-violet/35 bg-violet-soft text-violet"
 };
 
 export function StatusPill({ children, tone = "neutral", className = "" }: { children: React.ReactNode; tone?: StatusTone; className?: string }) {
   return (
     <span
-      className={`inline-flex items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 text-[0.6875rem] font-semibold uppercase leading-4 tracking-[0.08em] ${statusToneClass[tone]} ${className}`}
-      style={{ fontStretch: "78%" }}
+      className={`inline-flex items-center whitespace-nowrap rounded-md border px-1.5 py-0.5 font-display text-[0.6875rem] font-semibold uppercase leading-4 tracking-[0.06em] ${statusToneClass[tone]} ${className}`}
     >
       {children}
     </span>
@@ -74,7 +73,7 @@ const progressToneClass: Record<ProgressTone, string> = {
 
 export function ProgressBar({
   value,
-  tone = "violet",
+  tone = "cyan",
   label = "Progress",
   className = ""
 }: {
@@ -87,7 +86,7 @@ export function ProgressBar({
 
   return (
     <div
-      className={`h-1.5 overflow-hidden rounded-full bg-line-soft ${className}`}
+      className={`h-1.5 overflow-hidden rounded-full bg-line ${className}`}
       role="progressbar"
       aria-label={label}
       aria-valuemin={0}

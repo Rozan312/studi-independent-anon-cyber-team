@@ -41,18 +41,20 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ["var(--font-archivo)", "ui-sans-serif", "system-ui", "sans-serif"],
+        sans: ["var(--font-text)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "ui-sans-serif", "system-ui", "sans-serif"],
         mono: ["var(--font-code)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"]
       },
       fontSize: {
-        label: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.12em" }]
+        label: ["0.6875rem", { lineHeight: "1rem", letterSpacing: "0.08em" }]
       },
       borderRadius: {
-        sheet: "0.75rem"
+        sheet: "0.625rem"
       },
       boxShadow: {
-        sheet: "0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)",
-        lift: "0 10px 30px -12px rgb(16 22 31 / 0.22), 0 2px 6px rgb(16 22 31 / 0.06)"
+        // Panel rata tanpa bayangan; nama tetap ada agar kelas lama tidak rusak.
+        sheet: "0 0 #0000",
+        lift: "0 24px 48px -16px rgb(0 0 0 / 0.55)"
       }
     }
   },

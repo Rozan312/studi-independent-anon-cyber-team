@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { Figure, ProgressBar, StatusPill } from "@/components/card";
+import { ProgressBar } from "@/components/card";
 import { StateTag } from "@/components/paper/state-tag";
 import { CompletionMark } from "@/components/paper/completion";
 import { TaskSubmitForm } from "@/components/rooms/task-submit-form";
+import { RoomSectionNav } from "@/components/rooms/room-section-nav";
 import { requireRole } from "@/lib/auth/guards";
 import { getRoomBySlug } from "@/lib/services/room-service";
 import { prisma } from "@/lib/db/prisma";
@@ -52,6 +53,33 @@ function BackArrow() {
   );
 }
 
+/**
+ * Penanda nomor task, sama dengan daftar room di dashboard: centang hijau untuk jawaban benar,
+ * lingkaran putus-putus cyan untuk task yang sedang dikerjakan, garis netral untuk task terkunci.
+ */
+function TaskMark({ status, serial }: { status: "completed" | "active" | "locked"; serial: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`figure mt-px grid h-7 w-7 shrink-0 place-items-center rounded-full text-[0.6875rem] font-bold ${
+        status === "completed"
+          ? "border border-green/45 bg-green-soft text-green"
+          : status === "active"
+            ? "border-[1.5px] border-dashed border-cyan-ink text-cyan-ink"
+            : "border border-line-strong text-ink-3"
+      }`}
+    >
+      {status === "completed" ? (
+        <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      ) : (
+        serial
+      )}
+    </span>
+  );
+}
+
 export default async function RoomDetailPage({ params }: { params: { slug: string } }) {
   const profile = await requireRole(["STUDENT"]);
   const room = await getRoomBySlug(params.slug);
@@ -78,9 +106,9 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
           className="mb-6"
         />
 
-        <section className="sheet p-5 sm:p-6" aria-labelledby="room-schedule-title">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-            <EntityLogo name={room.title} src={room.logoUrl} size="xl" />
+        <section className="sheet overflow-hidden" aria-labelledby="room-schedule-title">
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6">
+            <EntityLogo name={room.title} src={room.logoUrl} size="lg" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <h2 id="room-schedule-title" className="text-lg font-bold text-ink">
@@ -98,25 +126,26 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
             </div>
           </div>
 
-          <dl className="mt-5 grid border-y border-line-soft sm:grid-cols-3">
-            <div className="border-b border-line-soft py-3 sm:border-b-0 sm:border-r sm:pr-4">
+          {/* Tiga fakta jadwal dalam satu strip bersambungan tipis, seperti strip angka di dashboard. */}
+          <dl className="grid gap-px border-y border-line bg-line sm:grid-cols-3">
+            <div className="bg-sheet px-5 py-4 sm:px-6">
               <dt className="field-label">Opens</dt>
-              <dd className="mt-1 font-semibold text-ink">{availability.opensAt ? formatScheduleDate(availability.opensAt) : "When published"}</dd>
+              <dd className="mt-1.5 font-display font-semibold text-ink">{availability.opensAt ? formatScheduleDate(availability.opensAt) : "When published"}</dd>
             </div>
-            <div className="border-b border-line-soft py-3 sm:border-b-0 sm:border-r sm:px-4">
+            <div className="bg-sheet px-5 py-4 sm:px-6">
               <dt className="field-label">Closes</dt>
-              <dd className="mt-1 font-semibold text-ink">{availability.closesAt ? formatScheduleDate(availability.closesAt) : "No end date"}</dd>
+              <dd className="mt-1.5 font-display font-semibold text-ink">{availability.closesAt ? formatScheduleDate(availability.closesAt) : "No end date"}</dd>
             </div>
-            <div className="py-3 sm:pl-4">
+            <div className="bg-sheet px-5 py-4 sm:px-6">
               <dt className="field-label">In this room</dt>
-              <dd className="figure mt-1 font-semibold text-ink">
+              <dd className="figure mt-1.5 font-semibold text-ink">
                 {room.tasks.length} {room.tasks.length === 1 ? "task" : "tasks"}
                 {room.quiz ? " · 1 quiz" : ""} · {formatNumber(points.total)} pts
               </dd>
             </div>
           </dl>
 
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="flex flex-wrap gap-3 p-5 sm:p-6">
             <Link href={`/learning-paths/${room.learningPath.slug}`} className="btn-primary">
               <BackArrow />
               Back to learning path
@@ -202,32 +231,8 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Kolom utama: materi lalu task */}
         <div className="space-y-6 lg:col-span-8">
-          {/* Tanpa overflow-x-auto: wadah gulir memotong outline fokus tautan. Tiga tautan muat di kolom tersempit dan membungkus saat teks diperbesar. */}
-          <nav className="flex flex-wrap gap-x-6 gap-y-1 border-b border-line" aria-label="Room sections">
-            <a
-              href="#material"
-              className="tap-target whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink coarse:pt-3"
-            >
-              Material
-            </a>
-            <a
-              href="#tasks"
-              className="tap-target whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink coarse:pt-3"
-            >
-              Tasks{" "}
-              <span className="figure text-ink-3">
-                {completedTasksCount}/{totalTasks}
-              </span>
-            </a>
-            {room.quiz ? (
-              <a
-                href="#quiz"
-                className="tap-target whitespace-nowrap border-b-2 border-transparent pb-2.5 text-sm font-semibold text-ink-2 transition-colors hover:border-line-strong hover:text-ink coarse:pt-3"
-              >
-                Quiz
-              </a>
-            ) : null}
-          </nav>
+          {/* Tab seksi: yang sedang dibaca bertanda cyan; di desktop menempel di bawah bar atas (scroll-mt-28 seksi memperhitungkannya). */}
+          <RoomSectionNav completedTasks={completedTasksCount} totalTasks={totalTasks} hasQuiz={Boolean(room.quiz)} />
 
           <section id="material" className="sheet scroll-mt-28 p-5 md:p-6" aria-labelledby="material-title">
             {/* Tab di atas sudah bertuliskan Material; judul seksi tetap ada untuk kerangka heading pembaca layar. */}
@@ -239,8 +244,8 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
           </section>
 
           <section id="tasks" className="sheet scroll-mt-28 overflow-hidden" aria-labelledby="tasks-title">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 pb-3 pt-4 sm:px-6">
-              <h2 id="tasks-title" className="text-lg font-bold text-ink">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-line px-5 pb-3 pt-4 sm:px-6">
+              <h2 id="tasks-title" className="text-base font-bold text-ink">
                 Tasks
               </h2>
               <p className="figure text-sm text-ink-3">
@@ -249,7 +254,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
             </div>
 
             {tasksWithStatus.length > 0 ? (
-              <ol className="divide-y divide-line-soft border-t border-line-soft">
+              <ol className="divide-y divide-line">
                 {tasksWithStatus.map((task, index) => {
                   const isCompleted = task.status === "completed";
                   const isActive = task.status === "active";
@@ -257,47 +262,38 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
                   const position = index + 1;
                   const format = getAnswerFormat(task.answerType);
 
-                  const badgeClass = isCompleted
-                    ? "border-green/35 bg-green-soft text-green"
-                    : isActive
-                      ? "border-cyan-ink/40 bg-cyan-soft text-cyan-ink"
-                      : "border-line bg-sheet text-ink-3";
-
                   return (
-                    <li key={task.id} className="px-5 py-5 sm:px-6">
+                    <li key={task.id} className={`px-5 sm:px-6 ${isActive ? "py-5" : "py-4"}`}>
                       <div className="flex items-start gap-3.5">
-                        <span
-                          aria-hidden="true"
-                          className={`figure mt-px flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[0.8125rem] font-bold ${badgeClass}`}
-                        >
-                          {position}
-                        </span>
+                        <TaskMark status={task.status} serial={String(position).padStart(2, "0")} />
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
-                            <h3 className={`min-w-0 font-semibold leading-snug ${isLocked ? "text-ink-2" : "text-ink"}`}>
+                            <h3 className={`min-w-0 pt-0.5 font-semibold leading-snug ${isLocked ? "text-ink-2" : "text-ink"}`}>
                               <span className="sr-only">Task {position}: </span>
                               {task.title}
                             </h3>
                             {isCompleted ? (
-                              <StateTag tone="green" icon="check">Solved</StateTag>
+                              <StateTag tone="green" icon="check">
+                                Solved
+                              </StateTag>
                             ) : isLocked ? (
-                              <StateTag tone="muted" icon="lock">Locked</StateTag>
-                            ) : null}
+                              <StateTag tone="muted" icon="lock">
+                                Locked
+                              </StateTag>
+                            ) : (
+                              <span className="figure pt-0.5 text-sm text-ink-3">{task.points} pts</span>
+                            )}
                           </div>
 
                           {isActive ? (
-                            <p className="mt-1.5 leading-relaxed text-ink-2">{task.description}</p>
+                            <p className="mt-1.5 max-w-[68ch] leading-relaxed text-ink-2">{task.description}</p>
                           ) : isLocked ? (
-                            <p className="mt-1 text-sm text-ink-3">Opens when you solve the task before it.</p>
+                            <p className="mt-0.5 text-sm text-ink-3">Opens when you solve the task before it.</p>
                           ) : null}
 
                           {isActive ? (
-                            <p className="mt-2 flex flex-wrap items-center gap-x-2 text-sm text-ink-3">
-                              <span>
-                                Answer format: <span className="font-medium text-ink-2">{format.label}</span>
-                              </span>
-                              <span aria-hidden="true">·</span>
-                              <span className="figure">{task.points} pts</span>
+                            <p className="mt-2 text-sm text-ink-3">
+                              Answer format: <span className="font-medium text-ink-2">{format.label}</span>
                             </p>
                           ) : null}
 
@@ -321,7 +317,7 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
                 })}
               </ol>
             ) : (
-              <p className="border-t border-line-soft px-5 py-5 text-sm text-ink-3 sm:px-6">
+              <p className="px-5 py-5 text-sm text-ink-3 sm:px-6">
                 This room has no tasks yet.{room.quiz ? " Read the material, then take the quiz." : ""}
               </p>
             )}
@@ -330,64 +326,70 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
 
         {/* Kolom samping: progres, fakta room, lab */}
         <aside className="space-y-5 lg:col-span-4" aria-label="Room details">
-          <section className="sheet p-5" aria-labelledby="room-progress-title">
+          <section className="sheet overflow-hidden" aria-labelledby="room-progress-title">
+            {/* Room lulus: centang violet di baris teratas panel; digambar sekali bila baru saja lulus. */}
             {snapshot.isComplete ? (
-              <div className="mb-5 flex items-center gap-3 rounded-lg border border-violet/25 bg-violet-soft px-3 py-2.5">
+              <div className="flex items-center gap-3 border-b border-line px-5 py-4">
                 <CompletionMark kind="room" fresh={freshCompletion} />
                 <div className="min-w-0">
-                  <p className="font-semibold text-ink">Room passed</p>
-                  {completedAt ? <p className="text-sm text-ink-2">{formatShortDate(completedAt)}</p> : null}
+                  <p className="font-display font-semibold text-ink">Room passed</p>
+                  {completedAt ? <p className="text-sm text-ink-3">{formatShortDate(completedAt)}</p> : null}
                 </div>
               </div>
             ) : null}
 
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 id="room-progress-title" className="font-semibold text-ink">
-                Your progress
-              </h2>
-              <p className="figure text-2xl font-bold leading-none text-ink">
-                {completionPercentage}
-                <span className="ml-0.5 text-sm font-semibold text-ink-2">%</span>
-              </p>
-            </div>
-            <ProgressBar className="mt-3" value={completionPercentage} label={`${room.title} progress`} />
-
-            <dl className="mt-4 space-y-2 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-ink-2">Tasks</dt>
-                <dd className="figure font-semibold text-ink">
-                  {completedTasksCount} of {totalTasks} {totalTasks === 1 ? "task" : "tasks"} solved
-                </dd>
+            <div className="p-5">
+              <div className="flex items-baseline justify-between gap-3">
+                <h2 id="room-progress-title" className="text-base font-bold text-ink">
+                  Your progress
+                </h2>
+                <p className="figure text-2xl font-bold leading-none text-ink">
+                  {completionPercentage}
+                  <span className="ml-0.5 text-sm font-semibold text-ink-2">%</span>
+                </p>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <dt className="text-ink-2">Quiz</dt>
-                <dd>
-                  {snapshot.hasQuiz ? (
-                    snapshot.quizPassed ? (
-                      <StatusPill tone="done">Passed</StatusPill>
+              <ProgressBar className="mt-3" value={completionPercentage} label={`${room.title} progress`} />
+
+              <dl className="mt-4 divide-y divide-line border-y border-line text-sm">
+                <div className="flex items-center justify-between gap-3 py-2.5">
+                  <dt className="text-ink-2">Tasks</dt>
+                  <dd className="figure font-semibold text-ink">
+                    {completedTasksCount} of {totalTasks} solved
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 py-2.5">
+                  <dt className="text-ink-2">Quiz</dt>
+                  <dd>
+                    {snapshot.hasQuiz ? (
+                      snapshot.quizPassed ? (
+                        <StateTag tone="green" icon="check">
+                          Passed
+                        </StateTag>
+                      ) : (
+                        <span className="font-semibold text-ink">Not passed yet</span>
+                      )
                     ) : (
-                      <span className="font-semibold text-ink">Not passed yet</span>
-                    )
-                  ) : (
-                    <span className="text-ink-3">No quiz</span>
-                  )}
-                </dd>
-              </div>
-            </dl>
-            <p className="mt-3 text-xs leading-relaxed text-ink-3">
-              A room is complete when every task is solved
-              {room.quiz ? ` and the quiz is passed with ${room.quiz.passingScore}% or higher` : ""}.
-            </p>
+                      <span className="text-ink-3">No quiz</span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+              <p className="mt-3 text-xs leading-relaxed text-ink-3">
+                A room is complete when every task is solved
+                {room.quiz ? ` and the quiz is passed with ${room.quiz.passingScore}% or higher` : ""}.
+              </p>
 
-            {room.quiz ? (
-              <Link
-                id="quiz"
-                href={`/rooms/${room.slug}/quiz`}
-                className={`${quizIsNextStep ? "btn-primary" : "btn-secondary"} mt-4 w-full scroll-mt-28`}
-              >
-                {snapshot.quizPassed ? "Open the quiz" : "Take the quiz"}
-              </Link>
-            ) : null}
+              {/* Tombol quiz menjadi aksi cyan hanya saat quiz adalah langkah berikutnya. */}
+              {room.quiz ? (
+                <Link
+                  id="quiz"
+                  href={`/rooms/${room.slug}/quiz`}
+                  className={`${quizIsNextStep ? "btn-primary" : "btn-secondary"} mt-4 w-full scroll-mt-28`}
+                >
+                  {snapshot.quizPassed ? "Open the quiz" : "Take the quiz"}
+                </Link>
+              ) : null}
+            </div>
           </section>
 
           <section className="sheet overflow-hidden" aria-labelledby="room-facts-title">
@@ -397,35 +399,49 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
             {room.coverImageUrl ? (
               <FallbackImage src={room.coverImageUrl} alt="" className="h-36 w-full border-b border-line object-cover" fallback={null} />
             ) : null}
-            <div className="grid grid-cols-2">
-              <Figure
-                className="border-b border-r border-line-soft p-4"
-                label="Points"
-                value={formatNumber(points.total)}
-                unit="pts"
-                note={points.quizBonus > 0 ? `Quiz bonus ${formatNumber(points.quizBonus)}` : undefined}
-              />
-              <Figure className="border-b border-line-soft p-4" label="Time" value={room.estimatedMinutes} unit="min" />
-              <Figure
-                className="border-r border-line-soft p-4"
-                label="Difficulty"
-                size="sm"
-                value={<span className="block break-words">{room.difficulty}</span>}
-              />
-              <Figure className="p-4" label="Tasks" value={totalTasks} note={room.quiz ? "plus 1 quiz" : "No quiz"} />
-            </div>
-            <div className="flex items-center gap-3 border-t border-line-soft p-4">
-              <EntityLogo name={room.learningPath.title} src={room.learningPath.logoUrl} size="md" />
-              <div className="min-w-0">
-                <p className="field-label">Learning path</p>
-                <Link href={`/learning-paths/${room.learningPath.slug}`} className="text-link text-sm">
-                  {room.learningPath.title}
-                </Link>
-                <p className="mt-0.5 text-xs text-ink-3">{room.category}</p>
+            {/* Fakta room sebagai baris bergaris label kiri, nilai kanan; strip angka besar hanya ada di dashboard. */}
+            <dl className="divide-y divide-line text-sm">
+              <div className="flex items-baseline justify-between gap-3 px-5 py-3">
+                <dt className="text-ink-2">Points</dt>
+                <dd className="min-w-0 text-right">
+                  <span className="figure font-semibold text-ink">{formatNumber(points.total)} pts</span>
+                  {points.quizBonus > 0 ? (
+                    <span className="figure mt-0.5 block text-xs text-ink-3">Quiz bonus {formatNumber(points.quizBonus)}</span>
+                  ) : null}
+                </dd>
               </div>
-            </div>
+              <div className="flex items-baseline justify-between gap-3 px-5 py-3">
+                <dt className="text-ink-2">Time</dt>
+                <dd className="figure font-semibold text-ink">{room.estimatedMinutes} min</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 px-5 py-3">
+                <dt className="text-ink-2">Difficulty</dt>
+                <dd className="min-w-0 break-words text-right font-display font-semibold text-ink">{room.difficulty}</dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3 px-5 py-3">
+                <dt className="text-ink-2">Tasks</dt>
+                <dd className="figure text-right font-semibold text-ink">
+                  {totalTasks}
+                  {room.quiz ? " plus 1 quiz" : ", no quiz"}
+                </dd>
+              </div>
+            </dl>
+            {/* Baris path: seluruh baris tautan; outline fokus digambar ke dalam karena panel memotong luapan. */}
+            <Link
+              href={`/learning-paths/${room.learningPath.slug}`}
+              className="group flex items-center gap-3 border-t border-line px-5 py-3.5 transition-colors hover:bg-well focus-visible:outline-offset-[-2px]"
+            >
+              <EntityLogo name={room.learningPath.title} src={room.learningPath.logoUrl} size="md" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-display font-semibold text-ink group-hover:text-cyan-ink">{room.learningPath.title}</span>
+                <span className="mt-0.5 block truncate text-xs text-ink-3">Learning path · {room.category}</span>
+              </span>
+              <svg viewBox="0 0 16 16" className="h-4 w-4 shrink-0 text-ink-3 group-hover:text-cyan-ink" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="m6 3.5 4.5 4.5L6 12.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </Link>
             {scheduleTag ? (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line-soft p-4">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-line px-5 py-4">
                 {scheduleTag}
                 <span className="text-xs text-ink-3">{describeAvailability(availability)}</span>
               </div>
@@ -433,16 +449,19 @@ export default async function RoomDetailPage({ params }: { params: { slug: strin
           </section>
 
           <section className="sheet p-5" aria-labelledby="room-lab-title">
-            <h2 id="room-lab-title" className="font-semibold text-ink">
-              Lab
-            </h2>
-            <p className="mt-1 text-sm leading-relaxed text-ink-2">
-              Hands-on labs aren&apos;t connected yet: no virtual machines or VPN sit behind this room. The lab page shows what is planned.
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+              <h2 id="room-lab-title" className="text-base font-bold text-ink">
+                Lab
+              </h2>
+              <StateTag tone="muted">Not connected</StateTag>
+            </div>
+            <p className="mt-1.5 text-sm leading-relaxed text-ink-2">
+              No virtual machines or VPN sit behind this room yet. The lab page shows what is planned.
             </p>
             {session?.targetIp ? (
-              <dl className="mt-3 rounded-lg bg-well px-3 py-2.5">
+              <dl className="mt-3 border-t border-line pt-3">
                 <dt className="field-label">Target IP (placeholder record)</dt>
-                <dd className="mt-0.5 font-mono text-sm text-ink">{session.targetIp}</dd>
+                <dd className="mt-1 font-mono text-sm text-ink">{session.targetIp}</dd>
               </dl>
             ) : null}
             <Link href={`/rooms/${room.slug}/lab`} className="btn-secondary mt-4 w-full">

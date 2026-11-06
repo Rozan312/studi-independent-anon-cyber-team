@@ -3,9 +3,7 @@ import Link from "next/link";
 import { AnnouncementAudience } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { ProgressRing } from "@/components/paper/progress-ring";
 import { StateTag } from "@/components/paper/state-tag";
-import { CircuitStrip } from "@/components/paper/circuit";
 import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
 import { PageNotice } from "@/components/ui/page-notice";
 import { requireRole } from "@/lib/auth/guards";
@@ -13,7 +11,7 @@ import { prisma } from "@/lib/db/prisma";
 import { DISPLAY_TIME_ZONE, getRoomAvailability } from "@/lib/learning/availability";
 import { formatDayMonth, formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
-import { getGlobalLeaderboard, getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
+import { getGlobalLeaderboard } from "@/lib/services/leaderboard-service";
 import { getLearningStreak } from "@/lib/services/activity-service";
 import { sortByDifficulty } from "@/lib/learning/difficulty";
 import { earnablePoints } from "@/lib/learning/points";
@@ -61,7 +59,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
   const notice = buildDashboardNotice(searchParams);
   const now = new Date();
 
-  const [recentProgress, leaderboard, announcements, completedRooms, quizAttempts, publishedPathRows, standing, streak] =
+  const [recentProgress, leaderboard, announcements, completedRooms, quizAttempts, publishedPathRows, streak, passedQuizGroups] =
     await Promise.all([
       prisma.userRoomProgress.findMany({
         where: { userId: profile.id },
@@ -91,8 +89,9 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         include: { rooms: { where: { isPublished: true }, select: { id: true } } },
         orderBy: [{ difficulty: "asc" }, { title: "asc" }]
       }),
-      getUserLeaderboardStanding(profile.id),
-      getLearningStreak(profile.id, now)
+      getLearningStreak(profile.id, now),
+      // Quiz berbeda yang pernah lulus (sama dengan halaman Progress dan Profile).
+      prisma.userQuizAttempt.groupBy({ by: ["quizId"], where: { userId: profile.id, passed: true } })
     ]);
 
   const completedRoomIds = new Set(completedRooms.map((row) => row.roomId));
@@ -184,187 +183,254 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
   const subtitle = activePath
     ? `${activePath.path.title} · ${activePath.completedRooms} of ${activePath.totalRooms} ${activePath.totalRooms === 1 ? "room" : "rooms"} completed`
     : "Pick a learning path to start your first room.";
+  const pathMinutes = pathRooms.reduce((sum, room) => sum + room.estimatedMinutes, 0);
 
   return (
-    <AppShell title={`${greeting(now)}, ${firstName}`} subtitle={subtitle} role={profile.role}>
+    <AppShell
+      title={
+        <>
+          {greeting(now)}, <span className="text-cyan-ink">{firstName}</span>
+        </>
+      }
+      subtitle={subtitle}
+      role={profile.role}
+    >
       {notice ? <PageNotice tone={notice.tone} title={notice.title} message={notice.message} className="mb-6" /> : null}
 
       {/* Kolom samping 340px baru dibuka di xl: di lg rail 256px masih terbuka, kolom utama tinggal di bawah 330px. */}
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="sheet flex flex-col overflow-hidden" aria-labelledby="next-step-title">
-          {activePath ? <CircuitStrip className="border-b border-line-soft bg-paper/60" /> : null}
-          <div className="flex flex-1 flex-col gap-6 p-5 sm:flex-row sm:items-start sm:p-7">
-          {activePath ? (
-            <>
-              <ProgressRing
-                segments={pathRooms.map((room) =>
-                  room.userProgress[0]?.status === "COMPLETED" ? "done" : room.id === nextRoom?.id ? "next" : "todo"
-                )}
-                size={200}
-                label={`${activePath.completedRooms}/${activePath.totalRooms}`}
-                sublabel={activePath.totalRooms === 1 ? "room" : "rooms"}
-                title={`${activePath.path.title}: ${activePath.completedRooms} of ${plural(activePath.totalRooms, "room")} completed`}
-                className="mx-auto h-40 w-40 sm:mx-0 sm:h-[200px] sm:w-[200px]"
-              />
-              <div className="min-w-0 flex-1 sm:pt-3">
-                {nextRoom ? (
-                  <>
-                    <h2 id="next-step-title" className="text-2xl font-bold leading-tight tracking-[-0.015em] text-ink [text-wrap:balance]">
-                      {nextRoom.title}
-                    </h2>
-                    <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
-                      <span>
-                        Room {nextRoomPosition} of {activePath.totalRooms}
-                      </span>
-                      <span aria-hidden="true">·</span>
-                      <span>{nextRoom.difficulty}</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{formatNumber(nextRoomPoints)} pts</span>
-                      <span aria-hidden="true">·</span>
-                      <span>{nextRoom.estimatedMinutes} min</span>
-                      {nextRoomAvailability && !nextRoomAvailability.isOpen ? (
-                        <StateTag tone={nextRoomAvailability.state === "upcoming" ? "amber" : "red"} className="ml-1">
-                          {nextRoomAvailability.state === "upcoming" && nextRoomAvailability.opensAt
-                            ? `Opens ${formatDayMonth(nextRoomAvailability.opensAt)}`
-                            : "Closed"}
-                        </StateTag>
-                      ) : null}
-                    </p>
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* Panel Continue: satu-satunya panel bertepi cyan, karena di sinilah langkah berikutnya. */}
+          <section
+            className={`sheet grid overflow-hidden md:grid-cols-2 ${activePath ? "border-cyan-ink/35" : ""}`}
+            aria-labelledby="next-step-title"
+          >
+            {activePath ? (
+              <>
+                <div className="flex flex-col p-5 sm:p-6 md:border-r md:border-line">
+                  {nextRoom ? (
+                    <>
+                      <h2 id="next-step-title" className="text-[1.375rem] font-bold leading-tight tracking-[-0.015em] text-ink [text-wrap:balance]">
+                        {nextRoom.title}
+                      </h2>
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+                        <span>
+                          Room {nextRoomPosition} of {activePath.totalRooms}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{nextRoom.difficulty}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="figure">{formatNumber(nextRoomPoints)} pts</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="figure">{nextRoom.estimatedMinutes} min</span>
+                        {nextRoomAvailability && !nextRoomAvailability.isOpen ? (
+                          <StateTag tone={nextRoomAvailability.state === "upcoming" ? "amber" : "red"} className="ml-1">
+                            {nextRoomAvailability.state === "upcoming" && nextRoomAvailability.opensAt
+                              ? `Opens ${formatDayMonth(nextRoomAvailability.opensAt)}`
+                              : "Closed"}
+                          </StateTag>
+                        ) : null}
+                      </p>
 
-                    {nextTask || quizWaiting ? (
-                      <div className="mt-4 rounded-lg border border-dashed border-cyan-ink/40 bg-cyan-soft/50 px-4 py-3">
-                        <p className="text-sm font-semibold text-cyan-ink">
-                          {nextTask ? `Task ${nextTaskIndex + 1} of ${tasks.length}` : "Quiz"}
+                      {nextTask || quizWaiting ? (
+                        <p className="mt-4 rounded-lg border border-line-strong bg-well px-3.5 py-2.5 text-[0.9375rem] text-ink">
+                          {/* Label dan hitungan dijaga satu potong (whitespace-nowrap) agar "2 of 2" tidak terbelah di ujung baris. */}
+                          <span className="whitespace-nowrap font-display font-semibold text-cyan-ink">
+                            {nextTask ? (
+                              <>
+                                Next task <span className="figure">{nextTaskIndex + 1} of {tasks.length}</span>
+                              </>
+                            ) : (
+                              "Next: quiz"
+                            )}
+                          </span>
+                          <span className="text-ink-3"> · </span>
+                          {nextTask ? nextTask.title : "All tasks answered. Pass the quiz to complete this room."}
                         </p>
-                        <p className="mt-0.5 text-[0.9375rem] text-ink">{nextTask ? nextTask.title : "All tasks answered. Pass the quiz to complete this room."}</p>
-                      </div>
-                    ) : null}
-
-                    {nextRoomProgress && nextRoomProgress.progressPercentage > 0 ? (
-                      <div className="mt-4 max-w-sm">
-                        <div className="mb-1.5 flex justify-between text-xs text-ink-3">
-                          <span>Room progress</span>
-                          <span className="figure font-semibold text-ink-2">{nextRoomProgress.progressPercentage}%</span>
-                        </div>
-                        <ProgressBar value={nextRoomProgress.progressPercentage} label={`${nextRoom.title} progress`} />
-                      </div>
-                    ) : null}
-
-                    <div className="mt-5 flex flex-wrap items-center gap-3">
-                      {nextRoomAvailability?.isOpen ? (
-                        <Link href={`/rooms/${nextRoom.slug}`} className="btn-primary min-h-11 px-5 text-[0.9375rem]">
-                          {nextRoomProgress && nextRoomProgress.status !== "NOT_STARTED" ? "Resume room" : "Start room"}
-                          <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                            <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-                          </svg>
-                        </Link>
-                      ) : (
-                        <Link href={`/rooms/${nextRoom.slug}`} className="btn-secondary">
-                          View room
-                        </Link>
-                      )}
-                      <Link href={`/learning-paths/${activePath.path.slug}`} className="text-link text-sm">
-                        View {activePath.path.title}
-                      </Link>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <h2 id="next-step-title" className="text-2xl font-bold leading-tight text-ink">
-                      {activePath.path.title} is complete
-                    </h2>
-                    <p className="mt-1.5 text-ink-2">You passed every room in this path. Choose the next path to keep your streak going.</p>
-                    <div className="mt-5">
-                      <Link href="/learning-paths" className="btn-primary">
-                        Choose next path
-                      </Link>
-                    </div>
-                  </>
-                )}
-              </div>
-            </>
-          ) : (
-            <div className="w-full">
-              <h2 id="next-step-title" className="sr-only">
-                Next step
-              </h2>
-              <EmptyState
-                title="No learning paths are published yet"
-                message="Your next room shows up here once instructors publish a learning path."
-              />
-            </div>
-          )}
-          </div>
-          {activePath && pathRooms.length > 1 ? (
-            // Itinerary path aktif: setiap room bernomor seri dengan statusnya, agar posisi member selalu terlihat.
-            <ol className="mt-auto flex gap-1.5 overflow-x-auto border-t border-line-soft bg-paper/50 px-5 py-3 sm:px-7" aria-label={`${activePath.path.title} rooms`}>
-              {pathRooms.map((room, index) => {
-                const done = room.userProgress[0]?.status === "COMPLETED";
-                const isNext = room.id === nextRoom?.id;
-                const open = getRoomAvailability(room, now).isOpen;
-                const state = done ? "passed" : isNext ? "next" : open ? "not started" : "not open";
-                // Nomor seri yang terlihat juga dipakai di aria-label agar perintah suara "click 01" cocok.
-                const serial = String(index + 1).padStart(2, "0");
-                return (
-                  <li key={room.id} className="shrink-0">
-                    <Link
-                      href={`/rooms/${room.slug}`}
-                      aria-label={`Room ${serial}: ${room.title}, ${state}`}
-                      title={room.title}
-                      aria-current={isNext ? "step" : undefined}
-                      className={`figure inline-flex h-8 min-w-[2.75rem] items-center justify-center gap-1 coarse:h-11 rounded-md px-2 text-xs font-bold transition-colors ${
-                        done
-                          ? "bg-violet-soft text-violet hover:bg-violet/15"
-                          : isNext
-                            ? "bg-cyan-soft text-ink ring-1 ring-inset ring-cyan-ink/50"
-                            : open
-                              ? "border border-line bg-sheet text-ink-2 hover:border-line-strong"
-                              : "border border-dashed border-line-strong text-ink-3"
-                      }`}
-                    >
-                      {done ? (
-                        <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                          <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
                       ) : null}
-                      {serial}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          ) : null}
-        </section>
 
-        <div className="flex flex-col gap-5">
+                      {nextRoomProgress && nextRoomProgress.progressPercentage > 0 ? (
+                        <div className="mt-4">
+                          <div className="mb-1.5 flex justify-between text-xs text-ink-3">
+                            <span>Room progress</span>
+                            <span className="figure font-semibold text-ink-2">{nextRoomProgress.progressPercentage}%</span>
+                          </div>
+                          <ProgressBar value={nextRoomProgress.progressPercentage} tone="cyan" label={`${nextRoom.title} progress`} />
+                        </div>
+                      ) : null}
+
+                      <div className="mt-5 flex flex-wrap items-center gap-3 md:mt-auto md:pt-5">
+                        {nextRoomAvailability?.isOpen ? (
+                          <Link href={`/rooms/${nextRoom.slug}`} className="btn-primary min-h-11 px-5 text-[0.9375rem]">
+                            {nextRoomProgress && nextRoomProgress.status !== "NOT_STARTED" ? "Resume room" : "Start room"}
+                            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                              <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </Link>
+                        ) : (
+                          <Link href={`/rooms/${nextRoom.slug}`} className="btn-secondary min-h-11">
+                            View room
+                          </Link>
+                        )}
+                        <Link href={`/learning-paths/${activePath.path.slug}`} className="btn-secondary min-h-11">
+                          View path
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h2 id="next-step-title" className="text-[1.375rem] font-bold leading-tight text-ink">
+                        {activePath.path.title} is complete
+                      </h2>
+                      <p className="mt-1.5 text-ink-2">You passed every room in this path. Choose the next path to keep your streak going.</p>
+                      <div className="mt-5">
+                        <Link href="/learning-paths" className="btn-primary">
+                          Choose next path
+                        </Link>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Daftar room path aktif: posisi member, status tiap room, dan perkiraan menitnya. */}
+                <div className="border-t border-line p-5 sm:p-6 md:border-t-0">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h3 className="truncate text-sm font-semibold text-ink">{activePath.path.title}</h3>
+                    <span className="figure shrink-0 text-xs text-ink-3">{pathMinutes} min</span>
+                  </div>
+                  <ol className="mt-2 divide-y divide-line" aria-label={`${activePath.path.title} rooms`}>
+                    {pathRooms.map((room, index) => {
+                      const progress = room.userProgress[0];
+                      const done = progress?.status === "COMPLETED";
+                      const isNext = room.id === nextRoom?.id;
+                      const availability = getRoomAvailability(room, now);
+                      const serial = String(index + 1).padStart(2, "0");
+                      const detail = done
+                        ? `Passed${progress?.completedAt ? ` · ${formatDayMonth(progress.completedAt)}` : ""}`
+                        : isNext
+                          ? "Up next"
+                          : availability.isOpen
+                            ? "Not started"
+                            : availability.state === "upcoming" && availability.opensAt
+                              ? `Opens ${formatDayMonth(availability.opensAt)}`
+                              : "Closed";
+                      return (
+                        <li key={room.id}>
+                          <Link
+                            href={`/rooms/${room.slug}`}
+                            aria-label={`Room ${serial}: ${room.title}, ${detail.toLowerCase()}`}
+                            aria-current={isNext ? "step" : undefined}
+                            className="group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 py-2.5 coarse:min-h-11"
+                          >
+                            <span
+                              className={`figure grid h-7 w-7 place-items-center rounded-full text-[0.6875rem] font-bold ${
+                                done
+                                  ? "border border-violet/45 bg-violet-soft text-violet"
+                                  : isNext
+                                    ? "border-[1.5px] border-dashed border-cyan-ink text-cyan-ink"
+                                    : "border border-line-strong text-ink-3"
+                              }`}
+                              aria-hidden="true"
+                            >
+                              {done ? (
+                                <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                  <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              ) : (
+                                serial
+                              )}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate font-display font-semibold text-ink group-hover:text-cyan-ink">{room.title}</span>
+                              <span className={`block text-xs ${isNext ? "text-cyan-ink" : "text-ink-3"}`}>{detail}</span>
+                            </span>
+                            <span className="figure text-xs text-ink-3">{room.estimatedMinutes} min</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              </>
+            ) : (
+              <div className="p-5 sm:p-6 md:col-span-2">
+                <h2 id="next-step-title" className="sr-only">
+                  Next step
+                </h2>
+                <EmptyState
+                  title="No learning paths are published yet"
+                  message="Your next room shows up here once instructors publish a learning path."
+                />
+              </div>
+            )}
+          </section>
+
+          {/* Strip angka dasbor (satu dari dua di aplikasi, bersama hasil quiz). Poin dan peringkat tidak diulang di sini: sudah ada di pil bar atas dan Top members. */}
           <section className="sheet overflow-hidden" aria-label="Your numbers">
-            <div className="grid grid-cols-2">
-              <Figure className="border-b border-r border-line-soft p-4" label="Points" value={formatNumber(standing.points)} />
+            <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
               <Figure
-                className="border-b border-line-soft p-4"
+                className="bg-sheet p-4 sm:p-5"
                 label="Streak"
                 value={streak.streakDays}
                 unit={streak.streakDays === 1 ? "day" : "days"}
                 note={`${plural(streak.activeDays, "active day")} in the last 120 days`}
               />
-              <Figure
-                className="border-r border-line-soft p-4"
-                label="Rooms completed"
-                value={completedPublishedCount}
-                note={`of ${publishedRoomIds.size} published`}
-              />
-              <Figure
-                className="p-4"
-                label="Rank"
-                value={standing.rank ? `#${standing.rank}` : "–"}
-                note={standing.rank ? `of ${plural(standing.totalRanked, "member")}` : "Earn points to rank"}
-              />
+              <Figure className="bg-sheet p-4 sm:p-5" label="Rooms completed" value={completedPublishedCount} note={`of ${publishedRoomIds.size} published`} />
+              <Figure className="bg-sheet p-4 sm:p-5" label="Quizzes passed" value={passedQuizGroups.length} note="Each quiz counted once" />
             </div>
           </section>
 
-          <section className="sheet p-4" aria-labelledby="top-members-title">
-            <div className="mb-2 flex items-baseline justify-between">
-              <h2 id="top-members-title" className="font-semibold text-ink">
+          {/* Riwayat terbaru (lulus dan perlu diulang); room berikutnya sudah ada di panel Continue, jadi tidak diulang. */}
+          <section className="sheet px-5 pb-1 pt-4 sm:px-6" aria-labelledby="activity-title">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-3">
+              <h2 id="activity-title" className="text-base font-bold text-ink">
+                Recent activity
+              </h2>
+              <Link href="/progress" className="text-link text-sm">
+                Full record
+              </Link>
+            </div>
+            <CompletionList entries={completionRows} />
+            {completionRows.length === 0 ? <p className="py-3 text-sm text-ink-3">Passed rooms and quiz scores show up here.</p> : null}
+          </section>
+
+          <section className="sheet p-5 sm:p-6" aria-labelledby="paths-title">
+            <SectionHeader
+              id="paths-title"
+              title="Learning paths"
+              action={
+                <Link href="/learning-paths" className="text-link text-sm">
+                  All paths
+                </Link>
+              }
+            />
+            {pathRows.length > 0 ? (
+              <ul className="-mx-2 grid gap-1 sm:grid-cols-2">
+                {pathRows.map(({ path, total, done }) => (
+                  <li key={path.id}>
+                    <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
+                      <EntityLogo name={path.title} src={path.logoUrl} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-display font-semibold text-ink group-hover:text-cyan-ink">{path.title}</span>
+                        <span className="mt-0.5 block text-sm text-ink-3">
+                          {total === 0 ? "No rooms yet" : `${done} of ${plural(total, "room")}`} · {path.difficulty}
+                        </span>
+                      </span>
+                      {total > 0 && done === total ? <StatusPill tone="done">Complete</StatusPill> : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState title="No learning paths yet" message="Published paths will appear here." />
+            )}
+          </section>
+        </div>
+
+        <div className="flex flex-col gap-5">
+          <section className="sheet px-5 pb-2 pt-4" aria-labelledby="top-members-title">
+            <div className="flex items-baseline justify-between border-b border-line pb-3">
+              <h2 id="top-members-title" className="text-base font-bold text-ink">
                 Top members
               </h2>
               <Link href="/leaderboard" className="text-link text-sm">
@@ -372,101 +438,45 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
               </Link>
             </div>
             {leaderboard.length > 0 ? (
-              <ol className="divide-y divide-line-soft">
+              <ol className="divide-y divide-line">
                 {leaderboard.map((row) => {
                   const isYou = row.user?.id === profile.id;
                   return (
-                    <li key={row.user?.id ?? `rank-${row.rank}`} className={`flex items-center gap-3 py-2 ${isYou ? "font-semibold" : ""}`}>
-                      <span className="figure w-6 text-sm font-bold text-ink-3">{row.rank}</span>
-                      <span className="min-w-0 flex-1 truncate text-sm text-ink">
+                    <li key={row.user?.id ?? `rank-${row.rank}`} className={`flex items-center gap-3 py-2.5 text-sm ${isYou ? "font-semibold text-cyan-ink" : "text-ink"}`}>
+                      <span className={`figure w-6 font-bold ${isYou ? "" : "text-ink-3"}`}>{row.rank}</span>
+                      <span className="min-w-0 flex-1 truncate">
                         {row.user?.username ?? "unknown"}
-                        {isYou ? <span className="ml-1.5 text-ink-3">(you)</span> : null}
+                        {isYou ? <span className="ml-1.5 font-normal">(you)</span> : null}
                       </span>
-                      <span className="figure text-sm text-ink-2">{formatNumber(row.points)} pts</span>
+                      <span className={`figure ${isYou ? "" : "text-ink-2"}`}>{formatNumber(row.points)}</span>
                     </li>
                   );
                 })}
               </ol>
             ) : (
-              <p className="py-2 text-sm text-ink-3">No points recorded yet. The first correct answer takes the top spot.</p>
+              <p className="py-3 text-sm text-ink-3">No points recorded yet. The first correct answer takes the top spot.</p>
+            )}
+          </section>
+
+          <section className="sheet p-5" aria-labelledby="announcements-title">
+            <h2 id="announcements-title" className="text-base font-bold text-ink">
+              Announcements
+            </h2>
+            {announcements.length > 0 ? (
+              <ul className="mt-3 divide-y divide-line">
+                {announcements.map((item) => (
+                  <li key={item.id} className="py-3 first:pt-0 last:pb-0">
+                    <p className="text-xs text-ink-3">{formatRelativeTime(item.createdAt, now)}</p>
+                    <p className="mt-0.5 font-display font-semibold leading-snug text-ink">{item.title}</p>
+                    <p className="mt-1 whitespace-pre-line break-words text-sm text-ink-2">{item.content}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-ink-3">No announcements right now.</p>
             )}
           </section>
         </div>
-      </div>
-
-      <section className="sheet mt-5 p-5 sm:p-6" aria-labelledby="completed-title">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <div>
-            <h2 id="completed-title" className="text-lg font-bold text-ink">
-              Completed
-            </h2>
-            <p className="mt-0.5 text-sm text-ink-2">Rooms you&apos;ve passed and your latest quiz scores.</p>
-          </div>
-          <Link href="/progress" className="text-link text-sm">
-            Full record
-          </Link>
-        </div>
-        <div className="mt-4">
-          <CompletionList entries={completionRows} next={nextRoom?.title} />
-          {completionRows.length === 0 ? (
-            <p className="mt-3 text-sm text-ink-3">Passed rooms and quiz scores show up here.</p>
-          ) : null}
-        </div>
-      </section>
-
-      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <section className="sheet p-5 sm:p-6" aria-labelledby="paths-title">
-          <SectionHeader
-            id="paths-title"
-            title="Learning paths"
-            action={
-              <Link href="/learning-paths" className="text-link text-sm">
-                All paths
-              </Link>
-            }
-          />
-          {pathRows.length > 0 ? (
-            <ul className="-mx-2 grid gap-1 sm:grid-cols-2">
-              {pathRows.map(({ path, total, done }) => (
-                <li key={path.id}>
-                  <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
-                    <EntityLogo name={path.title} src={path.logoUrl} size="md" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate font-semibold text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                        {path.title}
-                      </span>
-                      <span className="mt-0.5 block text-sm text-ink-3">
-                        {total === 0 ? "No rooms yet" : `${done} of ${plural(total, "room")}`} · {path.difficulty}
-                      </span>
-                    </span>
-                    {total > 0 && done === total ? <StatusPill tone="done">Complete</StatusPill> : null}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <EmptyState title="No learning paths yet" message="Published paths will appear here." />
-          )}
-        </section>
-
-        <section className="sheet p-5" aria-labelledby="announcements-title">
-          <h2 id="announcements-title" className="font-semibold text-ink">
-            Announcements
-          </h2>
-          {announcements.length > 0 ? (
-            <ul className="mt-3 space-y-4">
-              {announcements.map((item) => (
-                <li key={item.id}>
-                  <p className="text-xs text-ink-3">{formatRelativeTime(item.createdAt, now)}</p>
-                  <p className="mt-0.5 font-semibold leading-snug text-ink">{item.title}</p>
-                  <p className="mt-1 whitespace-pre-line break-words text-sm text-ink-2">{item.content}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-2 text-sm text-ink-3">No announcements right now.</p>
-          )}
-        </section>
       </div>
     </AppShell>
   );

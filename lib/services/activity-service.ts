@@ -24,9 +24,9 @@ function countConsecutiveDays(dayKeys: Set<string>, now: Date) {
   return streak;
 }
 
-/** Jumlah aktivitas (submission task + attempt quiz) per hari dalam 120 hari terakhir, kunci hari lokal server. */
-async function loadDailyActivity(userId: string, now: Date) {
-  const since = new Date(now.getTime() - 120 * DAY_MS);
+/** Jumlah aktivitas (submission task + attempt quiz) per hari dalam `days` hari terakhir, kunci hari lokal server. */
+async function loadDailyActivity(userId: string, now: Date, days = 120) {
+  const since = new Date(now.getTime() - days * DAY_MS);
 
   const [submissions, attempts] = await Promise.all([
     prisma.userTaskSubmission.findMany({
@@ -60,8 +60,10 @@ export async function getLearningStreak(userId: string, now = new Date()) {
   };
 }
 
-/** Jumlah minggu di kalender aktivitas; 17 minggu (maks. 119 hari) tetap di dalam jendela 120 hari. */
+/** Jumlah minggu bawaan di kalender aktivitas; 17 minggu (maks. 119 hari) tetap di dalam jendela 120 hari. */
 export const ACTIVITY_CALENDAR_WEEKS = 17;
+/** Kalender lebar di halaman Progress: setengah tahun. Hari aktif "dalam 120 hari" tetap dihitung dari 120 hari. */
+export const ACTIVITY_CALENDAR_WEEKS_WIDE = 26;
 
 export type ActivityDay = { date: Date; count: number };
 
@@ -75,14 +77,19 @@ export type ActivityCalendar = {
   busiestWeekday: number | null;
 };
 
-/** Streak plus kalender aktivitas harian untuk heatmap di halaman Progress dan Profile. */
-export async function getLearningActivity(userId: string, now = new Date()) {
-  const counts = await loadDailyActivity(userId, now);
+/** Streak plus kalender aktivitas harian (`weeks` minggu) untuk heatmap di halaman Progress dan Profile. */
+export async function getLearningActivity(userId: string, now = new Date(), weeksShown = ACTIVITY_CALENDAR_WEEKS) {
+  const counts = await loadDailyActivity(userId, now, Math.max(120, weeksShown * 7));
   const dayKeys = new Set(counts.keys());
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const mondayOffset = (today.getDay() + 6) % 7;
-  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - mondayOffset - (ACTIVITY_CALENDAR_WEEKS - 1) * 7);
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate() - mondayOffset - (weeksShown - 1) * 7);
+  // Hari aktif dalam 120 hari terakhir dihitung terpisah agar sama dengan getLearningStreak walau kalender lebih panjang.
+  let windowActiveDays = 0;
+  for (let offset = 0; offset < 120; offset += 1) {
+    if (counts.has(toDayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset)))) windowActiveDays += 1;
+  }
 
   const weeks: ActivityDay[][] = [];
   const weekdayTotals = new Array<number>(7).fill(0);
@@ -115,7 +122,7 @@ export async function getLearningActivity(userId: string, now = new Date()) {
   return {
     streakDays: countConsecutiveDays(dayKeys, now),
     /** Hari aktif dalam 120 hari terakhir (sama dengan getLearningStreak). */
-    windowActiveDays: dayKeys.size,
+    windowActiveDays,
     calendar: {
       weeks,
       total,

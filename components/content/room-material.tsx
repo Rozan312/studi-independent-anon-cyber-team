@@ -3,7 +3,7 @@ import { isRichHtmlEmpty, nestRichHtmlHeadings, renderRoomMaterialHtml } from "@
 
 /** Teks pengganti bawaan saat materi kosong: jujur soal kenapa kosong dan apa yang bisa dikerjakan. */
 const defaultFallback = (
-  <p className="rounded-lg border border-dashed border-line-strong bg-well px-4 py-3.5 text-sm leading-relaxed text-ink-2">
+  <p className="rounded-lg border border-dashed border-line-strong bg-paper/60 px-4 py-3.5 text-sm leading-relaxed text-ink-2">
     The instructor hasn&apos;t added material to this room yet. Work through the tasks using the instructions in each one.
   </p>
 );

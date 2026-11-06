@@ -346,7 +346,7 @@ function AddQuestionForm({ quizId, roomId, disabled }: { quizId: string; roomId:
   );
 }
 
-/** Pengaturan quiz lalu daftar pertanyaan bergaris di dalam lembar seksi (bukan kartu di dalam kartu). */
+/** Pengaturan quiz lalu daftar pertanyaan bergaris di dalam panel seksi (bukan kartu di dalam kartu). */
 export function QuizEditor({ roomId, quiz, disabled = false }: { roomId: string; quiz: EditorQuiz | null; disabled?: boolean }) {
   return (
     <div>
@@ -371,7 +371,7 @@ export function QuizEditor({ roomId, quiz, disabled = false }: { roomId: string;
               <EmptyState title="No questions yet" message="Members can take this quiz once it has at least one question." />
             </div>
           ) : (
-            <div className="divide-y divide-line-soft">
+            <div className="divide-y divide-line">
               {quiz.questions.map((question, index) => (
                 <QuestionRow
                   key={question.id}

@@ -123,7 +123,7 @@ export function ImageUploadField({
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         className={`mt-1.5 rounded-lg border border-dashed p-3 transition-colors ${
-          dragging ? "border-ink-3 bg-well" : "border-line-strong bg-paper"
+          dragging ? "border-cyan-ink bg-cyan-soft" : "border-line-strong bg-paper"
         } ${disabled ? "opacity-60" : ""}`}
       >
         {value ? (
@@ -176,7 +176,7 @@ export function ImageUploadField({
         </div>
       </div>
 
-      <label htmlFor={urlId} className="mt-3 block text-sm font-medium text-ink-2">
+      <label htmlFor={urlId} className="mt-3 block font-display text-sm font-medium text-ink-2">
         {label} URL
       </label>
       <input
@@ -185,7 +185,7 @@ export function ImageUploadField({
         value={value}
         onChange={(event) => setValue(event.target.value)}
         placeholder="/api/media/… or https://"
-        className={inputClass}
+        className={`${inputClass} font-mono text-sm`}
         disabled={disabled}
         aria-describedby={help ? helpId : undefined}
       />

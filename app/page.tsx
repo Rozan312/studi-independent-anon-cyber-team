@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { BrandMark } from "@/components/brand-mark";
+import { StatusPill } from "@/components/card";
 import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
-import { CircuitField, CircuitStrip } from "@/components/paper/circuit";
-import { SiteFooter } from "@/components/site-footer";
+import { PublicShell } from "@/components/public-shell";
 
 /** Contoh riwayat untuk pengunjung. Diberi label "Example" di halaman; bukan progres siapa pun. */
 const EXAMPLE_COMPLETIONS: CompletionEntry[] = [
-  { id: "example-room-1", kind: "room", title: "Introduction to HTTP", date: "3 Oct 2026" },
+  // fresh: centang contoh digambar sekali saat halaman dibuka, sama seperti centang baru di dashboard.
+  { id: "example-room-1", kind: "room", title: "Introduction to HTTP", date: "3 Oct 2026", fresh: true },
   { id: "example-quiz-1", kind: "quiz-pass", title: "Introduction to HTTP", score: 90, date: "3 Oct 2026" },
   { id: "example-quiz-2", kind: "quiz-retry", title: "Linux Command Line Basics", score: 60, date: "9 Oct 2026" }
 ];
@@ -18,28 +18,24 @@ const ROOM_STEPS = [
   { title: "Track your progress", body: "Passed rooms get a check mark, quiz scores are saved, and points count toward the leaderboard." }
 ];
 
-/** Halaman depan publik: identitas komunitas, cara kerja room, contoh daftar progres, dan dua pintu masuk. */
+/**
+ * Halaman depan publik: bar atas (logo, nama, tombol tema), judul dengan dua pintu masuk di samping panel
+ * cara kerja room, lalu contoh daftar progres berlabel. Tanpa gradasi: dasar rata dengan panel bersambungan tipis.
+ */
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-paper">
-      <header className="digital-surface relative overflow-hidden border-b border-line">
-        {/* Jalur sirkuit di sisi kanan hero, memudar ke arah teks. */}
-        <CircuitField className="pointer-events-none absolute inset-y-0 right-0 h-full w-[70%] opacity-60 [mask-image:linear-gradient(to_left,black_35%,transparent)] sm:opacity-100 lg:w-[55%]" />
-        <div className="relative mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 lg:px-10 lg:pb-20">
-          <div className="flex items-center gap-3">
-            <BrandMark size={44} />
-            <span className="text-base font-bold tracking-[-0.01em] text-ink">Anon Cyber Team</span>
-          </div>
-
-          <div className="mt-12 max-w-xl lg:mt-20">
-            <h1 className="text-[2.25rem] font-bold leading-[1.08] tracking-[-0.025em] text-ink [text-wrap:balance] sm:text-5xl">
+    <PublicShell brandHref={null}>
+      <main className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-10">
+        <div className="grid grid-cols-1 items-center gap-10 pt-10 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,27.5rem)] lg:gap-16 lg:pt-20">
+          <div className="min-w-0">
+            <h1 className="text-[2.375rem] font-bold leading-[1.05] tracking-[-0.028em] text-ink [text-wrap:balance] sm:text-5xl lg:text-[3.25rem]">
               Learn cybersecurity at your own pace
             </h1>
-            <p className="mt-4 max-w-lg text-[1.0625rem] leading-relaxed text-ink-2">
+            <p className="mt-5 max-w-[34rem] text-[1.0625rem] leading-relaxed text-ink-2">
               Learning paths made of rooms, written and run by the Anon Cyber Team community. Read, practise, pass the quiz, and
               see your progress add up.
             </p>
-            <nav aria-label="Account" className="mt-7 flex flex-wrap gap-3">
+            <nav aria-label="Account" className="mt-8 flex flex-wrap gap-3">
               <Link href="/login" className="btn-primary min-h-11 px-6 text-[0.9375rem]">
                 Sign in
               </Link>
@@ -48,48 +44,49 @@ export default function HomePage() {
               </Link>
             </nav>
           </div>
-        </div>
-        <CircuitStrip className="relative border-t border-line-soft bg-paper/40" />
-      </header>
 
-      <main className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 lg:px-10 lg:pt-14">
-        <section aria-labelledby="how-title">
-          <h2 id="how-title" className="text-xl font-bold tracking-[-0.012em] text-ink">
-            How a room works
-          </h2>
-          <ol className="sheet mt-4 grid grid-cols-1 overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
-            {ROOM_STEPS.map((step, index) => (
-              <li key={step.title} className="border-b border-line-soft p-5 last:border-b-0 sm:[&:nth-child(odd)]:border-r lg:border-b-0 lg:border-r lg:last:border-r-0">
-                <p className="flex items-baseline gap-2.5 font-semibold text-ink">
-                  <span className="figure w-5 shrink-0 text-sm font-bold text-ink-3" aria-hidden="true">
+          {/* Urutan satu room sebagai daftar berhenti, kosakata yang sama dengan daftar room path di dashboard. */}
+          <section className="sheet px-5 pb-1 pt-4 sm:px-6" aria-labelledby="how-title">
+            <h2 id="how-title" className="border-b border-line pb-3 text-lg font-bold leading-snug text-ink">
+              How a room works
+            </h2>
+            <ol className="divide-y divide-line">
+              {ROOM_STEPS.map((step, index) => (
+                <li key={step.title} className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 py-3.5">
+                  <span
+                    className="figure mt-px grid h-7 w-7 place-items-center rounded-full border border-line-strong text-[0.6875rem] font-bold text-ink-3"
+                    aria-hidden="true"
+                  >
                     {String(index + 1).padStart(2, "0")}
                   </span>
-                  {step.title}
-                </p>
-                <p className="mt-1 pl-[1.875rem] text-sm leading-relaxed text-ink-2">{step.body}</p>
-              </li>
-            ))}
-          </ol>
-        </section>
+                  <span className="min-w-0">
+                    <span className="block font-display font-semibold leading-snug text-ink">{step.title}</span>
+                    <span className="mt-0.5 block text-sm leading-relaxed text-ink-2">{step.body}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </div>
 
-        <section className="mt-12" aria-labelledby="progress-example-title">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 id="progress-example-title" className="text-xl font-bold tracking-[-0.012em] text-ink">
-              Your progress, at a glance
-            </h2>
-            <span className="field-label rounded border border-line-strong px-1.5 py-0.5">Example</span>
+        <section className="sheet mt-14 px-5 pb-2 pt-4 sm:px-6 lg:mt-16" aria-labelledby="progress-example-title">
+          <div className="border-b border-line pb-3">
+            <div className="flex items-start justify-between gap-3">
+              <h2 id="progress-example-title" className="min-w-0 text-lg font-bold leading-snug text-ink">
+                Your progress, at a glance
+              </h2>
+              {/* Label wajib: daftar di bawah ini contoh, bukan data anggota. */}
+              <StatusPill className="mt-0.5 shrink-0">Example</StatusPill>
+            </div>
+            <p className="mt-1 max-w-2xl text-sm text-ink-2">
+              Passed rooms get a check, quizzes show your score, and anything to retry is marked. Your own list starts empty.
+            </p>
           </div>
-          <p className="mt-1 max-w-2xl text-[0.9375rem] text-ink-2">
-            Passed rooms get a check, quizzes show your score, and anything to retry is marked. Your own list starts empty.
-          </p>
-          <div className="sheet mt-4 p-3 sm:p-4">
+          <div className="pt-1">
             <CompletionList entries={EXAMPLE_COMPLETIONS} next="Authentication Concepts" />
           </div>
         </section>
-
       </main>
-
-      <SiteFooter className="mx-auto max-w-6xl px-4 pb-10 sm:px-6 lg:px-10" />
-    </div>
+    </PublicShell>
   );
 }

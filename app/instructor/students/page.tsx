@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, ProgressBar, SectionHeader } from "@/components/card";
+import { EmptyState, ProgressBar } from "@/components/card";
+import { bodyCellClass, headCellClass, listPanelClass, panelHeadClass, panelTitleClass, tableRowClass } from "@/components/instructor/form-styles";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
@@ -8,9 +9,6 @@ import { getStudentProgress } from "@/lib/services/instructor-service";
 
 export const metadata: Metadata = { title: "Members" };
 export const dynamic = "force-dynamic";
-
-const headCell = "field-label whitespace-nowrap border-b border-line px-3 py-2.5 text-left first:pl-5 last:pr-5";
-const bodyCell = "px-3 py-2.5 first:pl-5 last:pr-5";
 
 const PROGRESS_LABEL: Record<string, string> = {
   NOT_STARTED: "Not started",
@@ -80,50 +78,64 @@ export default async function InstructorMembersPage() {
 
   return (
     <AppShell title="Members" subtitle="How far members of your classes are through the published rooms." role={profile.role}>
-      <section className="sheet overflow-hidden" aria-labelledby="member-progress-title">
-        <div className="px-5 pt-5 sm:px-6 sm:pt-6">
-          <SectionHeader
-            id="member-progress-title"
-            title="Member progress"
-            description={
-              memberRows.length > 0
-                ? `${formatNumber(memberRows.length)} ${memberRows.length === 1 ? "member has" : "members have"} opened at least one room. Rooms completed counts the ${formatNumber(publishedRoomCount)} published ${roomNoun(publishedRoomCount)} in published learning paths.`
-                : undefined
-            }
-          />
+      <section className={listPanelClass} aria-labelledby="member-progress-title">
+        <div className={panelHeadClass}>
+          <div className="min-w-0">
+            <h2 id="member-progress-title" className={panelTitleClass}>
+              Member progress
+            </h2>
+            {memberRows.length > 0 ? (
+              <p className="mt-0.5 max-w-3xl text-sm text-ink-2">
+                {formatNumber(memberRows.length)} {memberRows.length === 1 ? "member has" : "members have"} opened at least one room. Rooms completed
+                counts the {formatNumber(publishedRoomCount)} published {roomNoun(publishedRoomCount)} in published learning paths.
+              </p>
+            ) : null}
+          </div>
         </div>
 
         {memberRows.length === 0 ? (
-          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="p-5 sm:p-6">
             <EmptyState
               title="No member activity yet"
               message="Members of your classes appear here once they open their first room. Check Classes to see who is assigned to you."
             />
           </div>
         ) : (
-          <div className="overflow-x-auto pb-2">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[820px] text-sm">
               <thead>
                 <tr>
-                  <th className={headCell}>Member</th>
-                  <th className={headCell}>Rooms completed</th>
-                  <th className={`${headCell} text-right`}>In progress</th>
-                  <th className={`${headCell} text-right`}>Points</th>
-                  <th className={headCell}>Latest room</th>
-                  <th className={`${headCell} text-right`}>Last activity</th>
+                  <th scope="col" className={headCellClass}>
+                    Member
+                  </th>
+                  <th scope="col" className={headCellClass}>
+                    Rooms completed
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
+                    In progress
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
+                    Points
+                  </th>
+                  <th scope="col" className={headCellClass}>
+                    Latest room
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
+                    Last activity
+                  </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody className="divide-y divide-line">
                 {memberRows.map((member) => {
                   const share = publishedRoomCount > 0 ? (member.roomsDone / publishedRoomCount) * 100 : 0;
 
                   return (
-                    <tr key={member.id} className="hover:bg-well">
-                      <td className={bodyCell}>
-                        <p className="font-semibold text-ink">{member.fullName}</p>
+                    <tr key={member.id} className={tableRowClass}>
+                      <td className={bodyCellClass}>
+                        <p className="font-display font-semibold text-ink">{member.fullName}</p>
                         <p className="text-xs text-ink-3">@{member.username}</p>
                       </td>
-                      <td className={bodyCell}>
+                      <td className={bodyCellClass}>
                         <p className="figure text-ink">
                           <span className="font-semibold">{member.roomsDone}</span>
                           <span className="text-ink-3"> of {publishedRoomCount}</span>
@@ -134,16 +146,16 @@ export default async function InstructorMembersPage() {
                           className="mt-1.5 w-32"
                         />
                       </td>
-                      <td className={`${bodyCell} figure text-right text-ink-2`}>{member.roomsInProgress}</td>
-                      <td className={`${bodyCell} figure text-right font-semibold text-ink`}>{formatNumber(pointsByMember.get(member.id) ?? 0)}</td>
-                      <td className={bodyCell}>
+                      <td className={`${bodyCellClass} figure text-right text-ink-2`}>{member.roomsInProgress}</td>
+                      <td className={`${bodyCellClass} figure text-right font-semibold text-ink`}>{formatNumber(pointsByMember.get(member.id) ?? 0)}</td>
+                      <td className={bodyCellClass}>
                         <p className="max-w-[16rem] truncate text-ink-2">{member.latestRoom}</p>
                         <p className="text-xs text-ink-3">
                           {PROGRESS_LABEL[member.latestStatus] ?? member.latestStatus}
                           {member.latestStatus === "IN_PROGRESS" ? ` · ${member.latestPercentage}%` : ""}
                         </p>
                       </td>
-                      <td className={`${bodyCell} whitespace-nowrap text-right text-ink-3`} title={formatShortDate(member.lastActivity)}>
+                      <td className={`${bodyCellClass} whitespace-nowrap text-right text-ink-3`} title={formatShortDate(member.lastActivity)}>
                         {formatRelativeTime(member.lastActivity, now)}
                       </td>
                     </tr>

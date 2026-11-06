@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormState } from "react-dom";
-import { StatusPill } from "@/components/card";
+import { PublishPill } from "@/components/instructor/publish-state";
 import type { ActionMessageState } from "@/components/ui/action-message";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -38,7 +38,7 @@ export function PublishToggleForm({
       <input type="hidden" name={idField} value={id} />
       <input type="hidden" name="isPublished" value={String(!isPublished)} />
       <div className="flex flex-wrap items-center gap-2">
-        {showState ? <StatusPill tone={isPublished ? "success" : "neutral"}>{isPublished ? "Published" : "Draft"}</StatusPill> : null}
+        {showState ? <PublishPill published={isPublished} /> : null}
         <SubmitButton
           label={isPublished ? "Unpublish" : "Publish"}
           pendingLabel={isPublished ? "Unpublishing…" : "Publishing…"}

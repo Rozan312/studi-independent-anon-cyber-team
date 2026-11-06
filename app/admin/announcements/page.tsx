@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { EmptyState, StatusPill } from "@/components/card";
-import { StateTag } from "@/components/paper/state-tag";
+import { PublishPill } from "@/components/instructor/publish-state";
+import { listPanelClass, panelHeadClass, panelTitleClass } from "@/components/instructor/form-styles";
 import { AnnouncementCreateForm, AnnouncementEditForm } from "@/components/admin/announcement-forms";
 import { requireRole } from "@/lib/auth/guards";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
@@ -40,30 +41,28 @@ export default async function AdminAnnouncementsPage() {
           <AnnouncementCreateForm />
         </div>
 
-        <section className="sheet overflow-hidden xl:col-start-1 xl:row-start-1" aria-labelledby="announcement-list-title">
-          <div className="border-b border-line px-5 pb-4 pt-5">
-            <h2 id="announcement-list-title" className="text-lg font-bold text-ink">
-              All announcements
-            </h2>
-            <p className="mt-0.5 text-sm text-ink-2">
-              Newest first. Published announcements appear under Announcements on the dashboard of their audience.
-            </p>
+        <section className={`${listPanelClass} xl:col-start-1 xl:row-start-1`} aria-labelledby="announcement-list-title">
+          <div className={panelHeadClass}>
+            <div className="min-w-0">
+              <h2 id="announcement-list-title" className={panelTitleClass}>
+                All announcements
+              </h2>
+              <p className="mt-0.5 text-sm text-ink-2">
+                Newest first. Published announcements appear under Announcements on the dashboard of their audience.
+              </p>
+            </div>
           </div>
 
           {announcements.length > 0 ? (
-            <ul className="divide-y divide-line-soft">
+            <ul className="divide-y divide-line">
               {announcements.map((announcement) => (
-                <li key={announcement.id} className="px-5 py-4">
+                <li key={announcement.id} className="px-5 py-4 sm:px-6">
                   <article aria-labelledby={`announcement-${announcement.id}-heading`}>
                     <h3 id={`announcement-${announcement.id}-heading`} className="font-semibold leading-snug text-ink">
                       {announcement.title}
                     </h3>
                     <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-3">
-                      {announcement.isPublished ? (
-                        <StatusPill tone="success">Published</StatusPill>
-                      ) : (
-                        <StateTag tone="muted">Draft</StateTag>
-                      )}
+                      <PublishPill published={announcement.isPublished} />
                       <StatusPill tone="neutral">{AUDIENCE_LABEL[announcement.audience] ?? announcement.audience}</StatusPill>
                       <span>
                         {formatShortDate(announcement.createdAt)} by {announcement.createdBy.username}
@@ -85,7 +84,7 @@ export default async function AdminAnnouncementsPage() {
               ))}
             </ul>
           ) : (
-            <div className="p-5">
+            <div className="p-5 sm:p-6">
               <EmptyState
                 title="No announcements yet"
                 message="Write the first one with the New announcement form. Leave it unpublished to keep it as a draft."

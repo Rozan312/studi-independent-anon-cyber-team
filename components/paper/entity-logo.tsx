@@ -8,19 +8,16 @@ import { FallbackImage } from "@/components/paper/fallback-image";
 
 const STOPWORDS = new Set(["a", "an", "and", "the", "to", "of", "for", "in", "on", "with", "dan", "di", "ke", "untuk", "yang"]);
 
-// Palet identitas, terpisah dari warna status (violet/hijau/merah/amber) agar kotak inisial tidak terbaca sebagai status.
-const TINTS = [
-  "bg-cyan-soft text-cyan-ink border-cyan-ink/20",
-  "bg-tile-indigo text-tile-indigo-ink border-tile-indigo-ink/20",
-  "bg-tile-teal text-tile-teal-ink border-tile-teal-ink/20",
-  "bg-well text-ink-2 border-line"
-] as const;
+// Palet identitas (token tile-*), terpisah dari warna status (violet/hijau/merah/amber) agar kotak inisial tidak
+// terbaca sebagai status. Cyan logo sengaja tidak dipakai: cyan hanya untuk aksi utama, item aktif, tautan, dan progres.
+const TINTS = ["bg-tile-indigo text-tile-indigo-ink", "bg-tile-teal text-tile-teal-ink", "bg-well text-ink-2"] as const;
 
+// Radius 6 sampai 10 px, sama dengan panel; lg dipakai baris katalog (56 px).
 const SIZES = {
   sm: "h-9 w-9 rounded-md text-xs",
   md: "h-11 w-11 rounded-lg text-sm",
-  lg: "h-16 w-16 rounded-xl text-lg",
-  xl: "h-24 w-24 rounded-2xl text-2xl"
+  lg: "h-14 w-14 rounded-sheet text-base",
+  xl: "h-24 w-24 rounded-sheet text-2xl"
 } as const;
 
 /**
@@ -58,10 +55,11 @@ export function EntityLogo({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
+  // Sambungan 1 px line-strong: kotak tetap terlihat saat baris di bawahnya berubah ke bg-well ketika disorot.
   const initialsTile = (
     <span
       aria-hidden="true"
-      className={`inline-flex shrink-0 select-none items-center justify-center border font-bold tracking-[0.02em] ${SIZES[size]} ${tintFor(name)} ${className}`}
+      className={`inline-flex shrink-0 select-none items-center justify-center border border-line-strong font-display font-bold tracking-[0.02em] ${SIZES[size]} ${tintFor(name)} ${className}`}
     >
       {initialsFor(name, { person })}
     </span>
@@ -72,7 +70,7 @@ export function EntityLogo({
       src={src}
       alt=""
       aria-hidden="true"
-      className={`shrink-0 border border-line bg-sheet object-cover ${SIZES[size]} ${className}`}
+      className={`shrink-0 border border-line-strong bg-well object-cover ${SIZES[size]} ${className}`}
       fallback={initialsTile}
     />
   ) : (

@@ -1,6 +1,6 @@
 /**
- * Footer bersama (landmark contentinfo) untuk halaman depan, halaman auth, dan shell aplikasi:
- * identitas komunitas dan batas penggunaan platform. Teks sama dengan footer halaman depan sebelumnya.
+ * Footer bersama (landmark contentinfo) untuk kerangka publik (halaman depan, 404, error), bingkai auth, dan shell
+ * aplikasi: identitas komunitas dan batas penggunaan platform. Garis tipis atasnya mengikuti lebar isi pemanggil.
  */
 export function SiteFooter({ className = "" }: { className?: string }) {
   return (

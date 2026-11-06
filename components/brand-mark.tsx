@@ -2,7 +2,7 @@ import Image from "next/image";
 
 /**
  * Logo resmi Anon Cyber Team (kubus heksagonal isometrik). Dekoratif: nama selalu ditulis di sebelahnya atau di aria-label link.
- * `priority` hanya untuk logo yang menjadi gambar utama panel (AuthFrame); logo kecil di shell tidak di-preload tetapi juga tidak ditunda.
+ * `priority` hanya untuk logo besar yang menjadi gambar utama sebuah halaman; logo kecil (shell, bar atas, panel auth) tidak di-preload tetapi juga tidak ditunda.
  */
 export function BrandMark({ size = 36, className = "", priority = false }: { size?: number; className?: string; priority?: boolean }) {
   return (

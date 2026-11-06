@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ActionMessage, type ActionMessageState } from "@/components/ui/action-message";
-import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
+import { EmptyState, Figure, ProgressBar } from "@/components/card";
 import { CompletionMark } from "@/components/paper/completion";
+import { StateTag } from "@/components/paper/state-tag";
 
 interface Option {
   id: string;
@@ -186,9 +187,9 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
 
     return (
       <div className="mx-auto flex max-w-3xl flex-col gap-5">
-        <section className="sheet" aria-labelledby="quiz-result-title">
+        <section className="sheet overflow-hidden" aria-labelledby="quiz-result-title">
           <div className="flex flex-col items-center gap-6 p-5 text-center sm:flex-row sm:items-center sm:p-7 sm:text-left">
-            {/* Lulus: cukup angka skornya. Belum lulus: ikon retry, skornya disebut di teks. */}
+            {/* Lulus: cukup angka skornya (hijau). Belum lulus: ikon retry merah, skornya disebut di teks. */}
             <CompletionMark kind={passed ? "quiz-pass" : "quiz-retry"} score={attemptResult.score} size="lg" className="sm:ml-1" />
             <div className="min-w-0 flex-1">
               <h2
@@ -206,11 +207,9 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
                     }`
                   : `You scored ${attemptResult.score}%, and you need ${quiz.passingScore}% to pass. Read the review below, then try again.`}
               </p>
-              {showProgress ? (
+              {showProgress && !attemptResult.roomCompleted ? (
                 <p className="mt-2 text-sm text-ink-3">
-                  {attemptResult.roomCompleted
-                    ? "This room is now complete."
-                    : `Room progress is now ${attemptResult.progressPercentage}%. The room is complete once every task is solved and the quiz is passed.`}
+                  Room progress is now {attemptResult.progressPercentage}%. The room is complete once every task is solved and the quiz is passed.
                 </p>
               ) : null}
 
@@ -233,75 +232,94 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
             </div>
           </div>
 
-          <div className={`grid border-t border-line-soft ${showProgress ? "grid-cols-3" : "grid-cols-2"}`}>
-            <Figure
-              className="border-r border-line-soft p-4"
-              label="Correct"
-              value={attemptResult.correctCount}
-              unit={`of ${attemptResult.totalQuestions}`}
-            />
-            <Figure className={`p-4 ${showProgress ? "border-r border-line-soft" : ""}`} label="Passing score" value={`${quiz.passingScore}%`} />
-            {showProgress ? <Figure className="p-4" label="Room progress" value={`${attemptResult.progressPercentage}%`} /> : null}
+          {/* Room selesai: centang violet mendarat (digambar sekali) di baris tersendiri. */}
+          {attemptResult.roomCompleted ? (
+            <div className="flex items-center gap-3 border-t border-line px-5 py-4 sm:px-7">
+              <CompletionMark kind="room" fresh />
+              <div className="min-w-0">
+                <p className="font-display font-semibold text-ink">Room passed</p>
+                <p className="text-sm text-ink-2">{quiz.room.title} is complete: every task is solved and the quiz is passed.</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className={`grid gap-px border-t border-line bg-line ${showProgress ? "grid-cols-3" : "grid-cols-2"}`}>
+            <Figure className="bg-sheet p-4 sm:px-7" label="Correct" value={attemptResult.correctCount} unit={`of ${attemptResult.totalQuestions}`} />
+            <Figure className="bg-sheet p-4 sm:px-7" label="Passing score" value={`${quiz.passingScore}%`} />
+            {showProgress ? <Figure className="bg-sheet p-4 sm:px-7" label="Room progress" value={`${attemptResult.progressPercentage}%`} /> : null}
           </div>
         </section>
 
         {attemptResult.review.length > 0 ? (
-          <section className="sheet p-5 sm:p-6" aria-label="Question review">
-            <SectionHeader
-              title="Question review"
-              description="Compare your answer with the correct one and read the explanation before you try again."
-            />
+          <section className="sheet px-5 pt-4 sm:px-6" aria-labelledby="quiz-review-title">
+            <div className="border-b border-line pb-3">
+              <h2 id="quiz-review-title" className="text-base font-bold text-ink">
+                Question review
+              </h2>
+              <p className="mt-0.5 text-sm text-ink-2">Compare your answer with the correct one and read the explanation before you try again.</p>
+            </div>
 
-            <ol className="divide-y divide-line-soft">
+            <ol className="divide-y divide-line">
               {attemptResult.review.map((item, index) => (
-                <li key={item.questionId} className="flex gap-3.5 py-5 first:pt-1 last:pb-0">
-                  <span className="figure w-7 shrink-0 text-lg font-bold leading-snug text-ink-3" aria-hidden="true">
-                    {index + 1}
+                <li key={item.questionId} className="flex gap-3.5 py-5">
+                  <span
+                    className={`figure mt-px grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[0.6875rem] font-bold ${
+                      item.isCorrect ? "border-green/45 bg-green-soft text-green" : "border-red/45 bg-red-soft text-red"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {String(index + 1).padStart(2, "0")}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
-                      <h3 className="min-w-0 flex-1 font-semibold leading-snug text-ink">
+                      <h3 className="min-w-0 flex-1 pt-0.5 font-semibold leading-snug text-ink">
                         <span className="sr-only">Question {index + 1}: </span>
                         {item.question}
                       </h3>
-                      <StatusPill tone={item.isCorrect ? "success" : "danger"}>{item.isCorrect ? "Correct" : "Wrong"}</StatusPill>
+                      {item.isCorrect ? (
+                        <StateTag tone="green" icon="check">
+                          Correct
+                        </StateTag>
+                      ) : (
+                        <StateTag tone="red">Wrong</StateTag>
+                      )}
                     </div>
 
-                    <dl className={`mt-3 grid gap-2 text-sm ${item.isCorrect ? "" : "sm:grid-cols-2"}`}>
-                      <div
-                        className={`rounded-lg border px-3 py-2.5 ${
-                          item.isCorrect ? "border-green/30 bg-green-soft" : "border-red/30 bg-red-soft"
-                        }`}
-                      >
-                        <dt className="field-label">Your answer</dt>
-                        <dd className="mt-1 flex items-start gap-1.5 font-medium text-ink">
-                          <svg
-                            viewBox="0 0 16 16"
-                            className={`mt-0.5 h-4 w-4 shrink-0 ${item.isCorrect ? "text-green" : "text-red"}`}
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="1.8"
-                            aria-hidden="true"
-                          >
-                            {item.isCorrect ? (
-                              <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
-                            ) : (
-                              <path d="m4.5 4.5 7 7M11.5 4.5l-7 7" strokeLinecap="round" />
-                            )}
-                          </svg>
-                          <span className="min-w-0">{item.selectedLabel ?? "Not answered"}</span>
-                        </dd>
-                      </div>
+                    {/* Jawaban sebagai baris label-nilai bergaris tipis, bukan kotak di dalam panel. */}
+                    <dl className="mt-3 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[8.5rem_minmax(0,1fr)]">
+                      <dt className="field-label sm:pt-0.5">Your answer</dt>
+                      <dd className="flex items-start gap-1.5 font-medium text-ink">
+                        <svg
+                          viewBox="0 0 16 16"
+                          className={`mt-0.5 h-4 w-4 shrink-0 ${item.isCorrect ? "text-green" : "text-red"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          aria-hidden="true"
+                        >
+                          {item.isCorrect ? (
+                            <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                          ) : (
+                            <path d="m4.5 4.5 7 7M11.5 4.5l-7 7" strokeLinecap="round" />
+                          )}
+                        </svg>
+                        <span className="min-w-0">{item.selectedLabel ?? "Not answered"}</span>
+                      </dd>
                       {!item.isCorrect ? (
-                        <div className="rounded-lg border border-line bg-sheet px-3 py-2.5">
-                          <dt className="field-label">Correct answer</dt>
-                          <dd className="mt-1 font-medium text-green">{item.correctLabel ?? "–"}</dd>
-                        </div>
+                        <>
+                          <dt className="field-label sm:pt-0.5">Correct answer</dt>
+                          <dd className="flex items-start gap-1.5 font-medium text-green">
+                            <svg viewBox="0 0 16 16" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                              <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="min-w-0">{item.correctLabel ?? "–"}</span>
+                          </dd>
+                        </>
                       ) : null}
                     </dl>
 
                     {item.explanation ? (
-                      <p className="mt-3 text-sm leading-relaxed text-ink-2">
+                      <p className="mt-3 max-w-[68ch] border-t border-line pt-3 text-sm leading-relaxed text-ink-2">
                         <span className="font-semibold text-ink">Explanation: </span>
                         {item.explanation}
                       </p>
@@ -338,54 +356,57 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
 
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
-      <section className="sheet p-5 sm:p-6" aria-labelledby="quiz-question-title">
-        <div className="flex items-start gap-4">
-          <p className="figure min-w-[3.25rem] shrink-0 pt-0.5 text-[1.75rem] font-bold leading-none text-ink" aria-hidden="true">
-            {currentQuestionIndex + 1}
-            <span className="ml-0.5 text-sm font-semibold text-ink-3">/{totalQuestions}</span>
-          </p>
-          <h2
-            id="quiz-question-title"
-            ref={questionHeadingRef}
-            tabIndex={-1}
-            className="min-w-0 flex-1 text-xl font-bold leading-snug tracking-[-0.01em] text-ink [text-wrap:pretty] focus:outline-none"
-          >
-            <span className="sr-only">
-              Question {currentQuestionIndex + 1} of {totalQuestions}:{" "}
-            </span>
-            {currentQuestion.question}
-          </h2>
+      <section className="sheet" aria-labelledby="quiz-question-title">
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <p className="figure min-w-[3.25rem] shrink-0 pt-0.5 text-[1.75rem] font-bold leading-none text-ink" aria-hidden="true">
+              {currentQuestionIndex + 1}
+              <span className="ml-0.5 text-sm font-semibold text-ink-3">/{totalQuestions}</span>
+            </p>
+            <h2
+              id="quiz-question-title"
+              ref={questionHeadingRef}
+              tabIndex={-1}
+              className="min-w-0 flex-1 text-xl font-bold leading-snug tracking-[-0.01em] text-ink [text-wrap:pretty] focus:outline-none"
+            >
+              <span className="sr-only">
+                Question {currentQuestionIndex + 1} of {totalQuestions}:{" "}
+              </span>
+              {currentQuestion.question}
+            </h2>
+          </div>
+
+          {/* Opsi sebagai baris yang bisa dipilih: terpilih = tepi cyan dan latar cyan lembut; radio digambar dari token. */}
+          <fieldset className="mt-5">
+            <legend className="sr-only">Answer options</legend>
+            <div className="space-y-2">
+              {currentQuestion.options.map((option) => {
+                const isSelected = answers[currentQuestion.id] === option.id;
+
+                return (
+                  <label
+                    key={option.id}
+                    className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 text-[0.9375rem] leading-relaxed transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-cyan-ink ${
+                      isSelected ? "border-cyan-ink bg-cyan-soft text-ink" : "border-line-strong text-ink-2 hover:border-ink-3 hover:bg-well hover:text-ink"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`quiz-question-${currentQuestion.id}`}
+                      value={option.id}
+                      checked={isSelected}
+                      onChange={() => selectOption(currentQuestion.id, option.id)}
+                      className="mt-[0.2rem] h-[18px] w-[18px] shrink-0 cursor-pointer appearance-none rounded-full border-[1.5px] border-line-input bg-paper transition-[border-width,border-color] duration-150 checked:border-[5px] checked:border-cyan-ink focus-visible:outline-none motion-reduce:transition-none"
+                    />
+                    <span className="min-w-0">{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         </div>
 
-        <fieldset className="mt-5">
-          <legend className="sr-only">Answer options</legend>
-          <div className="space-y-2.5">
-            {currentQuestion.options.map((option) => {
-              const isSelected = answers[currentQuestion.id] === option.id;
-
-              return (
-                <label
-                  key={option.id}
-                  className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 text-[0.9375rem] leading-relaxed transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-cyan-ink ${
-                    isSelected ? "border-cyan-ink/60 bg-cyan-soft/50 text-ink" : "border-line bg-sheet text-ink-2 hover:border-line-strong hover:bg-well hover:text-ink"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name={`quiz-question-${currentQuestion.id}`}
-                    value={option.id}
-                    checked={isSelected}
-                    onChange={() => selectOption(currentQuestion.id, option.id)}
-                    className="mt-[0.3rem] h-4 w-4 shrink-0 cursor-pointer accent-[rgb(var(--ink))] focus-visible:outline-none"
-                  />
-                  <span className="min-w-0">{option.label}</span>
-                </label>
-              );
-            })}
-          </div>
-        </fieldset>
-
-        <div className="mt-6 space-y-4 border-t border-line-soft pt-5">
+        <div className="space-y-4 border-t border-line px-5 py-4 sm:px-6">
           <ActionMessage state={notice} />
           <div className="flex flex-wrap items-center justify-between gap-3">
             <button
@@ -435,45 +456,50 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
         </div>
       </section>
 
-      <aside className="sheet self-start p-5" aria-labelledby="quiz-navigator-title">
-        <div className="flex items-baseline justify-between gap-3">
-          <h2 id="quiz-navigator-title" className="font-semibold text-ink">
-            Questions
-          </h2>
-          <p className="figure text-sm text-ink-3">{answeredPercent}% answered</p>
+      <aside className="sheet self-start" aria-labelledby="quiz-navigator-title">
+        <div className="border-b border-line px-5 pb-4 pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="quiz-navigator-title" className="text-base font-bold text-ink">
+              Questions
+            </h2>
+            <p className="figure text-sm text-ink-3">{answeredPercent}% answered</p>
+          </div>
+          <ProgressBar value={answeredPercent} label="Questions answered" className="mt-3" />
         </div>
-        <ProgressBar value={answeredPercent} tone="ink" label="Questions answered" className="mt-3" />
 
-        <ol className="mt-4 grid grid-cols-5 gap-2">
-          {quiz.questions.map((question, index) => {
-            const isCurrent = index === currentQuestionIndex;
-            const isAnswered = Boolean(answers[question.id]);
+        <div className="p-5">
+          {/* Chip pertanyaan: terisi = garis penuh, belum = putus-putus, yang tampil = cincin cyan. */}
+          <ol className="grid grid-cols-5 gap-2">
+            {quiz.questions.map((question, index) => {
+              const isCurrent = index === currentQuestionIndex;
+              const isAnswered = Boolean(answers[question.id]);
 
-            return (
-              <li key={question.id}>
-                <button
-                  type="button"
-                  onClick={() => goToQuestion(index)}
-                  aria-current={isCurrent ? "step" : undefined}
-                  aria-label={`Question ${index + 1}, ${isAnswered ? "answered" : "not answered"}`}
-                  className={`figure flex h-10 w-full items-center justify-center rounded-md coarse:h-11 text-sm font-semibold transition-colors ${
-                    isCurrent
-                      ? "border-[1.5px] border-cyan-ink/70 bg-sheet text-ink"
-                      : isAnswered
-                        ? "border border-line-strong bg-well text-ink hover:border-ink-3"
-                        : "border border-dashed border-line-strong bg-sheet text-ink-3 hover:bg-well hover:text-ink"
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+              return (
+                <li key={question.id}>
+                  <button
+                    type="button"
+                    onClick={() => goToQuestion(index)}
+                    aria-current={isCurrent ? "step" : undefined}
+                    aria-label={`Question ${index + 1}, ${isAnswered ? "answered" : "not answered"}`}
+                    className={`figure flex h-10 w-full items-center justify-center rounded-md border text-sm font-semibold transition-colors coarse:h-11 ${
+                      isCurrent
+                        ? "border-cyan-ink bg-cyan-soft text-cyan-ink ring-1 ring-cyan-ink"
+                        : isAnswered
+                          ? "border-line-strong bg-well text-ink hover:border-cyan-ink/60 hover:text-cyan-ink"
+                          : "border-dashed border-line-strong text-ink-3 hover:border-cyan-ink/60 hover:text-cyan-ink"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
 
-        <p className="mt-4 text-xs leading-relaxed text-ink-3">
-          Solid squares are answered, dashed ones are still open. Submit unlocks once every question has an answer.
-        </p>
+          <p className="mt-4 text-xs leading-relaxed text-ink-3">
+            Solid squares are answered, dashed ones are still open, and the cyan one is on screen. Submit unlocks once every question has an answer.
+          </p>
+        </div>
       </aside>
     </div>
   );

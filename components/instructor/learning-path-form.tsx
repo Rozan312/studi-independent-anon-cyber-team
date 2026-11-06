@@ -6,7 +6,7 @@ import { createLearningPathAction, updateLearningPathAction } from "@/lib/action
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUploadField } from "@/components/instructor/image-upload-field";
-import { helpClass, idleActionState, inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
+import { checkboxClass, helpClass, idleActionState, inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 
 export type LearningPathFormValues = {
   id: string;
@@ -105,7 +105,7 @@ export function LearningPathForm({
             setSlug(slugifyTyping(event.target.value));
           }}
           placeholder="web-security-fundamentals"
-          className={inputClass}
+          className={`${inputClass} font-mono text-sm`}
           disabled={disabled}
           aria-describedby={`${fieldId("slug")}-help`}
         />
@@ -165,18 +165,18 @@ export function LearningPathForm({
       </Field>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <ImageUploadField name="logoUrl" label="Logo" previewClassName="h-24 w-24 rounded-2xl" initialValue={path?.logoUrl} help="Optional. A square image shown next to the path name. Without one, the initials of the name are used." disabled={disabled} />
+        <ImageUploadField name="logoUrl" label="Logo" previewClassName="h-24 w-24 rounded-lg" initialValue={path?.logoUrl} help="Optional. A square image shown next to the path name. Without one, the initials of the name are used." disabled={disabled} />
         <ImageUploadField initialValue={path?.coverImageUrl} help="Optional. A wide banner shown at the top of the path page." disabled={disabled} />
       </div>
 
       {mode === "create" ? (
-        <label className="flex items-center gap-2.5 text-sm text-ink">
-          <input name="isPublished" type="checkbox" className="h-4 w-4 rounded border-line-strong accent-violet" disabled={disabled} />
+        <label className="flex items-center gap-2.5 font-display text-sm font-semibold text-ink">
+          <input name="isPublished" type="checkbox" className={checkboxClass} disabled={disabled} />
           Publish as soon as it&apos;s created
         </label>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line-soft pt-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line pt-4">
         <SubmitButton
           label={mode === "create" ? "Create learning path" : "Save changes"}
           pendingLabel={mode === "create" ? "Creating…" : "Saving…"}

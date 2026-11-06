@@ -7,7 +7,7 @@ import { createInstructorRoomAction, type InstructorActionState } from "@/lib/ac
 import { EmptyState, SectionHeader } from "@/components/card";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { helpClass, inputClass, labelClass, panelClass } from "@/components/instructor/form-styles";
+import { checkboxClass, helpClass, inputClass, labelClass, panelClass } from "@/components/instructor/form-styles";
 
 type LearningPathOption = {
   id: string;
@@ -346,7 +346,7 @@ export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathO
             description="Add at least one task with a title, instructions (10+ characters), and the expected answer. Empty tasks are skipped. Add hints, other accepted answers, and more tasks later in the room editor."
           />
 
-          <div className="divide-y divide-line-soft">
+          <div className="divide-y divide-line">
             {Array.from({ length: taskCount }).map((_, index) => (
               <StarterTaskFields
                 key={index}
@@ -357,7 +357,7 @@ export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathO
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-line-soft pt-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
             <button
               type="button"
               onClick={() => setTaskCount((value) => Math.min(MAX_STARTER_TASKS, value + 1))}
@@ -430,15 +430,10 @@ export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathO
             </div>
           </div>
 
-          <div className="mt-5 space-y-4 border-t border-line-soft pt-5">
+          <div className="mt-5 space-y-4 border-t border-line pt-5">
             <div>
-              <label className="flex items-start gap-2.5 text-sm font-semibold text-ink">
-                <input
-                  name="isPublished"
-                  type="checkbox"
-                  aria-describedby={`${id}-publish-help`}
-                  className="mt-0.5 h-4 w-4 shrink-0 accent-violet"
-                />
+              <label className="flex items-start gap-2.5 font-display text-sm font-semibold text-ink">
+                <input name="isPublished" type="checkbox" aria-describedby={`${id}-publish-help`} className={`${checkboxClass} mt-0.5`} />
                 Publish immediately
               </label>
               <p id={`${id}-publish-help`} className={`${helpClass} pl-[1.625rem]`}>

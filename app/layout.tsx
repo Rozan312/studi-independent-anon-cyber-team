@@ -1,19 +1,24 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import { Archivo, JetBrains_Mono } from "next/font/google";
+import { Red_Hat_Display, Red_Hat_Mono, Red_Hat_Text } from "next/font/google";
 import { RouteProgress } from "@/components/ui/route-progress";
 import "./globals.css";
 
-// Archivo variabel (berat + lebar): label kolom memakai versi condensed lewat font-stretch.
-const archivo = Archivo({
+// Satu keluarga Red Hat: Display untuk judul, label, dan angka; Text untuk bacaan panjang; Mono untuk kode dan serial.
+const redHatDisplay = Red_Hat_Display({
   subsets: ["latin"],
-  axes: ["wdth"],
   display: "swap",
-  variable: "--font-archivo"
+  variable: "--font-display"
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const redHatText = Red_Hat_Text({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-text"
+});
+
+const redHatMono = Red_Hat_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-code"
@@ -30,11 +35,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     // suppressHydrationWarning: atribut data-theme dipasang skrip awal sebelum React hydrate.
-    <html lang="en" className={`${archivo.variable} ${jetbrainsMono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`${redHatDisplay.variable} ${redHatText.variable} ${redHatMono.variable}`} suppressHydrationWarning>
       <body className="min-h-screen bg-paper font-sans text-ink antialiased">
-        {/* Pasang night mode sebelum halaman tampil agar tidak ada kilatan tema terang. Isi skrip konstan. */}
+        {/* Tema gelap bawaan; pasang tema terang pilihan anggota sebelum halaman tampil agar tidak berkedip. Isi skrip konstan. */}
         <Script id="act-theme-init" strategy="beforeInteractive">
-          {`try{if(localStorage.getItem("act-night-mode")==="true")document.documentElement.dataset.theme="night"}catch(e){}`}
+          {`try{if(localStorage.getItem("act-theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}`}
         </Script>
         {/* useSearchParams di RouteProgress butuh batas Suspense agar halaman tetap bisa dirender di server. */}
         <Suspense fallback={null}>

@@ -6,7 +6,7 @@ import { updateRoomMetadataAction } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUploadField } from "@/components/instructor/image-upload-field";
-import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { checkboxClass, helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
 import { DISPLAY_TIME_ZONE, dateTimeLocalToIso, toDateTimeLocalValue } from "@/lib/learning/availability";
 
 export type RoomMetadataValues = {
@@ -77,7 +77,7 @@ export function RoomMetadataForm({
             id={fieldId("slug")}
             name="slug"
             defaultValue={room.slug}
-            className={inputClass}
+            className={`${inputClass} font-mono text-sm`}
             disabled={disabled}
             aria-describedby={`${fieldId("slug")}-help`}
           />
@@ -146,16 +146,16 @@ export function RoomMetadataForm({
       </Field>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <ImageUploadField name="logoUrl" label="Logo" previewClassName="h-24 w-24 rounded-2xl" initialValue={room.logoUrl} help="Optional. A square image shown next to the room name. Without one, the initials of the name are used." disabled={disabled} />
+        <ImageUploadField name="logoUrl" label="Logo" previewClassName="h-24 w-24 rounded-lg" initialValue={room.logoUrl} help="Optional. A square image shown next to the room name. Without one, the initials of the name are used." disabled={disabled} />
         <ImageUploadField initialValue={room.coverImageUrl} help="Optional. A wide banner shown at the top of the room's side column." disabled={disabled} />
       </div>
 
       <fieldset className="rounded-lg border border-line p-4">
-        <legend className="px-1 text-sm font-semibold text-ink">Schedule</legend>
+        <legend className="px-1 font-display text-sm font-semibold text-ink">Schedule</legend>
         <label className="flex items-center gap-2.5 text-sm text-ink">
           <input
             type="checkbox"
-            className="h-4 w-4 rounded border-line-strong accent-violet"
+            className={checkboxClass}
             checked={scheduleEnabled}
             onChange={(event) => setScheduleEnabled(event.target.checked)}
             disabled={disabled}
@@ -203,7 +203,7 @@ export function RoomMetadataForm({
         <input type="hidden" name="availableUntil" value={untilIso} />
       </fieldset>
 
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line-soft pt-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line pt-4">
         <SubmitButton label="Save room details" disabled={disabled || rangeInvalid} />
         <ActionMessage state={state} />
       </div>

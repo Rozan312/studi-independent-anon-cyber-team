@@ -6,10 +6,11 @@ import { useFormState } from "react-dom";
 import { addRoomToPathAction, moveRoomInPathAction } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { EmptyState, StatusPill } from "@/components/card";
+import { EmptyState } from "@/components/card";
 import { StateTag, type StateTone } from "@/components/paper/state-tag";
-import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
+import { helpClass, idleActionState, inputClass, labelClass, titleLinkClass } from "@/components/instructor/form-styles";
 import { MoveButton } from "@/components/instructor/move-button";
+import { PublishPill } from "@/components/instructor/publish-state";
 
 export type PathRoomItem = {
   id: string;
@@ -44,22 +45,23 @@ function RoomRow({ room, isFirst, isLast, disabled }: { room: PathRoomItem; isFi
   return (
     <li className="py-3">
       <div className="flex items-start gap-3">
-        <span className="figure w-7 shrink-0 text-right text-lg font-bold leading-6 text-ink-3" aria-hidden="true">
-          {room.orderIndex}
+        {/* Nomor urut dalam lingkaran bergaris, sama dengan daftar room path di dasbor member; melebar bila posisinya tiga digit. */}
+        <span
+          className="figure mt-px grid h-7 min-w-7 shrink-0 place-items-center rounded-full border border-line-strong px-1 text-[0.6875rem] font-bold text-ink-3"
+          aria-hidden="true"
+        >
+          {String(room.orderIndex).padStart(2, "0")}
         </span>
+        {/* Judul sendiri di baris pertama, status di baris kedua: baris tetap sejajar di kolom sempit. */}
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link
-              id={titleId}
-              href={`/instructor/rooms/${room.id}`}
-              className="tap-target min-w-0 font-semibold leading-6 text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
-            >
-              {room.title}
-            </Link>
-            <StatusPill tone={room.isPublished ? "success" : "neutral"}>{room.isPublished ? "Published" : "Draft"}</StatusPill>
+          <Link id={titleId} href={`/instructor/rooms/${room.id}`} className={`${titleLinkClass} block leading-7`}>
+            {room.title}
+          </Link>
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <PublishPill published={room.isPublished} />
             {room.scheduleLabel ? <StateTag tone={scheduleTone(room.scheduleLabel)}>{room.scheduleLabel}</StateTag> : null}
           </div>
-          <p className="mt-0.5 text-sm text-ink-3">
+          <p className="mt-1 text-sm text-ink-3">
             {room.taskCount} {room.taskCount === 1 ? "task" : "tasks"} ·{" "}
             {room.questionCount > 0 ? `${room.questionCount} quiz ${room.questionCount === 1 ? "question" : "questions"}` : "No quiz"} ·{" "}
             <span className="figure">{room.points}</span> {room.points === 1 ? "pt" : "pts"} · Owner: {room.ownerLabel}
@@ -155,7 +157,7 @@ export function PathRoomsEditor({
       {rooms.length === 0 ? (
         <EmptyState title="No rooms in this path yet" message="Add an existing room below, or create a new room for this path." />
       ) : (
-        <ol className="divide-y divide-line-soft border-t border-line-soft" aria-label="Rooms in this path, in order">
+        <ol className="divide-y divide-line border-t border-line" aria-label="Rooms in this path, in order">
           {rooms.map((room, index) => (
             <RoomRow key={room.id} room={room} isFirst={index === 0} isLast={index === rooms.length - 1} disabled={!canManagePath} />
           ))}

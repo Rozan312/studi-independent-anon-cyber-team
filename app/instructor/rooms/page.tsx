@@ -1,9 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, StatusPill } from "@/components/card";
+import { EmptyState } from "@/components/card";
 import { StateTag } from "@/components/paper/state-tag";
 import { PublishToggleForm } from "@/components/instructor/publish-toggle-form";
+import { PublishPill } from "@/components/instructor/publish-state";
+import {
+  bodyCellClass,
+  headCellClass,
+  listPanelClass,
+  panelHeadClass,
+  panelMetaClass,
+  panelTitleClass,
+  tableRowClass,
+  titleLinkClass
+} from "@/components/instructor/form-styles";
 import { toggleRoomPublishAction } from "@/lib/actions/content-actions";
 import { requireRole } from "@/lib/auth/guards";
 import { formatDayMonth, formatNumber } from "@/lib/format/date";
@@ -12,9 +23,6 @@ import { describeAvailability, getRoomAvailability, type RoomAvailability } from
 
 export const metadata: Metadata = { title: "Room manager" };
 export const dynamic = "force-dynamic";
-
-const headCell = "field-label whitespace-nowrap border-b border-line px-3 py-2.5 text-left first:pl-5 last:pr-5";
-const bodyCell = "px-3 py-2.5 align-top first:pl-5 last:pr-5";
 
 /**
  * Jadwal room. Room terbit yang terjadwal/ditutup memakai label status; draft hanya menampilkan tanggal
@@ -55,40 +63,54 @@ export default async function InstructorRoomsPage() {
         </>
       }
     >
-      <section className="sheet overflow-hidden" aria-labelledby="rooms-title">
-        <div className="flex flex-wrap items-baseline justify-between gap-2 px-5 pb-3 pt-5 sm:px-6 sm:pt-6">
-          <h2 id="rooms-title" className="text-lg font-bold text-ink">
+      <section className={listPanelClass} aria-labelledby="rooms-title">
+        <div className={panelHeadClass}>
+          <h2 id="rooms-title" className={panelTitleClass}>
             All rooms
           </h2>
           {rooms.length > 0 ? (
-            <p className="text-sm text-ink-3">
+            <p className={panelMetaClass}>
               {formatNumber(rooms.length)} {rooms.length === 1 ? "room" : "rooms"} · {formatNumber(publishedCount)} published
             </p>
           ) : null}
         </div>
 
         {rooms.length === 0 ? (
-          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="p-5 sm:p-6">
             <EmptyState title="No rooms yet" message="Create the first room with New room. It stays a draft until you publish it." />
           </div>
         ) : (
-          <div className="overflow-x-auto pb-2">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-[960px] text-sm">
               <thead>
                 <tr>
-                  <th className={headCell}>Room</th>
-                  <th className={headCell}>Path</th>
-                  <th className={headCell}>Status</th>
-                  <th className={headCell}>Schedule</th>
-                  <th className={`${headCell} text-right`}>Tasks</th>
-                  <th className={`${headCell} text-right`}>Quiz</th>
-                  <th className={`${headCell} text-right`}>Points</th>
-                  <th className={`${headCell} text-right`}>
+                  <th scope="col" className={headCellClass}>
+                    Room
+                  </th>
+                  <th scope="col" className={headCellClass}>
+                    Path
+                  </th>
+                  <th scope="col" className={headCellClass}>
+                    Status
+                  </th>
+                  <th scope="col" className={headCellClass}>
+                    Schedule
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
+                    Tasks
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
+                    Quiz
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
+                    Points
+                  </th>
+                  <th scope="col" className={`${headCellClass} text-right`}>
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody className="divide-y divide-line">
                 {rooms.map((room) => {
                   const manageable = canManageContent(profile, room.createdById);
                   const hasContent = room.content.trim().length > 0;
@@ -96,12 +118,9 @@ export default async function InstructorRoomsPage() {
                   const availability = getRoomAvailability(room);
 
                   return (
-                    <tr key={room.id} className="hover:bg-well">
-                      <td className={`${bodyCell} max-w-[18rem]`}>
-                        <Link
-                          href={`/instructor/rooms/${room.id}`}
-                          className="tap-target font-semibold text-ink hover:underline hover:decoration-line-strong hover:underline-offset-4"
-                        >
+                    <tr key={room.id} className={tableRowClass}>
+                      <td className={`${bodyCellClass} max-w-[18rem] align-top`}>
+                        <Link href={`/instructor/rooms/${room.id}`} className={titleLinkClass}>
                           {room.title}
                         </Link>
                         <p className="mt-0.5 text-xs text-ink-3">
@@ -109,22 +128,22 @@ export default async function InstructorRoomsPage() {
                           {hasContent ? null : <span className="text-amber"> · No material yet</span>}
                         </p>
                       </td>
-                      <td className={`${bodyCell} max-w-[14rem]`}>
+                      <td className={`${bodyCellClass} max-w-[14rem] align-top`}>
                         <p className="text-ink-2">{room.learningPath.title}</p>
                         {room.learningPath.isPublished ? null : <p className="mt-0.5 text-xs text-ink-3">Path is a draft</p>}
                       </td>
-                      <td className={bodyCell}>
-                        {room.isPublished ? <StatusPill tone="success">Published</StatusPill> : <StateTag tone="muted">Draft</StateTag>}
+                      <td className={`${bodyCellClass} align-top`}>
+                        <PublishPill published={room.isPublished} />
                       </td>
-                      <td className={`${bodyCell} whitespace-nowrap`} title={room.isPublished ? describeAvailability(availability) : undefined}>
+                      <td className={`${bodyCellClass} whitespace-nowrap align-top`} title={room.isPublished ? describeAvailability(availability) : undefined}>
                         <ScheduleCell isPublished={room.isPublished} availability={availability} />
                       </td>
-                      <td className={`${bodyCell} figure text-right ${room._count.tasks > 0 ? "text-ink" : "text-amber"}`}>{room._count.tasks}</td>
-                      <td className={`${bodyCell} figure whitespace-nowrap text-right ${questionCount > 0 ? "text-ink" : "text-amber"}`}>
+                      <td className={`${bodyCellClass} figure text-right align-top ${room._count.tasks > 0 ? "text-ink" : "text-amber"}`}>{room._count.tasks}</td>
+                      <td className={`${bodyCellClass} figure whitespace-nowrap text-right align-top ${questionCount > 0 ? "text-ink" : "text-amber"}`}>
                         {questionCount} {questionCount === 1 ? "question" : "questions"}
                       </td>
-                      <td className={`${bodyCell} figure text-right font-semibold text-ink`}>{formatNumber(room.points)}</td>
-                      <td className={bodyCell}>
+                      <td className={`${bodyCellClass} figure text-right align-top font-semibold text-ink`}>{formatNumber(room.points)}</td>
+                      <td className={`${bodyCellClass} align-top`}>
                         <div className="flex items-start justify-end gap-2">
                           <PublishToggleForm
                             action={toggleRoomPublishAction}

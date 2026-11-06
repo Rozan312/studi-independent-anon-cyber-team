@@ -1,122 +1,127 @@
 ---
 name: Anon Cyber Team
-description: Self-paced cybersecurity learning, recorded plainly on security paper in crisp ink, with quiet circuit-board motifs.
+description: A seamless dark learning console in the ACT logo's colours, where logo cyan marks only what moves a member forward.
 colors:
-  paper: "#F3F7F8"
-  sheet: "#FCFDFD"
-  well: "#ECF3F5"
-  line: "#CCDCE1"
-  line-soft: "#DFE8EB"
-  line-strong: "#96AFB8"
-  line-input: "#768C95"
-  ink: "#10161F"
-  ink-2: "#3A4750"
-  ink-3: "#5C6A72"
-  cyan: "#00C2F5"
-  cyan-hover: "#00AEDE"
-  cyan-soft: "#DEF4FB"
-  cyan-ink: "#006C8A"
-  on-cyan: "#042836"
-  violet: "#5A3DB0"
-  violet-soft: "#EDE9F9"
-  green: "#267345"
-  green-soft: "#E4F2E9"
-  red: "#C43028"
-  red-soft: "#FBE9E7"
-  amber: "#8F5708"
-  amber-soft: "#FBF1DC"
-  tile-indigo: "#E7EAF8"
-  tile-indigo-ink: "#3B4B8A"
-  tile-teal: "#E1F1EF"
-  tile-teal-ink: "#0F6A63"
-  code-surface: "#17222B"
-  code-text: "#E4EDF1"
+  ground: "#0A1118"
+  panel: "#0F1922"
+  raised: "#14212C"
+  seam: "#1E2C38"
+  seam-soft: "#18242F"
+  seam-strong: "#2A3B49"
+  control-edge: "#5C7485"
+  ink: "#E7EEF2"
+  ink-2: "#A3B3BE"
+  ink-3: "#8597A3"
+  logo-cyan: "#00C2F5"
+  logo-cyan-hover: "#33D1F8"
+  cyan-wash: "#0D2D3B"
+  cyan-ink: "#00C2F5"
+  on-cyan: "#04202B"
+  completed-violet: "#A897F5"
+  completed-violet-wash: "#252142"
+  correct-green: "#5FCB8E"
+  correct-green-wash: "#133024"
+  retry-red: "#F2807A"
+  retry-red-wash: "#3C1B1B"
+  scheduled-amber: "#E9B65F"
+  scheduled-amber-wash: "#392B13"
+  tile-indigo: "#1E2646"
+  tile-indigo-ink: "#B0BCF4"
+  tile-teal: "#103032"
+  tile-teal-ink: "#7CD8CA"
+  prose-ink: "#D6E0E6"
+  code-ink: "#E4EDF1"
+  code-block: "#060B10"
+  scrim: "#000000"
 typography:
   display:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "clamp(2.25rem, 6vw, 3rem)"
+    fontFamily: "Red Hat Display, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "3.25rem"
     fontWeight: 700
-    lineHeight: 1.08
-    letterSpacing: "-0.025em"
+    lineHeight: 1
+    letterSpacing: "-0.028em"
   headline:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "1.75rem"
+    fontFamily: "Red Hat Display, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "2rem"
     fontWeight: 700
     lineHeight: 1.25
-    letterSpacing: "-0.018em"
+    letterSpacing: "-0.02em"
   title:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Red Hat Display, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.125rem"
     fontWeight: 700
     lineHeight: 1.375
     letterSpacing: "-0.01em"
   figure:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Red Hat Display, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.75rem"
     fontWeight: 700
     lineHeight: 1
     letterSpacing: "-0.01em"
     fontFeature: "\"tnum\", \"lnum\""
   body:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Red Hat Text, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.9375rem"
     fontWeight: 400
     lineHeight: 1.55
-    fontFeature: "\"kern\", \"liga\""
   reading:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Red Hat Text, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.0625rem"
     fontWeight: 400
     lineHeight: 1.75
   label:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
+    fontFamily: "Red Hat Display, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.6875rem"
     fontWeight: 600
     lineHeight: 1rem
-    letterSpacing: "0.12em"
-    fontVariation: "\"wdth\" 72"
-  serial:
-    fontFamily: "Archivo, ui-sans-serif, system-ui, sans-serif"
-    fontSize: "0.75rem"
+    letterSpacing: "0.08em"
+  button:
+    fontFamily: "Red Hat Display, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.875rem"
     fontWeight: 600
-    letterSpacing: "0.12em"
-    fontFeature: "\"tnum\""
-    fontVariation: "\"wdth\" 80"
-  code:
-    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
-    fontSize: "0.84rem"
+    lineHeight: 1.25rem
+  mono:
+    fontFamily: "Red Hat Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.875rem"
     fontWeight: 400
-    lineHeight: 1.65
+  serial:
+    fontFamily: "Red Hat Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "0.75rem"
+    fontWeight: 500
+    letterSpacing: "0.06em"
 rounded:
-  md: "0.375rem"
-  lg: "0.5rem"
-  sheet: "0.75rem"
+  md: "6px"
+  lg: "8px"
+  sheet: "10px"
   full: "9999px"
 spacing:
-  card: "20px"
-  panel: "24px"
-  grid-gap: "20px"
-  gutter-mobile: "16px"
+  xs: "4px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  panel: "20px"
+  panel-lg: "24px"
+  section: "28px"
   gutter-desktop: "40px"
-  container: "1240px"
 components:
   button-primary:
-    backgroundColor: "{colors.cyan}"
+    backgroundColor: "{colors.logo-cyan}"
     textColor: "{colors.on-cyan}"
-    typography: "{typography.body}"
+    typography: "{typography.button}"
     rounded: "{rounded.lg}"
     padding: "0 16px"
     height: "40px"
   button-primary-hover:
-    backgroundColor: "{colors.cyan-hover}"
+    backgroundColor: "{colors.logo-cyan-hover}"
   button-secondary:
-    backgroundColor: "{colors.sheet}"
+    backgroundColor: "transparent"
     textColor: "{colors.ink}"
+    typography: "{typography.button}"
     rounded: "{rounded.lg}"
     padding: "0 16px"
     height: "40px"
   button-secondary-hover:
-    backgroundColor: "{colors.well}"
+    textColor: "{colors.cyan-ink}"
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.ink-2}"
@@ -124,303 +129,290 @@ components:
     padding: "0 12px"
     height: "40px"
   button-ghost-hover:
-    backgroundColor: "{colors.well}"
+    backgroundColor: "{colors.raised}"
     textColor: "{colors.ink}"
   button-danger:
-    backgroundColor: "{colors.sheet}"
-    textColor: "{colors.red}"
+    backgroundColor: "transparent"
+    textColor: "{colors.retry-red}"
     rounded: "{rounded.lg}"
-    padding: "0 12px"
-    height: "32px"
+    padding: "0 16px"
+    height: "40px"
   button-danger-hover:
-    backgroundColor: "{colors.red-soft}"
+    backgroundColor: "{colors.retry-red-wash}"
   button-sm:
     padding: "0 12px"
     height: "32px"
+  button-lg:
+    padding: "0 20px"
+    height: "44px"
   input:
-    backgroundColor: "{colors.sheet}"
+    backgroundColor: "{colors.ground}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
     rounded: "{rounded.lg}"
     padding: "8px 12px"
-  sheet:
-    backgroundColor: "{colors.sheet}"
+  panel:
+    backgroundColor: "{colors.panel}"
     rounded: "{rounded.sheet}"
-    padding: "{spacing.card}"
-  status-pill:
-    backgroundColor: "{colors.well}"
-    textColor: "{colors.ink-2}"
-    typography: "{typography.label}"
-    rounded: "{rounded.md}"
-    padding: "2px 6px"
+    padding: "20px"
+  nav-item-active:
+    backgroundColor: "{colors.cyan-wash}"
+    textColor: "{colors.cyan-ink}"
+    rounded: "{rounded.lg}"
+    padding: "0 12px"
+    height: "36px"
   nav-item:
+    backgroundColor: "transparent"
     textColor: "{colors.ink-2}"
     rounded: "{rounded.lg}"
     padding: "0 12px"
     height: "36px"
-  nav-item-active:
-    backgroundColor: "{colors.sheet}"
-    textColor: "{colors.ink}"
-  state-tag:
-    backgroundColor: "{colors.well}"
-    textColor: "{colors.ink-2}"
+  status-pill-done:
+    backgroundColor: "{colors.completed-violet-wash}"
+    textColor: "{colors.completed-violet}"
+    typography: "{typography.label}"
     rounded: "{rounded.md}"
     padding: "2px 6px"
-  completion-mark:
-    backgroundColor: "{colors.violet}"
-    textColor: "{colors.sheet}"
-    rounded: "{rounded.full}"
-    size: "40px"
-  entity-logo:
-    backgroundColor: "{colors.cyan-soft}"
+  status-pill-primary:
+    backgroundColor: "{colors.cyan-wash}"
     textColor: "{colors.cyan-ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.md}"
+    padding: "2px 6px"
+  identity-tile:
+    backgroundColor: "{colors.tile-indigo}"
+    textColor: "{colors.tile-indigo-ink}"
     rounded: "{rounded.lg}"
     size: "44px"
-  progress-ring:
-    backgroundColor: "{colors.line-soft}"
-    textColor: "{colors.ink}"
-    typography: "{typography.figure}"
-    size: "200px"
-  progress-bar:
-    backgroundColor: "{colors.line-soft}"
-    rounded: "{rounded.full}"
-    height: "6px"
+  serial:
+    textColor: "{colors.cyan-ink}"
+    typography: "{typography.serial}"
 ---
 
 # Design System: Anon Cyber Team
 
 ## Overview
 
-**Creative North Star: "The Security-Paper Record"**
+**Creative North Star: "The Seamless Console"**
 
-Every member's learning is a calm, official record on security paper. The ground is cool security paper, content sits on whiter sheets ruled with hairlines, text is crisp intaglio ink, and the app rail is iris-printed (pale cyan fading to pale periwinkle) under a fine dot grid in deep cyan ink. Progress is stated plainly: a passed room gets a violet check, a passed quiz shows its score in green, a quiz to retry shows a red retry icon. A check that was just earned draws itself in once; nothing else celebrates.
+A dark learning console in the Anon Cyber Team logo's colours. Every panel sits flush on one blue-black ground and is separated from its neighbours by a hairline seam, not by a shadow or a gap of empty floating cards. The logo's cyan is a signal rather than a fill: it marks the primary action, the current or next item, links, progress, and focus, so the next room is always one cyan action away. Four status colours each carry one meaning (violet completed, green correct and scores, red retry/error/destructive, amber scheduled), and everything else is calm neutral ink.
 
-The system is calm and dense rather than decorative. Ornament is quiet, digital, and drawn only in deep cyan ink at low opacity: a dot-grid surface on the rail, drawer, auth panel, and signed-out hero; deterministic circuit traces fading in on the hero and auth panel; a thin circuit "data bus" strip edging the hero and heading the Continue sheet. The one ornament that carries information is the segmented progress ring, one segment per room of the active path. Rooms and paths are identified by an uploaded logo or, by default, a tinted tile with the initials of their name. Status colours carry state. Counters sit in ruled, fixed cells with tabular figures so numbers never shift. The one bright colour, the logo's cyan, marks the member's next step and nothing else.
+The world is the category standard for cybersecurity learning platforms, executed at Hack The Box's level of craft (its seamless flush panels) without copying it and without its green. It is built for long evening reading and answering sessions on laptops and phones: density is moderate, contrast is comfortable, and motion only explains a change of state. Dark is the default; a light theme mirrors the same tokens on a cool white ground. One soft gradient exists, and it lives only on the navigation rail, the mobile drawer, and the auth brand column.
 
-The world rejects both category defaults, the near-black console with neon accents and glowing cards and the white SaaS LMS with blue buttons and thumbnail tiles, and it rejects decorative badges, rubber stamps, and postage-stamp print ornament (guilloche, perforation). An opt-in, app-wide night theme re-inks the same paper-and-ink system dark, without neon or glow. Instructors and admins work in the same system, with denser ruled tables.
+It refuses the hacker costume (neon, glow, terminal green, matrix rain) and the floating rounded-card SaaS dashboard. The previous "Security Paper" world (iris gradient, dot grid, circuit traces, segmented progress ring, rounded floating cards, Archivo) is retired; nothing from it may return.
 
 **Key Characteristics:**
-- Light, cool paper ground; whiter sheets; hairline rules; whisper-level shadows.
-- One reserved accent (logo cyan with a thin cyan border and deep blue-ink text) for the next step and primary action.
-- Status colours (violet, green, red, amber) carry state only.
-- Completion is a direct mark: a check, a score, or a retry icon.
-- Rooms and paths wear their logo or an initials tile; path progress is a segmented ring, one segment per room.
-- Digital motifs (dot grid, circuit traces, data-bus strip) in deep cyan ink at low opacity, decorative and hidden from assistive technology.
-- Archivo throughout, with its width axis used for condensed field labels and status pills; JetBrains Mono only for code.
-- Nothing vanishes: closed, scheduled, and draft items stay visible and carry a flat state tag.
+- One blue-black ground, flush panels, 1px hairline seams, no panel shadows.
+- Logo cyan reserved for forward motion: primary action, current/next/active item, links, progress, focus.
+- Four single-meaning status colours; a separate identity palette for room/path initials.
+- One Red Hat family in three cuts: Display for headings, labels, figures and buttons; Text for reading; Mono for machine strings.
+- Tight corners (6 to 10px); circles only for marks, stop markers, progress tracks, radios, the heatmap's empty-day dot, the lab's empty-target icon ring, the theme switch and scrollbar thumbs.
+- Dark by default, light by choice, both from the same tokens.
 
 ### Antislop Record (Design Read, dials, written reasons)
 
-The antislop filter runs on top of this direction (DURING mode). Its record lives here so every technique it puts behind a purpose test has its one-line reason (R-31).
+**Design Read.** Reading this as: a self-paced cybersecurity learning app (mostly Operate surfaces, with room material as Read) for community members studying in long sessions on laptops and phones, in a seamless dark console language in the ACT logo colours. Dial: ENERGY 1 / RHYTHM 2 / MOTION 2.
 
-**Design Read.** Reading this as: a self-paced learning app (mostly Operate and Read surfaces) for community members who study cybersecurity in long sessions on laptops and phones, in a "security-paper record" visual language. Dial: ENERGY 1 / RHYTHM 2 / MOTION 2.
-
-- **ENERGY 1 (calm):** long reading and answering sessions need a quiet page; energy comes from the one cyan next step and the members' own progress, not from decoration.
-- **RHYTHM 2 (consistent with a few breaks):** working pages share one sheet grammar so members always know where things are; the breaks are the dashboard's Continue sheet with its ring, the path header ring, and the signed-out hero.
-- **MOTION 2 (state transitions only, no scroll reveal):** motion explains a change of state (drawer slides in, rail collapses, page fades in on arrival, a fresh check draws once, the loading line runs while the next page renders) and everything stops under reduced motion.
-- **Focal point:** one per screen. The Continue sheet on the dashboard, the progress ring on a path page, the material on a room page, the current question on a quiz.
-- **One accent:** logo cyan, reserved for the next step and the primary action of a view (The Next-Step Cyan Rule).
-- **Identity motif:** the digital security-paper print (dot grid, circuit traces, data-bus strip) plus the direct completion marks.
+- **ENERGY 1 (calm):** long reading and answering sessions need a quiet page; energy comes from the one cyan next step and the member's own progress, not from decoration.
+- **RHYTHM 2 (consistent with a few breaks):** working pages share one panel grammar (title row, flush panels, hairline-ruled rows); the breaks are the dashboard's split Continue panel with its cyan seam, the figure strips, and the signed-out home hero.
+- **MOTION 2 (state transitions only, no scroll reveal):** the drawer slides, the rail collapses, a page settles in on arrival, a fresh check draws once, the loading line runs while the next page renders, the theme cross-fades. Under reduced motion all of it stops, the theme colour cross-fade included; only the 150ms colour transitions on controls, links and fields, the 1px button press, and two 150ms editor details (the image resize handles' fade-in and the colour swatches' ring change) remain.
+- **Focal point:** one per screen. The Continue panel on the dashboard, the path's stop list on a path page, the material on a room page, the current question on a quiz.
 
 **Written reasons for purpose-gated techniques:**
-- **Iris gradient (R-01):** the pale cyan-to-periwinkle iris comes from the logo's cube faces and the security-paper print; it is the only gradient and stays on the rail, drawer, signed-out hero, and auth panel, where it separates navigation from content.
-- **Dot grid, circuit field, data-bus strip (R-07):** the owner asked for an IT/digital ground in place of postage-stamp ornament (21 Oct 2026); the print stays in one ink at low opacity and only on surfaces that are not read for long.
-- **Archivo (R-06):** one variable grotesque whose width axis gives the printed-form voice (condensed caps for labels, pills, and serials) without a second display face.
-- **Condensed uppercase labels with tracking (R-06):** they label data in ruled cells like the field names on an official record; never as eyebrows above headings.
-- **JetBrains Mono (R-06):** code and literal machine strings (IPs, slugs, submitted answers, error references), because its distinct 0/O and 1/l/I keep payloads and flags unambiguous; never for headings or decoration.
-- **Stroked inline SVG icons (R-04):** drawn for this app at one stroke weight so they sit with the hairline rules; each icon names its destination and stays beside a text label.
-- **Arrows (R-08):** directional only. A forward arrow marks the action that advances the member through a path or quiz (Resume or Start room, Start next room, Next question); a back arrow marks a link that returns to the parent room or previous question. No other button carries one.
-- **Owner decisions taken during the antislop pass (5 Nov 2026, owner asked for visible UI changes):** text fields get a control-edge border at 3:1 (WCAG non-text contrast) instead of the 1.9:1 hairline; heatmap days without activity are drawn as a small dot so "none" and "some" differ by shape, not only by a faint tint; the member serial keeps Serial Red as a named exception to the Status Colour Rule.
-- **Shadows (R-12):** the sheet shadow says "a sheet lying on paper", lift marks the one floating layer (drawer), and the cyan whisper softens the primary button's edge.
-- **Cards and figure cells (R-14):** sheets hold different jobs, so their sizes follow content; figure cells are deliberately identical because they are a ruled table of comparable numbers.
-- **Activity heatmap:** it answers "how regular is my study?" for the streak beside it; it uses deep cyan ink intensity because it is a measure of effort, not a state, so it may not borrow a status colour.
-- **Palette size (R-29):** neutrals, one accent (logo cyan), and four status colours that each carry one state (The Status Colour Rule); the identity tile tints are reserved for room and path initials and never carry meaning.
+- **The one gradient:** a cyan-tinted navy to periwinkle-tinted navy wash from the logo's cube faces; it separates navigation from content on the rail, mobile drawer and auth brand column, and appears nowhere else (the heatmap's empty-day dot is drawn with a pseudo-element precisely to avoid a second gradient).
+- **Red Hat (Display / Text / Mono):** one superfamily gives headings and figures a confident geometric voice, reading text a calm humanist body tuned for long material, and machine strings an unambiguous mono, without mixing unrelated faces.
+- **Uppercase data labels:** small tracked Display caps name data fields, table columns, figure cells and rail group headings; never placed above a heading as an eyebrow or kicker.
+- **Stroked inline SVG icons:** drawn for this app at one stroke weight (about 1.8) to sit with the hairline seams; every icon sits beside a text label or carries an accessible name.
+- **Arrows:** directional only. A forward arrow marks the action that advances the member (Resume room, Start next room, Next question). A back arrow returns to the parent (Back to room, Back to learning path) or steps back one question (Previous). No other control carries one.
+- **No shadows:** depth comes from tone (ground, panel, raised) and seams; only true floating layers (the mobile drawer and editor popovers) lift.
+- **Figure strips vs. inline rows:** a ruled strip of identical figure cells appears where comparable numbers are the point (the dashboard's Streak / Rooms completed / Quizzes passed, and the quiz result); everywhere else facts are inline label/value rows or definition lists.
+- **Activity heatmap:** answers "how regular is my study?"; active days rise through four steps of logo cyan because it measures effort, not a state, and days with no activity are a small control-edge dot so "none" and "some" differ by shape, not only by tint. Today carries a cyan-ink ring.
+- **Palette size:** neutrals, one accent (logo cyan), four single-meaning status colours, and a two-tint identity palette that never carries meaning.
+
+**Touch rules.** On coarse pointers every button, field and select is at least 44px tall, small and icon buttons at least 44px wide, and text links and compact targets get an invisible 44px hit area without changing their look. Field text is 16px on coarse pointers so iOS never zooms. Desktop with a mouse keeps its tighter 32/40px controls; the large entry-screen buttons are 44px everywhere.
+
+**Accessibility guarantees.** Text meets WCAG AA in both themes; text-field edges (control edge) reach at least 3:1 against ground, panel and raised surfaces (non-text contrast). Every page has landmarks (banner, navigation with a unique label, main, contentinfo) and a unique document title ("Page · Anon Cyber Team"). Focus is a 2px cyan-ink outline offset 2px on every interactive element. It is drawn inward inside the editor and on full-width row links in clipped panels, so scroll containers and panel edges do not cut it off. Text fields instead turn their border cyan ink with a 2px cyan ring at 30%, and quiz answer options outline the whole row. Status never relies on colour alone: marks differ by shape (check, score figure, retry arrow, dashed "next" ring).
+
+**Named exceptions.**
+- **Instructor material colours in the dark theme:** colours chosen by instructors for a light page are re-inked with `invert(1) hue-rotate(180deg)` so the hue survives and contrast holds on dark panels (nested coloured elements are not inverted twice; highlighted text uses theme ink). The editor's colour swatches get the same treatment so the preview matches.
+- **Code blocks darker than panels:** code in room material sits on its own near-black block (and a dark slate block in the light theme) so payloads read as a distinct machine surface in both themes.
+
+**Owner decisions (6 Nov 2026).**
+- Canon chosen: the category standard for cybersecurity learning, with Hack The Box as the craft reference (seamless flush panels), not green and not a copy.
+- ACT logo colours are applied to type and borders and the primary action, not to large fills.
+- At most one soft gradient, on the rail, mobile drawer and auth brand column only.
+- Dark is the default theme; light is an option remembered per device and applied before first paint.
+- The previous "Security Paper" world (iris gradient, dot grid, circuit traces, segmented progress ring, rounded floating cards, Archivo) is retired.
 
 ## Colors
 
-A cool, low-chroma paper-and-ink palette with one reserved logo cyan and four status colours. Tokens are stored as `R G B` channel triplets on `:root` in `app/globals.css` and exposed to Tailwind with alpha support; the hex values in the frontmatter are the same colours.
+A blue-black, low-chroma console palette with one reserved logo cyan, four single-meaning status colours, and a small identity palette. Tokens live as `R G B` triplets on `:root` (dark, default) and `:root[data-theme="light"]` in `app/globals.css` and are exposed to Tailwind with alpha support; the frontmatter carries the dark values. The names in this document are descriptive; the CSS variables and Tailwind keys keep the older names: ground = `--paper` (`bg-paper`), panel = `--sheet`, raised = `--well`, seam / seam-soft / seam-strong = `--line` / `--line-soft` / `--line-strong`, control-edge = `--line-input`, logo-cyan / logo-cyan-hover = `--cyan` / `--cyan-hover`, cyan-wash = `--cyan-soft`, completed-violet / correct-green / retry-red / scheduled-amber = `--violet` / `--green` / `--red` / `--amber`, and each -wash is the matching `-soft`; ink, ink-2, ink-3, cyan-ink, on-cyan, prose-ink, code-ink, scrim and tile-* use the same names in code. Code block is not a token: it is hard-coded in `.prose-cyber pre` (`#060b10`; light `#17222b`).
 
 ### Primary
-- **Logo Cyan** (cyan): the fill of the logo's cube faces. Used as the face of the primary button, the "next room" segment of the progress ring, text selection tint, and selected editor cells. Hover deepens to **Pressed Cyan** (cyan-hover).
-- **Deep Blue Ink on Cyan** (on-cyan): the text colour on a cyan fill. A dark blue-ink rather than black, so the primary button reads as one seamless cyan object.
-- **Deep Cyan Ink** (cyan-ink): the text-safe form of the accent. Links, the active nav icon, focus outlines, input caret, the focused input border, the selected quiz option and current-question borders, the primary button's 25% border, and every digital motif stroke (dot grid, circuit traces, data-bus strip, the ring's dotted outer gauge). Never used as a large fill.
-- **Cyan Wash** (cyan-soft): background of the "primary" status pill, next-task callouts, the selected quiz option (at 50%), and the pressed night-mode toggle button. The rail's night-mode switch track turns slate ink when on, so logo cyan stays reserved for the next step.
+- **Logo Cyan** (logo-cyan): the cube-face cyan of the ACT logo. Fills the primary button, the progress bar, the route loading line, the four heatmap steps (25 / 45 / 70 / 100%), text selection tint and selected editor cells. On hover it becomes **Bright Cyan** (logo-cyan-hover): lighter (`#33D1F8`) in dark, deeper (`#00AEDE`) in light.
+- **Cyan Ink** (cyan-ink): the text-safe form of the accent. In dark it equals logo cyan; in light it deepens to a teal-blue for contrast. Links, the active nav item's text and icon, focus outlines, the caret, focused field borders, the current/next item's border (Continue panel at 35%, dashed "next" ring), the member serial, the points figure in the top-bar pill, the member's first name in the dashboard greeting, and the "you" row on the leaderboard.
+- **Cyan Wash** (cyan-wash): the active nav item, the member's own row on the leaderboard, the selected quiz option and the on-screen question chip, active editor toolbar buttons, the image drop zone while dragging, and the pressed light-mode icon button (the rail switch fills its track with cyan ink instead). The `primary` StatusPill tone and the `cyan` StateTag tone also use it, though no page renders them at present.
+- **On Cyan** (on-cyan): the deep blue-ink text on a cyan fill, so the primary button reads as one cyan object rather than black on cyan.
 
 ### Secondary (status colours)
-- **Completion Violet** (violet / violet-soft): completed. The filled circle behind a passed room's check, completed segments of the progress ring, the default progress bar, the "done" pill, task-list checkboxes in material.
-- **Approval Green** (green / green-soft): correct. A passed quiz's score figure, the "Solved" state tag, success pills.
-- **Serial Red** (red / red-soft): retry, closed, error, destructive. The retry mark (red icon on red wash), the "Closed" state tag, danger buttons, and the red serial number on the member card.
-- **Schedule Amber** (amber / amber-soft): scheduled or time-bound. "Opens 24 Oct" and "Closes ..." state tags, warning pills.
+- **Completed Violet** (completed-violet / -wash): completed. The circled check of a passed room, "done" pills, task-list checkboxes in material.
+- **Correct Green** (correct-green / -wash): correct and scores. A passed quiz's score figure, "Solved" tags, success pills; in staff views, live/published.
+- **Retry Red** (retry-red / -wash): retry, closed, error, destructive. The circled retry arrow, "Closed" tags, danger buttons, error messages.
+- **Scheduled Amber** (scheduled-amber / -wash): scheduled or time-bound ("Opens 24 Oct", "Closes ..."); in staff views, needs attention.
+
+### Tertiary (identity tiles)
+- **Tile Indigo** (tile-indigo with tile-indigo-ink) and **Tile Teal** (tile-teal with tile-teal-ink), plus the raised neutral: backgrounds of the initials tiles for rooms and paths without an uploaded logo and for the member avatar on Profile, chosen deterministically from the name. They never carry state.
 
 ### Neutral
-- **Security Paper** (paper): page ground behind everything.
-- **Sheet White** (sheet): every content surface, button faces for secondary actions, inputs, the check inside a completion mark, and the fill of circuit via circles.
-- **Well** (well): recessed areas: table headers, blockquotes, inline code, hover fills, neutral state tags.
-- **Hairline** (line), **Soft Hairline** (line-soft), **Strong Rule** (line-strong): sheet borders and dividers; progress tracks, "to do" ring segments, inner rules, and completion-list row rules; secondary-button borders, dashed empty-slot borders, ring tick marks, scrollbar thumbs.
-- **Control Edge** (line-input, `#768C95`, night `#5C707C`): the border of text fields and the dot of empty heatmap days, at least 3:1 against sheet, paper, and well in both themes, so an edge is visible (WCAG non-text contrast).
-- **Intaglio Ink** (ink): headings, body text, the ring's centre figure.
-- **Slate Ink** (ink-2): secondary text, descriptions, ghost-button text.
-- **Faded Ink** (ink-3): field labels, placeholders, helper text, completion-list detail lines, inactive nav icons, the ring's sublabel.
-- **Iris** (`linear-gradient(180deg, #d9eff6 0%, #e3ecf8 55%, #ebe8f6 100%)`, the `--iris` custom property): the only gradient in the system, always under the digital dot grid, used solely for the navigation rail, the mobile drawer, the signed-out hero, and the auth panel.
-- **Code Night** (code-surface / code-text): the dark surface reserved for code blocks in room material, in both themes.
+- **Ground** (ground): the page behind everything, and the inside of text fields.
+- **Panel** (panel): every content panel.
+- **Raised** (raised): table headers, blockquotes, inline code, hover fills, neutral tags, disabled fields.
+- **Seam** (seam), **Soft Seam** (seam-soft), **Strong Seam** (seam-strong): panel borders and row dividers; inline-code borders; secondary-button borders, dashed empty states, neutral tag edges, scrollbar thumbs.
+- **Control Edge** (control-edge): text-field borders and the empty-day heatmap dot, at least 3:1 against every surface.
+- **Ink / Ink 2 / Ink 3** (ink, ink-2, ink-3): headings and body; secondary text and descriptions; labels, placeholders, dates and inactive icons.
+- **Prose Ink / Code Ink** (prose-ink, code-ink): room material text and inline code.
+- **Code Block** (code-block): the near-black surface under fenced code in material (light theme: `#17222B`).
+- **Scrim** (`--scrim`): the backdrop behind the mobile drawer, used at 35% opacity (dark `#000000`, light `#080C10`).
+- **Rail Gradient** (`--rail`): dark `linear-gradient(180deg, #0d1e29 0%, #0b141c 55%, #11132a 100%)`; light `linear-gradient(180deg, #e3f3f9 0%, #f1f5f8 55%, #ecebf8 100%)`.
 
-### Night Theme (opt-in, app-wide)
-`:root[data-theme="night"]` redefines every colour token so all components follow without their own dark variants: paper `#0D1318`, sheet `#141C23`, well `#1A242C`, hairlines `#29363F` / `#202B33` / `#465863`, ink `#E6EEF2` / `#B6C4CC` / `#8C9DA7`; logo cyan is unchanged with hover `#46D4FA`, wash `#0C3442`, and a lightened cyan ink `#60D4F6`; status colours lighten (violet `#AC9AF2`, green `#6ECC92`, red `#F28076`, amber `#E8B860`) over dark washes; identity tiles and the iris (`#0f1c24` to `#151a28`) darken; room material text becomes `#d3dee4`. It is opt-in and app-wide: set by any "Night mode" toggle (rail, mobile top bar, drawer, lab header), remembered locally, and applied before first paint; room material follows it, with instructor colours re-inked for the dark page.
+### Light Theme (optional, app-wide)
+`:root[data-theme="light"]` re-values the same tokens: ground `#F4F7F9`, panel `#FFFFFF`, raised `#EDF2F5`, seams `#DCE4EA` / `#E8EEF2` / `#BECBD4`, control edge `#768C95`; ink `#0E1720` / `#3A4750` / `#5C6A72`; logo cyan and on-cyan unchanged, hover `#00AEDE`, wash `#E0F5FC`, cyan ink `#006C8A`; violet `#5A3DB0` on `#EDE9F9`, green `#267345` on `#E4F2E9`, red `#C43028` on `#FBE9E7`, amber `#8F5708` on `#FBF1DC`; tiles `#E7EAF8`/`#3B4B8A` and `#E1F1EF`/`#0F6A63`; prose `#1D2933`, code `#24313B`, scrim `#080C10`. It is set by the rail switch (desktop rail and mobile drawer), the icon button in the mobile app top bar, the icon button in the public top bar (home, 404, error), and on auth pages the top-bar icon on small screens or the switch row at the foot of the brand column on desktop. The toggle writes `localStorage` `act-theme` as `"light"` or `"dark"` and never removes the key; an inline script applies the light theme before first paint only when the stored value is `"light"`, so a missing key or any other value means dark.
 
 ### Named Rules
-**The Next-Step Cyan Rule.** Logo cyan fills only the member's next step and the primary action of a view, with on-cyan text and a thin cyan-ink border, never a black outline. Links use deep cyan ink, never the bright fill colour as text.
+**The Forward Cyan Rule.** Logo cyan marks only what moves the member forward or where they are: the primary action, the current/next/active item, links, progress, and focus. One identity accent joins them by owner direction (logo colour on type): the member's first name in the dashboard greeting. It is a signal on type, borders and small fills, never a large decorative fill, never a glow.
 
-**The Status Colour Rule.** Violet means completed; green means correct, and in staff views live (a Published item, a running lab); red means retry, closed, error, or destructive; amber means scheduled, and in staff views needs attention (a starting lab, unsaved changes, a room missing tasks or material). Do not use a status colour to signal anything else, and do not let two colours share a meaning. One named exception: the member serial is printed in Serial Red, like a banknote serial; it is an identifier, never a state, and appears only on the member card and profile. Hints are not a state, so the hint box is neutral (well fill, faded-ink label), not amber.
+**The One Meaning Rule.** Violet means completed, green means correct or a score, red means retry/error/destructive, amber means scheduled. No colour signals anything else, and no two colours share a meaning. Hints are not a state, so hint boxes stay neutral.
 
-**The Identity Tile Rule.** Rooms and paths are told apart by their uploaded logo or, by default, an initials tile whose tint is chosen deterministically from the name among a dedicated identity palette: cyan soft, tile indigo (#E7EAF8 with #3B4B8A initials), tile teal (#E1F1EF with #0F6A63 initials), and the neutral well. Status colours are never used for tiles, so a tile can never be read as a state; state always rides on a mark, tag, or pill beside the name.
+**The Identity Tile Rule.** Room, path and member-avatar initials tiles use only the identity palette (indigo, teal, raised neutral), so a tile can never be read as a state; state rides on a mark, tag or pill beside the name.
 
-**The One Motif Ink Rule.** Digital motifs draw only in deep cyan ink (`rgb(0 108 138)`) at low opacity (13% for the dot grid, about 32% for circuit strokes, 40% for the data-bus strip), never in status colours or logo cyan.
-
-**The One Theme Per Token Rule.** A dark surface is made by re-valuing the tokens under `data-theme="night"`, never by hard-coding dark colours in a component.
+**The One Token, Two Themes Rule.** Light and dark come from re-valuing tokens on `:root`, never from hard-coded colours or per-component dark variants (the code block and instructor re-inking are the named exceptions).
 
 ## Typography
 
-**Display Font:** Archivo (variable weight and width), with ui-sans-serif, system-ui fallback
-**Body Font:** Archivo
-**Label/Mono Font:** Archivo condensed through `font-stretch` for labels, pills, and serials; JetBrains Mono for code and literal machine strings (IPs, slugs, submitted answers, error references), because its distinct 0/O and 1/l/I keep payloads and flags unambiguous
+**Display Font:** Red Hat Display (with ui-sans-serif, system-ui)
+**Body Font:** Red Hat Text (with ui-sans-serif, system-ui)
+**Mono Font:** Red Hat Mono (with ui-monospace, SFMono-Regular, Menlo); data labels are set in Red Hat Display (see Label below).
 
-**Character:** One grotesque used across its width axis gives the printed-form feel: normal width for reading and headings, condensed uppercase for printed field labels, status pills, and serial numbers.
+**Character:** One superfamily in three cuts. Display is geometric and assured for everything that labels, counts or acts; Text is open and calm for long reading; Mono is reserved for strings a machine would print.
 
 ### Hierarchy
-- **Display** (700, 2.25rem rising to 3rem at the sm breakpoint, line-height 1.08, -0.025em): the signed-out home hero only.
-- **Headline** (700, 1.75rem rising to 2rem at lg, leading-tight, -0.018em, balanced wrap): one page title per screen in the shell header and auth frame. No eyebrow above it.
-- **Title** (700, 1.125rem, snug, -0.01em): section headers on sheets, optionally with a 0.875rem slate description below.
-- **Figure** (700, 1.75rem, line-height 1, tabular and lining numerals, -0.01em): counters in ruled cells; units ride beside them at 0.875rem semibold slate. A 1.125rem variant holds word values such as difficulty. The same figure style sets a passed quiz's score mark (1.125rem in lists, 1.75rem on the quiz result) in green, and the progress ring's centre count ("3/8").
-- **Body** (400, 0.9375rem, 1.55): interface text. Secondary text at 0.875rem in slate ink.
-- **Reading** (400, 1.0625rem, 1.75, text colour `#1d2933`): room material in the shared material typography, identical in the editor and student view. Headings inside material step 1.75 / 1.4 / 1.15 / 1.0625rem at 700.
-- **Label** (600, 0.6875rem, 0.12em tracking, uppercase, width 72%, faded ink): field labels sitting directly above a data value, and the progress ring's sublabel ("ROOMS").
-- **Serial** (600, 0.75rem, 0.12em, uppercase, width 80%, tabular, serial red): member ID numbers on the member card and profile.
-- **Code** (JetBrains Mono, 0.86em inline, 0.84rem in blocks at 1.65).
+- **Display** (700, 2.375rem, 3rem from sm, 3.25rem from lg; line-height 1.05 below sm and 1 from sm, where `sm:text-5xl` brings Tailwind's line-height 1; -0.028em): the signed-out home hero only. The 404 and error pages use a smaller step of the same cut (700, 2.25rem, 2.75rem from sm, line-height 1.08, -0.024em).
+- **Headline** (700, 1.75rem / 2rem from lg, leading-tight, -0.02em, balanced): the page title row in the shell and the auth title. The dashboard's Continue room title is 1.375rem.
+- **Title** (700, 1.125rem, line-height 1.375, -0.01em): section headings (SectionHeader, standalone form panels, and the path page's Rooms in this path header). The two signed-out home panels use the same size and line-height without the tracking. Other headings in a ruled panel header row (title above a seam, e.g. Rankings, Tasks, Recent activity, Top members) are 1rem/700 with no tracking, whatever the column width.
+- **Figure** (700, 1.75rem, line-height 1, -0.01em, tabular lining numerals): figure cells and fixed numbers; small figures (dates, minutes, ranks) use the same numeral settings at text size.
+- **Body** (400, 0.9375rem, 1.55): interface text, descriptions, rows.
+- **Reading** (400, 1.0625rem, 1.75): room material (`.prose-cyber`), identical in the editor and the student view; material headings 1.75 / 1.4 / 1.15 / 1.0625rem at 700.
+- **Label** (600, 0.6875rem, 0.08em tracking, uppercase, ink 3): data field names, table columns, figure-cell labels, rail group names. Status pills use the same cut at 0.06em.
+- **Form label** (600, 0.875rem, sentence case, ink, Display): the label above every field, 6px above it. The uppercase Label cut is for data names only.
+- **Button** (600, 0.875rem; small 0.8125rem; large usually 0.9375rem): every button, in Display.
+- **Mono** (no added tracking, at the row's size and weight, usually 400 at 0.75 to 0.875rem): slugs, IPs, submitted answers and error references. Member serials use the serial cut (500, 0.75rem, 0.06em, uppercase, cyan ink). Code is 0.86em inline and 0.84rem in blocks.
 
 ### Named Rules
-**The Labels-Are-Data Rule.** Condensed caps label a value, a field, or a state. They never sit above a heading as an eyebrow or kicker.
+**The Three Cuts Rule.** Display labels, counts and acts (headings, labels, figures, buttons, titles in rows); Text reads; Mono is only for machine strings and code, never for headings or decoration.
 
-**The Fixed Cell Rule.** Every counter (points, streak, rank, scores, percentages, ring counts) is set in tabular figures so values never shift width when they change.
+**The No Eyebrow Rule.** Uppercase labels name data. They never sit above a heading as a kicker.
 
 ## Layout
 
-The signed-in app is a fixed left rail plus a centred content column. The rail is 256px wide (collapsible to 76px, preference stored locally) and the main column caps at 1240px with gutters of 16px on phones, 24px at sm, and 40px at lg, and top padding of 24px (36px at lg). Each page opens with a title row (headline plus optional slate subtitle, with actions aligned to the bottom edge on wider screens), then 28px of space before content. The content column fades up 6px over 320ms on every page view; purpose: it confirms that a navigation landed while the rail stays still. While the next page renders on the server, a 3px logo-cyan line runs along the top edge (shown only after 150ms, so fast navigations do not flicker; static under reduced motion, announced as "Loading page"). Every page ends with the shared footer: the community line and the "Safe, defensive practice only" note. Unknown addresses and failed pages use the auth frame with a plain explanation and two ways on (Page not found; This page didn't load, with Try again).
+The signed-in shell is a fixed left rail (256px, collapsible to 76px on desktop, with the one gradient) and a content column. A sticky 56px desktop top bar carries the breadcrumb (ink 3, current page in ink, slash separators in strong seam) and, on the right, a points/rank pill whose figure is cyan ink. The content column is capped at 1240px with 16 / 24 / 40px side padding (mobile / sm / lg) and 24px (32px lg) top padding; each page opens with a title row (headline plus an optional one-line ink-2 description, actions right-aligned) and a 28px gap to the first panel.
 
-Screens compose sheets on a grid with a 20px gap. The dashboard, profile, and room pages use a main column plus a 340px side column from xl (`minmax(0,1fr) 340px`), because with the 256px rail open, lg would leave the main column under 330px, too narrow for the Continue and member-details rows; room material takes 8 of 12 columns, and the editor's writing width is matched to it. Figures sit in a ruled 2x2 cell block inside a sheet. Completion lists flow as rows in 1 column on phones, 2 at sm, and 3 at xl (24px column gap), each row ruled below by a soft hairline. Lists of rooms and paths lead each row with the entity logo.
+Below 1024px the rail becomes a drawer: a sticky mobile top bar (logo, name, theme icon, Menu) opens a gradient drawer at `min(18rem, 86vw)` over a scrim. The dashboard, the instructor and admin overviews, admin announcements, the path manager, the New room builder and the profile use a two-column grid at xl (fluid main plus a 340px side column; on the dashboard it holds Top members and Announcements) with 20px gaps; the path editor uses a 26rem side column at xl. The lab page opens the same 340px side column at lg, and the quiz uses a 300px side column at lg. The room page is a 12-column split at lg with 24px gaps (material takes 8 of 12). Inside the path page's overview panel, a 17rem facts column splits off from md. Panels pad 20px on phones and 24px from sm (form panels and room material from md); the default Card and narrow side-column panels stay at 20px. The auth layout puts a 288px (320px xl) gradient brand column beside a 27rem form column; the public shell is a simple 1152px header and footer frame.
 
-Collapsing the rail keeps one layout: the width and item padding animate over 300ms, labels fade out (200ms) while icons stay put, and the member card folds away by grid rows; purpose: icons keep their place so the member never loses their position in the nav. Below lg, the rail becomes a sticky paper top bar (logo, name, and a small secondary "Menu" button) that slides the same dotted iris rail in as a modal drawer (`min(18rem, 86vw)`, 300ms on `cubic-bezier(0.16, 1, 0.3, 1)`, over a fading 30% ink scrim, focus-trapped, Escape closes); purpose: it slides from the rail's edge so it reads as the same rail, not a new surface. When closed it stays mounted but invisible and inert. Sheet padding is 20px, rising to 24px for form panels at md.
-
-Touch pointers (`pointer: coarse`, through the `coarse:` Tailwind variant and an unlayered block in `globals.css`) get 44px targets per antislop R-03: buttons, small buttons, fields, selects, nav items, editor tools, and an invisible 44px hit area on standalone text links. Mouse layouts keep the dense desktop rhythm. Fields use 1rem text on touch so iOS Safari does not zoom the page on focus. On phones, wide tables drop secondary columns (name, date, answer) into a small second line under the first cell instead of scrolling them off-screen.
+Rows inside panels are ruled with seam dividers (10 to 12px vertical padding for compact rows, including the dashboard's stop list and its announcement rows; 14 to 16px for catalog rows, the path page's stop list, task rows and the announcements manager's rows; 20px for the open task on the room page and quiz review items); lists of rooms, completions, members and announcements all use that same ruled-row grammar.
 
 ## Elevation & Depth
 
-Depth is paper, not light. Surfaces are separated by tone (paper, sheet, well) and hairline borders; shadows are barely there and exist only to say "this is a sheet lying on paper". The one lifted object is the mobile navigation drawer. The digital motifs are printed flat into the surface, never raised.
+Flat by construction. Panels sit flush on the ground and are told apart by tone (ground darker than panel, raised lighter) and 1px seams; the default panel shadow token is deliberately empty. Only true floating layers lift: the mobile drawer and editor popovers carry one soft drop shadow over the content they cover.
 
 ### Shadow Vocabulary
-- **Sheet** (`box-shadow: 0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)`): every sheet, and the active nav item.
-- **Cyan whisper** (`box-shadow: 0 1px 2px rgb(0 108 138 / 0.18)`): the primary button only, so its edge dissolves into the cyan face instead of reading as an outline.
-- **Lift** (`box-shadow: 0 10px 30px -12px rgb(16 22 31 / 0.22), 0 2px 6px rgb(16 22 31 / 0.06)`): floating layers only (the mobile drawer).
-- **Input inset** (`box-shadow: inset 0 1px 1px rgb(16 22 31 / 0.04)`): text fields, to read as pressed into the sheet.
+- **Lift** (`box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.55)`): the mobile navigation drawer and the editor's floating popovers (colour, link, table menus). Nothing else.
 
 ### Named Rules
-**The Paper Depth Rule.** A sheet is a hairline border plus the sheet shadow. No glows and no hard offset shadows; the only tinted shadow is the primary button's 1px cyan whisper, and lift is reserved for things that float above the page.
+**The Flush Panel Rule.** Panels never cast shadows, never float with gutters of empty ground around them as decoration, and never glow. If something must look elevated, it must actually float above other content.
 
 ## Shapes
 
-Gently rounded, document-like rectangles, all upright. Sheets use a 0.75rem corner; buttons, inputs, quiz options, and nav items use 0.5rem; status pills and state tags use 0.375rem; progress bars, the progress ring, and completion marks are fully round. Entity logo tiles scale their corner with their size (0.375rem at 36px, 0.5rem at 44px, 0.75rem at 64px, 1rem at 96px). Borders are 1px hairlines, except the quiz's current-question marker (1.5px deep cyan ink at 70%). Dashed borders mean "a slot that is still empty": the "Up next" mark, empty states, unchosen upload drop zones, the lab placeholder, and next-task callouts. Circuit geometry is orthogonal runs with 45-degree jogs on a 24px step, ending in small open via circles and starting from small square pads. Nothing is rotated.
+Tight, consistent corners: 6px for status pills, state tags, small tiles and compact controls (editor toolbar buttons and selects, quiz question-navigator squares); 8px for buttons, fields, nav items, member card, the top-bar points pill, medium tiles and inline notices (including the empty-material note); 10px for panels, large tiles and the EmptyState box. Material blockquotes and images round at about 10px, inline code at about 6px. Full circles are reserved for completion marks, numbered stop markers, progress tracks, radios, the heatmap's empty-day dot, the lab's empty-target icon ring, the theme switch and scrollbar thumbs. Every surface edge is a 1px border. Dashed borders are limited to: the "next" ring (cyan ink, 1.5px); empty states, the empty-material note and the empty lab target (strong seam); unanswered question chips in the quiz navigator (strong seam); the image upload drop zone (strong seam, cyan ink while a file is dragged over it); and the strong-seam top rule above the instructor add-task, add-question and add-room forms.
 
 ## Components
 
 ### Buttons
-Printed and plain: one bright face for the next step, paper for everything else.
-- **Shape:** gently rounded (0.5rem), minimum height 40px (44px on touch), 16px horizontal padding, 0.875rem semibold label, optional 8px-gap inline SVG icon.
-- **Primary:** logo cyan face, on-cyan text, 1px deep-cyan-ink border at 25%, the cyan whisper shadow. Hover deepens to pressed cyan. One per view: form submit buttons default to secondary and only the view's main action (Create announcement, Create or save a learning path, Save material, Resume room) is passed the primary style.
-- **Arrows:** directional only. A forward arrow marks the action that advances the member through a path or quiz (Resume or Start room, Start next room, Next question); a back arrow marks a link that returns to the parent room or previous question; no other button carries one.
-- **Secondary:** sheet face, strong-rule border, ink text. Hover moves the border to faded ink and the face to well. As a toggle (the "Night mode" button, `aria-pressed`) its pressed state takes a cyan wash with a cyan-ink border at 50%.
-- **Ghost:** no face or border, slate text, 12px padding. Hover fills well and darkens text to ink.
-- **Danger:** sheet face, red text, red border at 40% opacity. Hover strengthens the border and fills red wash.
-- **Small:** 32px minimum height (44px tall and wide on touch), 12px padding, 0.8125rem text.
-- **States:** colour transitions at 150ms ease-out; a 1px downward press on active; disabled at 55% opacity with a not-allowed cursor; the global 2px deep-cyan focus outline with a 2px offset.
+Compact and decisive, set in Display.
+- **Shape:** gently squared (8px), 40px tall, 16px horizontal padding; small buttons 32px tall with 12px padding; large buttons 44px tall on every pointer, for the decisive actions of entry screens (home hero, dashboard Continue, auth submit, quiz result, 404/error recovery), usually with 0.9375rem text and 20 to 24px padding (the dashboard's View room/View path and the quiz-result actions keep 0.875rem).
+- **Primary:** logo cyan fill with on-cyan text; hover shifts to logo-cyan-hover (lighter in dark, deeper in light). Used once per view for the forward action; may carry a forward arrow.
+- **Secondary:** transparent with a strong-seam border and ink text; hover turns border and text cyan ink. Disabled stays neutral on hover.
+- **Ghost:** no border, ink 2 text; hover fills raised and inks the text.
+- **Danger:** transparent with a red border at 45% and red text; hover fills the red wash.
+- **States:** colour transitions 150ms ease-out, a 1px press nudge on active, 55% opacity when disabled, 2px cyan-ink focus outline.
 
 ### Chips (status pills and state tags)
-- **Status pill:** 0.375rem corners, 1px border at 25% of the tone, soft wash fill, tone text, 0.6875rem semibold uppercase at 0.08em tracking and 78% width, never wrapping. Tones are neutral, primary (cyan), success (green), warning (amber), danger (red), and done (violet).
-- **State tag:** a flat, upright inline tag for states that must stay visible ("Opens 24 Oct", "Closes ...", "Closed", "Draft", "Solved", "Locked"): 0.375rem corners, 1px border at 25% of the tone, soft wash fill, 0.75rem semibold sentence case, never wrapping, with an optional 14px stroked check or lock icon. Tones follow the Status Colour Rule (amber scheduled, red closed, green solved, violet completed), with a neutral well tone for draft, locked, and placeholder states.
+- **Status pill:** 6px corners, tinted wash with a 35% same-colour border, uppercase Display label text (11px, 0.06em). Tones: neutral, primary (cyan), success (green), warning (amber), danger (red), done (violet).
+- **State tag:** the same shape in sentence case (12px, 600) with an optional 14px stroked check or lock icon, for inline states like "Opens 24 Oct", "Closed", "Solved", "Draft".
 
 ### Cards / Containers
-- **Corner Style:** 0.75rem.
-- **Background:** sheet white on paper ground.
-- **Shadow Strategy:** sheet shadow (see Elevation & Depth).
-- **Border:** 1px hairline. Internal dividers are hairlines; ruled figure blocks divide cells with 1px rules.
-- **Internal Padding:** 20px (24px on form panels at md; up to 28px on the dashboard's Continue sheet at sm).
-- **Empty state:** a dashed strong-rule box on translucent paper, centred title, short reason, and a next-step action.
+- **Corner Style:** 10px.
+- **Background:** panel on ground.
+- **Shadow Strategy:** none (see Elevation & Depth).
+- **Border:** 1px seam; the dashboard's Continue panel swaps in a cyan-ink seam at 35% because it holds the current item.
+- **Internal Padding:** 20px, rising to 24px from sm (md for forms and material); side-column panels stay at 20px. Split panels divide their halves with a seam.
+- **Empty state:** dashed strong-seam border on a translucent ground, centred title, one-line reason and the next action.
 
 ### Inputs / Fields
-- **Style:** sheet fill, 1px control-edge border (line-input, at least 3:1 on sheet and paper in both themes, so the field's edge meets WCAG non-text contrast), 0.5rem corners, 8px by 12px padding, 0.9375rem ink text (1rem on touch, so iOS Safari does not zoom the page on focus), faded-ink placeholder, inset whisper shadow. The label above is 0.875rem semibold ink; helper text below is 0.75rem faded ink.
-- **Focus:** the border turns deep cyan ink with a 2px logo-cyan ring at 35%.
-- **Hover / Disabled:** hover darkens the border to faded ink; disabled fills well with faded-ink text.
-- **Quiz options:** 0.5rem-cornered hairline rows on sheet; selected turns the border deep cyan ink at 60% over a 50% cyan wash. The question navigator marks the current question with a 1.5px cyan-ink border at 70%.
-- **Image upload:** a dashed drop zone on paper with an upload button and a URL field. Room and path configuration carry a "Logo" field (square preview, controls named "Upload logo", "Remove logo", "Logo URL") beside "Cover image" (wide preview).
+- **Style:** ground fill inside a panel, 1px control-edge border, 8px corners, 8px 12px padding, body text (16px on coarse pointers).
+- **Focus:** border turns cyan ink with a 2px cyan ring at 30%; caret is cyan ink.
+- **Hover / Disabled:** hover lifts the border to ink 3; disabled fills raised with ink 3 text.
+- **Radios and checkboxes:** Quiz answer radios are drawn 18px circles with a control-edge border that thicken into a cyan-ink ring when checked. Checkboxes in instructor and admin forms are native 16px controls with a cyan-ink accent (task-list checkboxes in room material keep the violet accent). The quiz editor's 'correct answer' radio is a native 16px radio with a green accent, because it marks the correct option.
 
 ### Navigation
-- **Rail:** the dotted iris surface behind the logo and wordmark (0.9375rem bold), the member links, then role groups (Teaching, Admin) under condensed field labels, a collapse control, the member card (name, role label, red serial ID), and sign out. Right edge is a plain 1px hairline.
-- **Items:** 0.9375rem slate text with an 18px stroked SVG icon (1.7 stroke) in faded ink; 36px tall at lg with a mouse, 40px below lg, 44px on touch. Hover lays translucent sheet behind the item. **Active** is a sheet tab: sheet fill, sheet shadow, 1px hairline ring, semibold ink text, deep-cyan icon.
-- **Collapsed:** icons only at fixed positions, each with a full accessible name and tooltip; labels fade rather than unmount.
-- **Mobile:** sticky paper top bar with backdrop blur; "Menu" slides the rail in as a drawer over a 30% ink scrim.
+- **Rail:** logo and name at top, member links, then labelled role groups (Teaching, Admin) with uppercase group labels; theme switch and Collapse at the foot above the member card (name, role label, cyan mono serial), with Sign out below it.
+- **Items:** 36px rows on the desktop rail, 40px in the mobile drawer, 44px on coarse pointers. 8px corners, an 18px stroked icon in ink 3 and the label in ink 2; hover fills raised at 70%. The active item takes the cyan wash, cyan-ink text and icon, and a 1px inset cyan-ink hairline at 30%.
+- **Collapse:** the rail narrows to icons over 300ms; labels fade, collapsed items carry full accessible names.
+- **Mobile:** sticky top bar with backdrop blur, theme icon button and Menu; the rail content slides in as a drawer (300ms, `cubic-bezier(0.16, 1, 0.3, 1)`) with lift.
+- **Room section tabs:** Material / Tasks (with a solved/total count) / Quiz (only when the room has one) anchor tabs on the room page, in Display 14px semibold ink 2 on a seam baseline. The section being read (Material or Tasks, followed on scroll) takes a 2px cyan-ink underline, cyan-ink text and `aria-current="location"`; Quiz is a jump to the quiz action and is never marked current. From lg the bar sticks under the desktop top bar.
 
-### Completion Mark and Completion List (signature)
-- **Completion mark:** one direct mark per outcome, 40px (56px on the quiz result). A passed room is a violet filled circle with a sheet-white stroked check (2.6 stroke). A passed quiz is its score as a green tabular figure ("85%"), with no container. A quiz to retry is a red stroked retry icon (an open circular arrow with its head at the upper right) on a red-wash circle. The next room is an empty circle with a 2px dashed strong-rule border.
-- **Check draw:** only for a completion that has just happened, the check's stroke draws in once (460ms on `cubic-bezier(0.16, 1, 0.3, 1)` after a 120ms delay). Under reduced motion the check appears already drawn.
-- **Completion list:** newest first; each row is the mark centred in a 48px column, then the room title (semibold ink) and a 0.875rem faded-ink detail line ("Room passed · 3 Oct 2026", "Quiz passed with 85% · 1 Oct 2026", "Quiz scored 40% · try again · 28 Sep 2026"), optionally closed by an "Up next" row in slate. It appears as "Completed" on the dashboard and progress page, "Recently completed" on the profile, and as a labelled example on the signed-out home. The room page shows a single mark in its "Room passed" callout.
+### Completion Marks (signature)
+Direct and calm: a passed room is a violet-wash circle with a violet check: 28px in completion lists, the room page, the quiz result's 'Room passed' row and the dashboard stop list (the CompletionMark check draws once when fresh), 32px on the path page's stop list, and 24px beside 'Passed'/'Complete' in the rooms and paths catalogs; a passed quiz is its score figure in green; a quiz to retry is a red-wash circle with a retry arrow (in the quiz result both use the large size: the retry circle is 44px and the passed score figure is set at xl, 1.25rem, with no circle); the next room is a dashed cyan-ink ring. Completion lists set the mark in a 48px column, title in Display, a one-line description in ink 3 and a right-aligned date. Numbered stop markers (28px, 32px on the path page) share the circle: a passed room keeps the violet-wash check; a solved task is a green-wash circle with a check; the current task or next room is a dashed cyan-ink ring with its number; locked tasks and rooms not yet reached are strong-seam rings with the number in ink 3, as are all markers in lists that show no state (the lab page's task preview, the home page steps and the instructor path editor). Quiz review numbers are green-wash (correct) or red-wash (wrong).
 
-### Entity Logo
-A square identity tile beside every room and path name: the uploaded logo (object-cover, hairline border, sheet backing) or, by default, the bold initials of the name (first letters of the first two non-stopword words, or the first two letters of a single word) on an identity-palette fill with a 20%-tone border. In `person` mode, used for a missing profile avatar, no words are dropped as stopwords ("Dan Pratama" reads "DP"). Sizes 36, 44, 64, and 96px. Always decorative (hidden from assistive technology) because the full name sits beside it. It leads rows in the dashboard, catalogs, room lists, path itineraries, room headers, the progress grid, and instructor managers.
-
-### Path Progress Ring (signature)
-A segmented gauge for the active learning path: one 12px-stroke arc on an 80-unit radius per room, in path order, with butt ends and small gaps (at most 6 degrees). Completed rooms are violet, the next room is logo cyan, rooms to do are soft hairline grey. A dotted outer ring in deep cyan ink at 35% and a hairline inner ring with a strong-rule tick at every segment boundary give it the read of a digital gauge. A single-room path draws a full circle; above 24 rooms the segments merge into one continuous violet arc over a grey track. The centre holds the count as a 34-unit tabular figure ("3/8") over a condensed caps sublabel. It sits at 200px on the dashboard's Continue sheet (160px on phones) and 184px in the path header (144px on phones), and carries an image role with a full sentence label ("Path: 3 of 8 rooms completed"). The segments enter with `ring-in` (fade in and rotate from -30 degrees over 700ms on `cubic-bezier(0.16, 1, 0.3, 1)`), off under reduced motion; purpose: it draws the eye to the ring once on arrival, so path progress is read first.
-
-### Activity Heatmap
-Answers "On which days did I practise in the last 17 weeks?" for the streak figures beside it. One column per week (Monday on top), month labels above, Mon/Wed/Fri row labels, today ringed in deep cyan ink. Fixed thresholds per day (1, 2, 3 to 4, 5+ task answers and quiz attempts) step through deep cyan ink at 25, 45, 70, and 100%, because activity is a quantity, neither a state nor the next step, so it never takes a status colour or logo cyan. Days without activity are a small centred dot in the control-edge colour (3:1 or more), so "none" and "some" differ by shape (dot against square) as well as tint, without turning the grid into ruled boxes; the dots echo the rail's dot grid. The exact date and count sit in each cell's tooltip for mouse users and in a screen-reader list of active days; the visible caption states the total. Shown on Progress (with Longest streak, This week, Busiest day) and Profile.
-
-### Digital Surface and Circuit Motifs
-- **Dot-grid surface:** 1px deep-cyan-ink dots at 13% on an 18px grid laid over the iris gradient. Used on the rail, mobile drawer, auth panel, and signed-out hero, nowhere else.
-- **Circuit field:** sixteen deterministic traces (seeded with FNV-1a and mulberry32, so the field never changes between renders) of horizontal runs with one 45-degree jog, each starting at a small square pad and ending in an open via circle, plus two small chips with pins; 1.25px non-scaling strokes in deep cyan ink at about 32%. It sits on the right of the signed-out hero (masked to fade toward the text) and the lower part of the auth panel at lg (masked to fade upward), behind content and never interactive.
-- **Data-bus strip:** a 20px-tall repeating pattern (168px tile) of two bus lines with 45-degree jogs, vias, and pads at 40%, on a translucent paper backing with a soft hairline. It heads the dashboard's Continue sheet and closes the bottom edge of the signed-out hero.
-- All three are decorative and hidden from assistive technology.
-- **Why:** the owner asked for an IT motif that names the subject (circuit boards, data buses) in place of the rejected postage-stamp ornament; it stays on navigation and entry surfaces (rail, drawer, auth panel, signed-out hero, the head of the Continue sheet) so reading surfaces remain plain.
-
-### Figure Cells
-A condensed field label, then a 1.75rem tabular figure with an optional slate unit, then an optional 0.75rem note. They are grouped as ruled 2x2 blocks inside a sheet; the dashboard block reads Points, Streak, Rooms completed, Rank.
+### Identity Tile
+Initials of a room or path, or in person mode the member's initials as the Profile avatar, in Display bold on an identity tint with a strong-seam border. Sizes are 36 / 44 / 56 / 96px at 6 / 8 / 10 / 10px corners (the instructor overview shows the small tile at 40px; the Profile avatar is 56px, 96px from sm). An uploaded logo replaces the initials in the same frame, and the initials return if it fails to load.
 
 ### Progress Bar
-A 6px fully rounded soft-hairline track with a fill in violet by default (cyan, ink, or green available), animating width over 500ms ease-out. Always exposes progressbar semantics.
+A 6px full-round track in seam with a cyan fill by default (violet, ink or green tones for completed or status contexts), animated width over 500ms.
+
+### Figure Strip
+Identical cells divided by 1px seams inside one panel: uppercase label, tabular figure with optional unit in ink 2, a small ink-3 note.
+
+### Activity Heatmap
+Week columns (Monday on top) of 3px-rounded day cells, sized by a `--cell` variable in two scales (md on Profile, where the Activity panel sits in an auto-width column beside Recent completions; lg when the heatmap is the Progress panel's focus). No activity is a small control-edge dot; active days are cyan at 25 / 45 / 70 / 100% (1, 2, 3–4 and 5+ activities). Today is ringed in cyan ink, and when today is empty it shows the ring only, with no dot. Mon/Wed/Fri row labels, month labels, a caption summary and a Less-to-More legend are in ink 3, plus an sr-only list of active days. On phones (below 640px) only the most recent 17 weeks show, and the caption counts only those weeks.
 
 ### Room Material
-Instructor-authored HTML is set in the reading style on sheet white, with deep-cyan underlined links, well-tinted blockquotes and inline code, hairline-ruled tables with well headers, and code blocks on code night. The visual editor applies the identical rules, so what an instructor writes is what a member reads.
+`.prose-cyber`: Reading type in prose ink, cyan-ink underlined links, raised blockquotes and table headers, inline code on raised with a soft seam, code blocks on the code-block surface, images with seam borders. The editor writes into the same styles at the same measure.
 
-### Night Mode
-An app-wide, opt-in night theme. The toggle lives at the bottom of the left rail ("Night mode" with a small switch; icon-only with a tooltip when the rail is collapsed), in the mobile drawer, as an icon button next to Menu in the mobile top bar, and as a secondary button in the lab page's action row. All of them share one preference (localStorage `act-night-mode`, synced between toggles with a window event), and a constant inline script in `app/layout.tsx` applies `data-theme="night"` before first paint, so there is no light flash. Room material and the material editor follow night mode too: instructor-chosen text colours (picked for the light page) are re-inked with `filter: invert(1) hue-rotate(180deg)` on coloured elements only (not highlights, not nested twice), which keeps each hue but flips its lightness, so the palette reaches 6–8:1 on the night sheet; code blocks sit on a slightly darker panel. Background and text colour cross-fade over 200ms when it switches. The light paper world remains the default.
+### Route Progress
+A 3px logo-cyan line fixed to the top edge that creeps toward 85% while the next page loads and completes on arrival; it jumps instantly under reduced motion.
+
+### Notices
+Page notices are flush 10px panels with a 20px stroked circle icon and an optional Display title. Info is neutral (raised fill, strong seam, ink-2 icon), because cyan is reserved for forward motion. Warning, error and success use their status wash at 55% with a 35% same-colour border, and the icon carries the full colour. Form action messages are 8px boxes with a green (success) or red (error) wash, a 30% border, ink text and a coloured check or exclamation icon.
+
+## Do's and Don'ts
 
 ### Do:
-- **Do** reserve the logo-cyan fill (on-cyan text, thin cyan-ink border, cyan whisper shadow) for the single next-step or primary action in a view; use the secondary paper button for everything else.
-- **Do** express state with the status colours: violet completed, green correct, red retry, closed, or error, amber scheduled.
-- **Do** show completion directly: a violet check for a passed room, the green score for a passed quiz, a red retry icon for a quiz to retake.
-- **Do** keep closed, scheduled, and draft items visible and give them a flat state tag instead of hiding them.
-- **Do** lead every room and path name with its entity logo: the uploaded logo, or the initials tile by default.
-- **Do** let the segmented progress ring carry the active path's progress on the dashboard and path page, one segment per room.
-- **Do** draw digital motifs (dot grid, circuit traces, data-bus strip) only in deep cyan ink at low opacity, deterministically, and hidden from assistive technology.
-- **Do** set every counter in tabular figures inside ruled cells, with a condensed caps label above the value.
-- **Do** build surfaces as sheet white on security paper with 1px hairlines and the sheet shadow (`0 1px 2px rgb(16 22 31 / 0.05), 0 1px 1px rgb(16 22 31 / 0.03)`).
-- **Do** play the check draw only for a completion that just happened, and show the finished check under reduced motion.
-- **Do** build dark surfaces by re-valuing tokens under the night theme, and keep the night theme opt-in (light is the default), with instructor colours in room material re-inked rather than left dark-on-dark.
-- **Do** keep the editor and the student view on the same material typography.
+- **Do** put panels flush on the ground with 1px seams and 10px corners; separate content with ruled rows, not nested floating cards.
+- **Do** keep logo cyan for the primary action, the current/next/active item, links, progress and focus (The Forward Cyan Rule).
+- **Do** give every status exactly one colour: violet completed, green correct/score, red retry/error/destructive, amber scheduled.
+- **Do** use identity tiles (indigo, teal, neutral) for room and path initials.
+- **Do** set headings, labels, figures and buttons in Red Hat Display, reading in Red Hat Text, and serials, slugs, error references and code in Red Hat Mono.
+- **Do** build both themes from the same tokens; test every new surface in dark and light.
+- **Do** keep 44px targets and 16px field text on coarse pointers and a visible 2px cyan-ink focus outline.
+- **Do** limit motion to state changes: 150 to 320ms for transitions, with `cubic-bezier(0.16, 1, 0.3, 1)` for arrivals. The only longer ones are the progress-bar fill (500ms), the one-time check draw (460ms after a 120ms delay) and the route loading line's slow creep. Honour reduced motion.
 
 ### Don't:
-- **Don't** turn the app chrome into a near-black console with neon accents and glowing cards; the light paper world is the default, and the optional night theme is the same system re-inked dark, without neon or glow.
-- **Don't** build a white SaaS LMS look with blue buttons and thumbnail tiles; rooms and paths are identified by a small square logo or initials tile.
-- **Don't** reintroduce rubber stamps, rotated tags, badge or cube shapes, passport and visa framing, or postage-stamp print ornament (guilloche rosettes, wavy bands, perforated edges); completion is a check, a score, or a retry icon.
-- **Don't** put a black or ink outline on the primary button.
-- **Don't** put a condensed caps label above a heading as an eyebrow or kicker.
-- **Don't** use status colours (except the member serial's Serial Red) or logo cyan as decoration, gradient fills, or glows; the iris gradient belongs to the rail, the mobile drawer, the signed-out hero, and the auth panel only.
-- **Don't** use hard offset shadows or glows; the only tinted shadow is the primary button's cyan whisper, and lift is only for floating layers.
-- **Don't** use JetBrains Mono outside code and literal machine strings, or draw icons with text glyphs; icons are stroked inline SVG.
-- **Don't** let a status pill or state tag wrap onto two lines.
+- **Don't** add a second gradient; the rail gradient lives only on the rail, mobile drawer and auth brand column.
+- **Don't** put shadows on panels; lift belongs only to the drawer and editor popovers.
+- **Don't** use neon, glow, terminal green, matrix effects or a hacker costume.
+- **Don't** bring back anything from the retired Security Paper world: iris gradient, dot grid, circuit traces, segmented progress ring, rounded floating cards, Archivo.
+- **Don't** fill large areas with cyan or use a status colour for anything but its one meaning.
+- **Don't** place uppercase labels above headings as eyebrows or kickers.
+- **Don't** use emoji or glyph characters as icons; draw stroked inline SVG beside a label.
+- **Don't** put arrows on buttons that do not move the member forward or back.
+- **Don't** round past 10px on rectangular surfaces.

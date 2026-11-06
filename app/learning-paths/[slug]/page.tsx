@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
-import { ProgressRing } from "@/components/paper/progress-ring";
+import { EmptyState, ProgressBar, StatusPill } from "@/components/card";
 import { StateTag } from "@/components/paper/state-tag";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
@@ -47,15 +46,14 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
   const nextRoomId = rooms.find((row) => row.userProgress?.status !== "COMPLETED" && row.availability.isOpen)?.room.id ?? null;
   const nextRow = rooms.find((row) => row.room.id === nextRoomId) ?? null;
   const totalPoints = path.rooms.reduce((sum, room) => sum + (pointsByRoom.get(room.id) ?? 0), 0);
-  const { completedRooms: done, totalRooms: total } = progress;
+  const { completedRooms: done, totalRooms: total, percentage } = progress;
   const roomNoun = total === 1 ? "room" : "rooms";
+  const complete = total > 0 && done === total;
 
-  const summary =
-    total === 0
-      ? "No rooms are published in this path yet."
-      : done === total
-        ? "You passed every room in this path."
-        : `${done} of ${total} ${roomNoun} passed. Work through them in order so each idea builds on the last.`;
+  // Waktu path = jumlah menit room yang terbit, sama dengan daftar room di dasbor.
+  const pathMinutes = path.rooms.reduce((sum, room) => sum + room.estimatedMinutes, 0);
+  const minutesLeft = rooms.reduce((sum, row) => (row.userProgress?.status === "COMPLETED" ? sum : sum + row.room.estimatedMinutes), 0);
+  const timeLine = complete || done === 0 ? `${pathMinutes} min across ${total} ${roomNoun}` : `${minutesLeft} min left of ${pathMinutes} min`;
 
   return (
     <AppShell
@@ -77,111 +75,168 @@ export default async function LearningPathDetailPage({ params }: { params: { slu
         {path.coverImageUrl ? (
           <FallbackImage src={path.coverImageUrl} alt="" fetchPriority="high" className="h-32 w-full border-b border-line object-cover sm:h-44" fallback={null} />
         ) : null}
-        <div className="flex flex-col gap-6 p-5 sm:flex-row sm:items-center sm:p-7">
-          <ProgressRing
-            segments={rooms.map((row) => (row.userProgress?.status === "COMPLETED" ? "done" : row.room.id === nextRoomId ? "next" : "todo"))}
-            size={184}
-            label={`${done}/${total}`}
-            sublabel={roomNoun}
-            title={`${path.title}: ${done} of ${total} ${roomNoun} completed`}
-            className="mx-auto h-36 w-36 sm:mx-0 sm:h-[184px] sm:w-[184px]"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-ink-2">{summary}</p>
-              {total > 0 && done === total ? <StatusPill tone="done">Complete</StatusPill> : null}
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line-soft bg-line-soft">
-              <Figure
-                className="bg-sheet p-4"
-                label="Difficulty"
-                value={<span className="text-xl sm:text-2xl">{path.difficulty}</span>}
-              />
-              <Figure
-                className="bg-sheet p-4"
-                label="Estimated time"
-                value={`~${path.estimatedHours}`}
-                unit={path.estimatedHours === 1 ? "hour" : "hours"}
-              />
-              <Figure className="bg-sheet p-4" label="Rooms" value={total} note={`${done} passed`} />
-              <Figure className="bg-sheet p-4" label="Total points" value={formatNumber(totalPoints)} unit="pts" note="Tasks plus quiz bonuses" />
+
+        <div className="grid md:grid-cols-[minmax(0,1fr)_17rem]">
+          {/* Ringkasan progres path: room lulus dari total, menit tersisa, bilah cyan (violet saat path selesai). */}
+          <div className="flex gap-4 p-5 sm:gap-5 sm:p-6">
+            <EntityLogo name={path.title} src={path.logoUrl} size="lg" />
+            <div className="min-w-0 flex-1">
+              {total > 0 ? (
+                <>
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
+                    <p className="text-ink-2">
+                      <span className="figure mr-1.5 text-[1.75rem] font-bold leading-none text-ink">{done}</span>
+                      of {total} {roomNoun} passed
+                    </p>
+                    {complete ? (
+                      <StatusPill tone="done">Complete</StatusPill>
+                    ) : (
+                      <span className="figure text-sm font-semibold text-ink-2">{percentage}%</span>
+                    )}
+                  </div>
+                  <ProgressBar
+                    value={percentage}
+                    tone={complete ? "violet" : "cyan"}
+                    label={`${path.title}: ${done} of ${total} ${roomNoun} passed`}
+                    className="mt-3"
+                  />
+                  <p className="mt-2.5 text-sm text-ink-3">
+                    {timeLine}
+                    {complete ? <span className="text-ink-2"> · You passed every room in this path.</span> : null}
+                  </p>
+                </>
+              ) : (
+                <p className="pt-1 text-ink-2">No rooms are published in this path yet.</p>
+              )}
             </div>
           </div>
+
+          <dl className="divide-y divide-line border-t border-line px-5 sm:px-6 md:border-l md:border-t-0 md:py-2">
+            <div className="flex items-baseline justify-between gap-3 py-3">
+              <dt className="field-label">Difficulty</dt>
+              <dd className="font-display font-semibold text-ink">{path.difficulty}</dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 py-3">
+              <dt className="field-label">Path estimate</dt>
+              <dd className="figure font-semibold text-ink">
+                ~{path.estimatedHours} {path.estimatedHours === 1 ? "hour" : "hours"}
+              </dd>
+            </div>
+            <div className="flex items-baseline justify-between gap-3 py-3">
+              <dt className="field-label">Points</dt>
+              <dd className="figure font-semibold text-ink">{formatNumber(totalPoints)} pts</dd>
+            </div>
+          </dl>
         </div>
       </section>
 
-      <section className="sheet mt-5 p-5 sm:p-6" aria-label="Rooms in this path">
-        <SectionHeader title="Rooms in this path" description="Each room combines a walkthrough, practice tasks, and a quiz." />
+      <section className="sheet mt-5 overflow-hidden" aria-labelledby="path-rooms-title">
+        <div className="border-b border-line px-5 pb-3.5 pt-4 sm:px-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <h2 id="path-rooms-title" className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink">
+              Rooms in this path
+            </h2>
+            {total > 0 ? <span className="figure shrink-0 text-sm text-ink-3">{pathMinutes} min</span> : null}
+          </div>
+          <p className="mt-0.5 max-w-2xl text-sm text-ink-2">Each room has a walkthrough, practice tasks, and a quiz. Work through them in order so each idea builds on the last.</p>
+        </div>
+
         {rooms.length === 0 ? (
-          <EmptyState
-            title="No rooms published yet"
-            message="The instructors haven't published a room in this path. Check back soon."
-            action={
-              <Link href="/learning-paths" className="text-link text-sm">
-                Browse other paths
-              </Link>
-            }
-          />
+          <div className="p-5 sm:p-6">
+            <EmptyState
+              title="No rooms published yet"
+              message="The instructors haven't published a room in this path. Check back soon."
+              action={
+                <Link href="/learning-paths" className="text-link text-sm">
+                  Browse other paths
+                </Link>
+              }
+            />
+          </div>
         ) : (
-          <ol className="-mx-2 space-y-1">
+          // Daftar perhentian, sama dengan panel Continue di dasbor: centang violet untuk room lulus,
+          // nomor putus-putus cyan untuk room berikutnya, nomor netral untuk sisanya, menit rata kanan.
+          <ol className="divide-y divide-line">
             {rooms.map(({ room, availability, userProgress }, index) => {
               const isCompleted = userProgress?.status === "COMPLETED";
               const isNext = room.id === nextRoomId;
               const percentage = userProgress?.progressPercentage ?? 0;
               const isInProgress = !isCompleted && (userProgress?.status === "IN_PROGRESS" || percentage > 0);
+              const serial = String(index + 1).padStart(2, "0");
+
+              let stateTag: React.ReactNode = null;
+              if (!availability.isOpen) {
+                stateTag = (
+                  <StateTag tone={availability.state === "upcoming" ? "amber" : availability.state === "draft" ? "muted" : "red"}>
+                    {availability.state === "upcoming" && availability.opensAt
+                      ? `Opens ${formatDayMonth(availability.opensAt)}`
+                      : availability.state === "draft"
+                        ? "Draft"
+                        : "Closed"}
+                  </StateTag>
+                );
+              } else if (availability.closesAt) {
+                stateTag = <StateTag tone="amber">Closes {formatDayMonth(availability.closesAt)}</StateTag>;
+              }
+
+              const status = isCompleted
+                ? `Passed · ${formatShortDate(userProgress?.completedAt ?? userProgress?.updatedAt ?? now)}`
+                : isNext
+                  ? "Up next"
+                  : isInProgress
+                    ? "In progress"
+                    : "Not started";
 
               return (
                 <li key={room.id}>
                   <Link
                     href={`/rooms/${room.slug}`}
                     aria-current={isNext ? "step" : undefined}
-                    className={`group flex items-center gap-3 rounded-lg px-2 py-3 transition-colors sm:gap-4 ${
-                      isNext ? "bg-cyan-soft/60 hover:bg-cyan-soft" : "hover:bg-well"
-                    }`}
+                    className="group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-x-3.5 px-5 py-3.5 transition-colors hover:bg-well focus-visible:outline-offset-[-2px] sm:gap-x-4 sm:px-6"
                   >
-                    <span className="figure w-7 shrink-0 text-center text-lg font-bold text-ink-3">{index + 1}</span>
-                    <EntityLogo name={room.title} src={room.logoUrl} size="md" className="hidden sm:inline-flex" />
-                    <div className="min-w-0 flex-1">
-                      <span className="block font-semibold leading-snug text-ink group-hover:underline group-hover:decoration-line-strong group-hover:underline-offset-4">
-                        {room.title}
-                      </span>
-                      <span className="mt-0.5 block text-sm text-ink-3">
-                        {room.difficulty} · {room.estimatedMinutes} min · {formatNumber(pointsByRoom.get(room.id) ?? 0)} pts
-                        {availability.isOpen && availability.closesAt ? ` · Closes ${formatDayMonth(availability.closesAt)}` : ""}
-                      </span>
+                    <span
+                      className={`figure grid h-8 w-8 place-items-center rounded-full text-xs font-bold ${
+                        isCompleted
+                          ? "border border-violet/45 bg-violet-soft text-violet"
+                          : isNext
+                            ? "border-[1.5px] border-dashed border-cyan-ink text-cyan-ink"
+                            : "border border-line-strong text-ink-3"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {isCompleted ? (
+                        <svg viewBox="0 0 12 12" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                          <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      ) : (
+                        serial
+                      )}
+                    </span>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span className="font-display font-semibold leading-snug text-ink transition-colors group-hover:text-cyan-ink">{room.title}</span>
+                        {stateTag}
+                      </div>
+                      <p className="mt-0.5 text-sm text-ink-3">
+                        <span className={isNext ? "font-medium text-cyan-ink" : ""}>{status}</span>
+                        {/* Tingkat room disembunyikan di ponsel agar baris meta muat satu baris; tingkat path ada di ringkasan. */}
+                        <span className="hidden sm:inline">
+                          <span aria-hidden="true"> · </span>
+                          {room.difficulty}
+                        </span>
+                        <span aria-hidden="true"> · </span>
+                        <span className="figure">{formatNumber(pointsByRoom.get(room.id) ?? 0)} pts</span>
+                      </p>
+                      {isInProgress ? (
+                        <div className="mt-2 flex max-w-xs items-center gap-2.5">
+                          <ProgressBar value={percentage} label={`${room.title} progress`} className="flex-1" />
+                          <span className="figure text-xs font-semibold text-ink-2">{percentage}%</span>
+                        </div>
+                      ) : null}
                     </div>
 
-                    <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">
-                      {isCompleted && userProgress ? (
-                        <>
-                          <StatusPill tone="done">Passed</StatusPill>
-                          <span className="text-xs text-ink-3">{formatShortDate(userProgress.completedAt ?? userProgress.updatedAt)}</span>
-                        </>
-                      ) : !availability.isOpen ? (
-                        <>
-                          <StateTag tone={availability.state === "upcoming" ? "amber" : "red"}>
-                            {availability.state === "upcoming" && availability.opensAt
-                              ? `Opens ${formatDayMonth(availability.opensAt)}`
-                              : availability.state === "draft"
-                                ? "Draft"
-                                : "Closed"}
-                          </StateTag>
-                          {percentage > 0 ? <span className="text-xs text-ink-3">{percentage}% done</span> : null}
-                        </>
-                      ) : (
-                        <>
-                          {isNext ? <StatusPill tone="primary">Next</StatusPill> : null}
-                          {isInProgress ? (
-                            <div className="flex items-center gap-2">
-                              <ProgressBar value={percentage} label={`${room.title} progress`} className="w-16 sm:w-24" />
-                              <span className="figure text-xs font-semibold text-ink-2">{percentage}%</span>
-                            </div>
-                          ) : !isNext ? (
-                            <span className="text-xs text-ink-3">Not started</span>
-                          ) : null}
-                        </>
-                      )}
-                    </div>
+                    <span className="figure text-sm text-ink-3">{room.estimatedMinutes} min</span>
                   </Link>
                 </li>
               );
