@@ -1,416 +1,502 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import { AnnouncementAudience } from "@prisma/client";
 import { AppShell } from "@/components/app-shell";
-import { ProgressBar } from "@/components/card";
+import { EmptyState, Figure, ProgressBar, SectionHeader, StatusPill } from "@/components/card";
+import { StateTag } from "@/components/paper/state-tag";
+import { CompletionList, type CompletionEntry } from "@/components/paper/completion";
+import { PageNotice } from "@/components/ui/page-notice";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
-import { listPublishedLearningPaths, getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
+import { DISPLAY_TIME_ZONE, getRoomAvailability } from "@/lib/learning/availability";
+import { taskChapterHref, taskChapterId } from "@/lib/learning/chapters";
+import { formatDayMonth, formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
+import { getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
 import { getGlobalLeaderboard } from "@/lib/services/leaderboard-service";
+import { getLearningStreak } from "@/lib/services/activity-service";
+import { sortByDifficulty } from "@/lib/learning/difficulty";
+import { earnablePoints } from "@/lib/learning/points";
+import { EntityLogo } from "@/components/paper/entity-logo";
 
+export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
-function formatRelativeTime(date: Date) {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.max(0, Math.floor(diffMs / 60000));
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
+type SearchParams = Record<string, string | string[] | undefined>;
 
-  if (diffMins < 1) return "Just now";
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays === 1) return "Yesterday";
-  return `${diffDays}d ago`;
+/** Penyelesaian dalam 15 menit terakhir: centangnya digambar sekali saat dashboard dibuka. */
+const FRESH_COMPLETION_MS = 15 * 60 * 1000;
+
+function firstValue(params: SearchParams, key: string) {
+  const value = params[key];
+  return Array.isArray(value) ? value[0] : value;
 }
 
-export default async function DashboardPage() {
+function buildDashboardNotice(params: SearchParams) {
+  if (firstValue(params, "error") === "forbidden") {
+    return {
+      tone: "warning" as const,
+      title: "Access denied",
+      message: "That page needs a higher role, so you were sent to your dashboard."
+    };
+  }
+  return null;
+}
+
+function plural(count: number, word: string) {
+  return `${count} ${count === 1 ? word : `${word}s`}`;
+}
+
+function greeting(now: Date) {
+  const hour = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: DISPLAY_TIME_ZONE }).format(now));
+  if (hour >= 5 && hour < 12) return "Good morning";
+  if (hour >= 12 && hour < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+type CompletionRow = CompletionEntry & { at: Date };
+
+export default async function DashboardPage({ searchParams = {} }: { searchParams?: SearchParams }) {
   const profile = await requireRole(["STUDENT"]);
-  
-  // Parallel fetch operations
-  const [
-    paths,
-    progressRows,
-    leaderboard,
-    announcements,
-    taskSubmissions,
-    allCompletedRooms,
-    pathsWithRooms,
-    recentSubmissions,
-    recentProgress
-  ] = await Promise.all([
-    listPublishedLearningPaths(),
-    prisma.userRoomProgress.findMany({
-      where: { userId: profile.id },
-      include: { room: { include: { learningPath: true } } },
-      orderBy: { updatedAt: "desc" },
-      take: 4
+  const notice = buildDashboardNotice(searchParams);
+  const now = new Date();
+
+  const [recentProgress, leaderboard, announcements, completedRooms, quizAttempts, publishedPathRows, streak, passedQuizGroups] =
+    await Promise.all([
+      prisma.userRoomProgress.findMany({
+        where: { userId: profile.id },
+        include: { room: { include: { learningPath: { select: { slug: true, isPublished: true } } } } },
+        orderBy: { updatedAt: "desc" },
+        take: 5
+      }),
+      getGlobalLeaderboard(3),
+      prisma.announcement.findMany({
+        where: { isPublished: true, audience: { in: [AnnouncementAudience.ALL, profile.role as AnnouncementAudience] } },
+        orderBy: { createdAt: "desc" },
+        take: 3
+      }),
+      prisma.userRoomProgress.findMany({
+        where: { userId: profile.id, status: "COMPLETED" },
+        select: { id: true, roomId: true, completedAt: true, updatedAt: true, room: { select: { title: true } } },
+        orderBy: { completedAt: "desc" }
+      }),
+      prisma.userQuizAttempt.findMany({
+        where: { userId: profile.id, completedAt: { not: null } },
+        // Lewat roomId attempt, bukan lewat quiz: attempt dari quiz yang sudah dihapus tetap tampil.
+        select: { id: true, score: true, passed: true, completedAt: true, quizTitle: true, room: { select: { title: true } } },
+        orderBy: { completedAt: "desc" },
+        take: 6
+      }),
+      prisma.learningPath.findMany({
+        where: { isPublished: true },
+        include: { rooms: { where: { isPublished: true }, select: { id: true } } },
+        orderBy: [{ difficulty: "asc" }, { title: "asc" }]
+      }),
+      getLearningStreak(profile.id, now),
+      // Quiz lulus dihitung per room (satu room satu quiz), termasuk quiz yang sudah dihapus; sama dengan Progress dan Profile.
+      prisma.userQuizAttempt.groupBy({ by: ["roomId"], where: { userId: profile.id, passed: true, roomId: { not: null } } })
+    ]);
+
+  const completedRoomIds = new Set(completedRooms.map((row) => row.roomId));
+  const publishedPaths = sortByDifficulty(publishedPathRows);
+  // "Rooms completed" dihitung atas himpunan yang sama dengan penyebutnya: room terbit di path terbit.
+  const publishedRoomIds = new Set(publishedPaths.flatMap((path) => path.rooms.map((room) => room.id)));
+  const completedPublishedCount = [...completedRoomIds].filter((roomId) => publishedRoomIds.has(roomId)).length;
+
+  // Path aktif: path dari room yang terakhir disentuh; bila belum ada, path pertama yang terbit.
+  const activeProgressRow = recentProgress.find((row) => row.room.learningPath.isPublished && row.room.isPublished);
+  const activePathSlug = activeProgressRow?.room.learningPath.slug ?? publishedPaths.find((path) => path.rooms.length > 0)?.slug;
+  const activePath = activePathSlug ? await getLearningPathProgressForCurrentUser(profile.id, activePathSlug) : null;
+
+  // Langkah berikutnya: room yang sedang dikerjakan bila belum selesai dan masih terbuka, lalu room pertama yang
+  // belum selesai dan terbuka. Room tertutup/terjadwal hanya dipilih bila tidak ada lagi room terbuka yang tersisa.
+  const pathRooms = activePath?.path.rooms ?? [];
+  const isUnfinished = (room: (typeof pathRooms)[number]) => room.userProgress[0]?.status !== "COMPLETED";
+  const isOpen = (room: (typeof pathRooms)[number]) => getRoomAvailability(room, now).isOpen;
+  const lastTouched = pathRooms.find((room) => room.id === activeProgressRow?.roomId && isUnfinished(room) && isOpen(room));
+  const nextRoom =
+    lastTouched ??
+    pathRooms.find((room) => isUnfinished(room) && isOpen(room)) ??
+    pathRooms.find((room) => isUnfinished(room)) ??
+    null;
+  const nextRoomPosition = nextRoom ? pathRooms.findIndex((room) => room.id === nextRoom.id) + 1 : 0;
+  const nextRoomProgress = nextRoom?.userProgress[0];
+  const nextRoomStarted = Boolean(nextRoomProgress && nextRoomProgress.status !== "NOT_STARTED");
+  const nextRoomAvailability = nextRoom ? getRoomAvailability(nextRoom, now) : null;
+
+  const nextRoomDetail = nextRoom
+    ? await prisma.room.findUnique({
+        where: { id: nextRoom.id },
+        select: {
+          chapters: { select: { id: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] },
+          tasks: {
+            orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
+            select: {
+              id: true,
+              chapterId: true,
+              title: true,
+              points: true,
+              userSubmissions: { where: { userId: profile.id, isCorrect: true }, take: 1, select: { id: true } }
+            }
+          },
+          quiz: { select: { id: true, attempts: { where: { userId: profile.id, passed: true }, take: 1, select: { id: true } } } }
+        }
+      })
+    : null;
+
+  // Urutan baca halaman room: bab tempat task tampil, lalu orderIndex di dalam bab (sort stabil). Task berikutnya
+  // adalah task terbuka di bab paling awal, sama dengan tautan "x of y solved" di strip room.
+  const chapters = nextRoomDetail?.chapters ?? [];
+  const chapterPosition = new Map(chapters.map((chapter, index) => [chapter.id, index]));
+  const readingPosition = (task: { chapterId: string | null }) => chapterPosition.get(taskChapterId(task.chapterId, chapters) ?? "") ?? 0;
+  const tasks = [...(nextRoomDetail?.tasks ?? [])].sort((a, b) => readingPosition(a) - readingPosition(b));
+  const nextTaskIndex = tasks.findIndex((task) => task.userSubmissions.length === 0);
+  const nextTask = nextTaskIndex >= 0 ? tasks[nextTaskIndex] : null;
+  const quizWaiting = !nextTask && Boolean(nextRoomDetail?.quiz) && !nextRoomDetail?.quiz?.attempts.length;
+  // Resume membuka bab yang memuat task berikutnya, atau quiz bila hanya quiz yang tersisa. Start tetap dari bab pertama.
+  const resumeHref = !nextRoom
+    ? null
+    : nextTask
+      ? taskChapterHref(nextRoom.slug, nextTask.chapterId, chapters)
+      : quizWaiting
+        ? `/rooms/${nextRoom.slug}/quiz`
+        : `/rooms/${nextRoom.slug}`;
+  const nextRoomPoints = nextRoom && nextRoomDetail ? earnablePoints({ points: nextRoom.points, quiz: nextRoomDetail.quiz, tasks }).total : 0;
+
+  // Riwayat selesai: room lulus dan attempt quiz, terbaru dulu.
+  const completionRows: CompletionRow[] = [
+    ...completedRooms.slice(0, 6).map((row) => {
+      const at = row.completedAt ?? row.updatedAt;
+      return { id: `room-${row.id}`, at, kind: "room" as const, title: row.room.title, date: formatShortDate(at) };
     }),
-    getGlobalLeaderboard(5),
-    prisma.announcement.findMany({
-      where: {
-        isPublished: true,
-        audience: { in: [AnnouncementAudience.ALL, profile.role as AnnouncementAudience] }
-      },
-      orderBy: { createdAt: "desc" },
-      take: 3
-    }),
-    prisma.userTaskSubmission.count({ where: { userId: profile.id, isCorrect: true } }),
-    prisma.userRoomProgress.findMany({
-      where: { userId: profile.id, status: "COMPLETED" },
-      select: { roomId: true }
-    }),
-    prisma.learningPath.findMany({
-      where: { isPublished: true },
-      include: { rooms: { where: { isPublished: true } } }
-    }),
-    prisma.userTaskSubmission.findMany({
-      where: { userId: profile.id, isCorrect: true },
-      include: { task: { include: { room: true } } },
-      orderBy: { submittedAt: "desc" },
-      take: 3
-    }),
-    prisma.userRoomProgress.findMany({
-      where: { userId: profile.id },
-      include: { room: true },
-      orderBy: { updatedAt: "desc" },
-      take: 3
+    ...quizAttempts.map((attempt) => {
+      const at = attempt.completedAt as Date;
+      return {
+        id: `quiz-${attempt.id}`,
+        at,
+        kind: attempt.passed ? ("quiz-pass" as const) : ("quiz-retry" as const),
+        title: attempt.room?.title ?? attempt.quizTitle,
+        score: attempt.score,
+        date: formatShortDate(at)
+      };
     })
-  ]);
-
-  const completedRoomsCount = allCompletedRooms.length;
-  const activeRoom = progressRows[0];
-  const activeProgress = activeRoom?.progressPercentage ?? 0;
-  const totalPoints = leaderboard.find((row) => row.user?.id === profile.id)?.points ?? 0;
-
-  // Calculate dynamic completed paths
-  const completedRoomIds = new Set(allCompletedRooms.map((r) => r.roomId));
-  const completedPathsCount = pathsWithRooms.filter((p) => {
-    if (p.rooms.length === 0) return false;
-    return p.rooms.every((r) => completedRoomIds.has(r.id));
-  }).length;
-
-  // Retrieve details for the active path timeline
-  const activePathSlug = activeRoom?.room?.learningPath?.slug;
-  const activePathDetails = activePathSlug ? await getLearningPathProgressForCurrentUser(profile.id, activePathSlug) : null;
-
-  // Build dynamic activities log
-  const activities = [
-    ...recentSubmissions.map((s) => ({
-      id: `sub-${s.id}`,
-      text: `Completed task ${s.task.title}`,
-      date: s.submittedAt,
-      marker: "TS",
-      color: "text-primary"
-    })),
-    ...recentProgress.map((p) => ({
-      id: `prog-${p.id}`,
-      text: p.status === "COMPLETED" ? `Completed room ${p.room.title}` : `Started room ${p.room.title}`,
-      date: p.updatedAt,
-      marker: p.status === "COMPLETED" ? "OK" : "GO",
-      color: p.status === "COMPLETED" ? "text-emerald-400" : "text-blue-400"
-    }))
   ]
-    .sort((a, b) => b.date.getTime() - a.date.getTime())
-    .slice(0, 3);
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, 5)
+    .map((row) => ({ ...row, fresh: now.getTime() - row.at.getTime() < FRESH_COMPLETION_MS }));
 
-  // Fallback covers in case paths don't have custom ones
-  const pathCovers = [
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuARwHd_wAvPfPttoRNcaJz5MFzvSAKVdeNy7iu_dhupcYgueRro3o6g-O6GywKbBpJbv7pRG1EnrgT4DsidupWTwHPzs7ainVNwEQldb2egMVd__OaZJ2AfE2bXdG2iOGgX_VljmKaHTgD937Fk6IXFbAQQjCSw3ZHGfcA-mvKecyWchggxlnuTsZV0EMcXQj6L0p3FHTVG2yO6JA2zevZOMeP_Pl5LyABbEwn9XSkhRGMooPXyasVEwIe8YKUgjiZkaiG4kqyGsLWz",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuDitxxK8Sajo65Q5AE_pM4GLJj8HEPd-WoV3O-WmBblZaO2JXesL4ASspTRt98phemlDiO57vaOSOzy7Nkn3LOJYjkihR3RYUwRjEt8saBvwXjAEcwwdB1ijc3OKUbzOgiOpulD6-rFhiUdyhd2w3Tz6X1-gnJ_YemGd3LYKt5CTEhMavur_Sys5D7C_Bk4W30is0AVEXSL1NMbYW88M8FZnDHiymU7wMS-7sbOh0Bh7L9sSQWyJSK9kpWECHMx1IBP9mUwJteFboX4",
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuAKq6REjGBwLoX5dGhcmURfQWhYwi54vk1jxwqTl0J8oIrCimr7SeT74fozpBJDcG2pVruGpNJZo9PwKdHK7G0YMTb1pPNgLQq_-ZtJT00SjMNYufDZetb8KXQzHgCq-3FiWPP88zUyHuEHUU_JLncy_Q1e1h_hA4j7wu4SnLALR69QF2KdyKmngWzRyy4wZVC_M3-4FYO5mSWovH6NfSWsPhFoLqoqup-xnJZ6g3OZA4_Q6HwGuV3p5bcD9SRK76gwoEY4kpAwcTe-"
-  ];
+  const pathRows = publishedPaths
+    .map((path) => {
+      const total = path.rooms.length;
+      const done = path.rooms.filter((room) => completedRoomIds.has(room.id)).length;
+      return { path, total, done };
+    })
+    // Path yang sedang berjalan di atas, lalu yang belum dimulai, lalu yang sudah selesai.
+    .sort((a, b) => {
+      const rank = (row: { total: number; done: number }) => (row.done > 0 && row.done < row.total ? 0 : row.done === 0 ? 1 : 2);
+      return rank(a) - rank(b);
+    })
+    .slice(0, 6);
+
+  const firstName = profile.fullName.split(" ")[0] || profile.username;
+  const subtitle = activePath
+    ? `${activePath.path.title} · ${activePath.completedRooms} of ${activePath.totalRooms} ${activePath.totalRooms === 1 ? "room" : "rooms"} completed`
+    : "Pick a learning path to start your first room.";
+  const pathMinutes = pathRooms.reduce((sum, room) => sum + room.estimatedMinutes, 0);
 
   return (
     <AppShell
-      title={`Welcome back, ${profile.fullName}`}
-      subtitle="Track learning progress, continue safe labs, and review platform announcements."
+      title={
+        <>
+          {greeting(now)}, <span className="text-cyan-ink">{firstName}</span>
+        </>
+      }
+      subtitle={subtitle}
       role={profile.role}
     >
-      {/* Welcome Area */}
-      <section className="relative rounded-xl border border-white/[0.08] bg-[#1c1f2a]/70 p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6 glass-panel overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-transparent pointer-events-none" />
-        <div className="relative z-10 space-y-2">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-100">
-            Welcome back, <span className="text-primary text-glow">{profile.fullName.split(" ")[0]}</span>.
-          </h2>
-          <p className="text-sm md:text-base text-slate-400 max-w-2xl leading-relaxed">
-            Your network intrusion metrics are improving. Keep learning inside approved rooms. Lab sessions are placeholders until orchestration is connected.
-          </p>
-        </div>
-        <div className="relative z-10 shrink-0">
-          <div className="px-5 py-3 rounded-lg bg-[#262a35] border border-blue-500/30 flex items-center gap-3">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(78,222,163,0.75)]" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Current Status</p>
-              <p className="text-sm font-bold text-primary">Online &amp; Shielded</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      {notice ? <PageNotice tone={notice.tone} title={notice.title} message={notice.message} className="mb-6" /> : null}
 
-      {/* Stats Row (Bento Grid Style) */}
-      <section className="mt-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {/* Stat Card 1 */}
-        <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-blue-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md">
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Rooms</span>
-          </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">{completedRoomsCount}</h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Completed Rooms</p>
-        </div>
-        {/* Stat Card 2 */}
-        <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-emerald-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md">
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-emerald-400">Streak</span>
-          </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">12<span className="text-sm font-normal text-slate-400 ml-1">days</span></h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Streak</p>
-        </div>
-        {/* Stat Card 3 */}
-        <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-purple-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md">
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-purple-300">Points</span>
-          </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">{totalPoints}</h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Points</p>
-        </div>
-        {/* Stat Card 4 */}
-        <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-blue-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md">
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Rank</span>
-          </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">{totalPoints > 1000 ? "Top 5%" : "Top 20%"}</h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Current Rank</p>
-        </div>
-        {/* Stat Card 5 */}
-        <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 flex flex-col hover:border-blue-500/40 transition-colors duration-300 shadow-lg backdrop-blur-md col-span-2 md:col-span-1 lg:col-span-1">
-          <div className="flex items-start justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-300">Paths</span>
-          </div>
-          <h3 className="text-3xl font-semibold text-slate-50 tracking-tight mb-1">{completedPathsCount}</h3>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Completed Paths</p>
-        </div>
-      </section>
+      {/* Kolom samping 340px baru dibuka di xl: di lg rail 256px masih terbuka, kolom utama tinggal di bawah 330px. */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="flex min-w-0 flex-col gap-5">
+          {/* Panel Continue: satu-satunya panel bertepi cyan, karena di sinilah langkah berikutnya. */}
+          <section
+            className={`sheet grid overflow-hidden md:grid-cols-2 ${activePath ? "border-cyan-ink/35" : ""}`}
+            aria-labelledby="next-step-title"
+          >
+            {activePath ? (
+              <>
+                <div className="flex flex-col p-5 sm:p-6 md:border-r md:border-line">
+                  {nextRoom ? (
+                    <>
+                      <h2 id="next-step-title" className="text-[1.375rem] font-bold leading-tight tracking-[-0.015em] text-ink [text-wrap:balance]">
+                        {nextRoom.title}
+                      </h2>
+                      <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-ink-2">
+                        <span>
+                          Room {nextRoomPosition} of {activePath.totalRooms}
+                        </span>
+                        <span aria-hidden="true">·</span>
+                        <span>{nextRoom.difficulty}</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="figure">{formatNumber(nextRoomPoints)} pts</span>
+                        <span aria-hidden="true">·</span>
+                        <span className="figure">{nextRoom.estimatedMinutes} min</span>
+                        {nextRoomAvailability && !nextRoomAvailability.isOpen ? (
+                          <StateTag tone={nextRoomAvailability.state === "upcoming" ? "amber" : "red"} className="ml-1">
+                            {nextRoomAvailability.state === "upcoming" && nextRoomAvailability.opensAt
+                              ? `Opens ${formatDayMonth(nextRoomAvailability.opensAt)}`
+                              : "Closed"}
+                          </StateTag>
+                        ) : null}
+                      </p>
 
-      {/* Main Content Grid Layout */}
-      <div className="mt-6 grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Left/Main Column (Takes up 2 cols on xl screens) */}
-        <div className="xl:col-span-2 space-y-6">
-          {/* Continue Learning Section */}
-          <section className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-6 glass-panel relative overflow-hidden group hover:border-blue-500/40 transition-all duration-300">
-            <div className="absolute right-0 top-0 w-64 h-full bg-gradient-to-l from-blue-500/10 to-transparent pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity" />
-            <h3 className="text-lg font-semibold text-slate-100 mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              Continue Learning
-            </h3>
-            {activeRoom ? (
-              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div className="flex-1 w-full">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="px-2 py-0.5 rounded bg-blue-500/10 text-primary border border-blue-500/30 text-[10px] font-bold uppercase tracking-wider">
-                      {activeRoom.room.category}
-                    </span>
-                    <span className="text-[11px] text-slate-500">
-                      {activeRoom.room.learningPath.title}
-                    </span>
-                  </div>
-                  <h4 className="text-xl font-semibold text-slate-50 mb-2">{activeRoom.room.title}</h4>
-                  <p className="text-sm text-slate-400 mb-5 line-clamp-2 max-w-xl">
-                    {activeRoom.room.description}
-                  </p>
-                  {/* Progress Bar */}
-                  <div className="w-full max-w-md">
-                    <div className="flex justify-between text-xs mb-2">
-                      <span className="text-slate-400">Progress</span>
-                      <span className="text-primary font-bold">{activeProgress}%</span>
-                    </div>
-                    <ProgressBar value={activeProgress} />
-                  </div>
+                      {nextTask || quizWaiting ? (
+                        <p className="mt-4 rounded-lg border border-line-strong bg-well px-3.5 py-2.5 text-[0.9375rem] text-ink">
+                          {/* Label dan hitungan dijaga satu potong (whitespace-nowrap) agar "2 of 2" tidak terbelah di ujung baris. */}
+                          <span className="whitespace-nowrap font-display font-semibold text-cyan-ink">
+                            {nextTask ? (
+                              <>
+                                Next task <span className="figure">{nextTaskIndex + 1} of {tasks.length}</span>
+                              </>
+                            ) : (
+                              "Next: quiz"
+                            )}
+                          </span>
+                          <span className="text-ink-3"> · </span>
+                          {nextTask ? nextTask.title : "All tasks answered. Pass the quiz to complete this room."}
+                        </p>
+                      ) : null}
+
+                      {nextRoomProgress && nextRoomProgress.progressPercentage > 0 ? (
+                        <div className="mt-4">
+                          <div className="mb-1.5 flex justify-between text-xs text-ink-3">
+                            <span>Room progress</span>
+                            <span className="figure font-semibold text-ink-2">{nextRoomProgress.progressPercentage}%</span>
+                          </div>
+                          <ProgressBar value={nextRoomProgress.progressPercentage} tone="cyan" label={`${nextRoom.title} progress`} />
+                        </div>
+                      ) : null}
+
+                      <div className="mt-5 flex flex-wrap items-center gap-3 md:mt-auto md:pt-5">
+                        {nextRoomAvailability?.isOpen ? (
+                          <Link
+                            href={nextRoomStarted && resumeHref ? resumeHref : `/rooms/${nextRoom.slug}`}
+                            className="btn-primary min-h-11 px-5 text-[0.9375rem]"
+                          >
+                            {nextRoomStarted ? "Resume room" : "Start room"}
+                            <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                              <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          </Link>
+                        ) : (
+                          <Link href={`/rooms/${nextRoom.slug}`} className="btn-secondary min-h-11">
+                            View room
+                          </Link>
+                        )}
+                        <Link href={`/learning-paths/${activePath.path.slug}`} className="btn-secondary min-h-11">
+                          View path
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <h2 id="next-step-title" className="text-[1.375rem] font-bold leading-tight text-ink">
+                        {activePath.path.title} is complete
+                      </h2>
+                      <p className="mt-1.5 text-ink-2">You passed every room in this path. Choose the next path to keep your streak going.</p>
+                      <div className="mt-5">
+                        <Link href="/learning-paths" className="btn-primary">
+                          Choose next path
+                        </Link>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <Link
-                  href={`/rooms/${activeRoom.room.slug}`}
-                  className="shrink-0 bg-primary-container hover:bg-blue-600 text-white text-sm px-5 py-3 rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg hover:shadow-blue-500/20"
-                >
-                  Resume Room
-                </Link>
-              </div>
+
+                {/* Daftar room path aktif: posisi member, status tiap room, dan perkiraan menitnya. */}
+                <div className="border-t border-line p-5 sm:p-6 md:border-t-0">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h3 className="truncate text-sm font-semibold text-ink">{activePath.path.title}</h3>
+                    <span className="figure shrink-0 text-xs text-ink-3">{pathMinutes} min</span>
+                  </div>
+                  <ol className="mt-2 divide-y divide-line" aria-label={`${activePath.path.title} rooms`}>
+                    {pathRooms.map((room, index) => {
+                      const progress = room.userProgress[0];
+                      const done = progress?.status === "COMPLETED";
+                      const isNext = room.id === nextRoom?.id;
+                      const availability = getRoomAvailability(room, now);
+                      const serial = String(index + 1).padStart(2, "0");
+                      const detail = done
+                        ? `Passed${progress?.completedAt ? ` · ${formatDayMonth(progress.completedAt)}` : ""}`
+                        : isNext
+                          ? "Up next"
+                          : availability.isOpen
+                            ? "Not started"
+                            : availability.state === "upcoming" && availability.opensAt
+                              ? `Opens ${formatDayMonth(availability.opensAt)}`
+                              : "Closed";
+                      return (
+                        <li key={room.id}>
+                          <Link
+                            href={`/rooms/${room.slug}`}
+                            aria-label={`Room ${serial}: ${room.title}, ${detail.toLowerCase()}`}
+                            aria-current={isNext ? "step" : undefined}
+                            className="group grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 py-2.5 coarse:min-h-11"
+                          >
+                            <span
+                              className={`figure grid h-7 w-7 place-items-center rounded-full text-[0.6875rem] font-bold ${
+                                done
+                                  ? "border border-violet/45 bg-violet-soft text-violet"
+                                  : isNext
+                                    ? "border-[1.5px] border-dashed border-cyan-ink text-cyan-ink"
+                                    : "border border-line-strong text-ink-3"
+                              }`}
+                              aria-hidden="true"
+                            >
+                              {done ? (
+                                <svg viewBox="0 0 12 12" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth="1.8">
+                                  <path d="m2.5 6.5 2.2 2.2L9.5 3.5" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                              ) : (
+                                serial
+                              )}
+                            </span>
+                            <span className="min-w-0">
+                              <span className="block truncate font-display font-semibold text-ink group-hover:text-cyan-ink">{room.title}</span>
+                              <span className={`block text-xs ${isNext ? "text-cyan-ink" : "text-ink-3"}`}>{detail}</span>
+                            </span>
+                            <span className="figure text-xs text-ink-3">{room.estimatedMinutes} min</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </div>
+              </>
             ) : (
-              <div className="rounded-lg border border-white/[0.04] bg-black/20 p-4 text-center py-8">
-                <p className="font-semibold text-slate-300">Start your first cyber room</p>
-                <p className="mt-2 text-sm text-slate-400 max-w-sm mx-auto">
-                  Pick one of our curated learning paths below to start mastering cybersecurity concepts.
-                </p>
+              <div className="p-5 sm:p-6 md:col-span-2">
+                <h2 id="next-step-title" className="sr-only">
+                  Next step
+                </h2>
+                <EmptyState
+                  title="No learning paths are published yet"
+                  message="Your next room shows up here once instructors publish a learning path."
+                />
               </div>
             )}
           </section>
 
-          {/* Recommended Paths Grid */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Recommended Paths
-              </h3>
-              <Link href="/learning-paths" className="text-xs font-bold text-primary hover:text-blue-400 transition-colors uppercase tracking-wider">
-                View All
+          {/* Strip angka dasbor (satu dari dua di aplikasi, bersama hasil quiz). Poin dan peringkat tidak diulang di sini: sudah ada di pil bar atas dan Top members. */}
+          <section className="sheet overflow-hidden" aria-label="Your numbers">
+            <div className="grid grid-cols-1 gap-px bg-line sm:grid-cols-3">
+              <Figure
+                className="bg-sheet p-4 sm:p-5"
+                label="Streak"
+                value={streak.streakDays}
+                unit={streak.streakDays === 1 ? "day" : "days"}
+                note={`${plural(streak.activeDays, "active day")} in the last 120 days`}
+              />
+              <Figure className="bg-sheet p-4 sm:p-5" label="Rooms completed" value={completedPublishedCount} note={`of ${publishedRoomIds.size} published`} />
+              <Figure className="bg-sheet p-4 sm:p-5" label="Quizzes passed" value={passedQuizGroups.length} note="Each quiz counted once" />
+            </div>
+          </section>
+
+          {/* Riwayat terbaru (lulus dan perlu diulang); room berikutnya sudah ada di panel Continue, jadi tidak diulang. */}
+          <section className="sheet px-5 pb-1 pt-4 sm:px-6" aria-labelledby="activity-title">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line pb-3">
+              <h2 id="activity-title" className="text-base font-bold text-ink">
+                Recent activity
+              </h2>
+              <Link href="/progress" className="text-link text-sm">
+                Full record
               </Link>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {paths.slice(0, 4).map((path, index) => (
-                <Link
-                  key={path.id}
-                  href={`/learning-paths/${path.slug}`}
-                  className="block bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] overflow-hidden hover:border-blue-500/40 transition-all duration-300 group hover:-translate-y-1 shadow-lg"
-                >
-                  <div className="h-32 bg-[#0f131d] relative overflow-hidden">
-                    <Image
-                      alt={path.title}
-                      className="object-cover opacity-50 transition-opacity duration-300 group-hover:opacity-75"
-                      src={pathCovers[index % pathCovers.length]}
-                      fill
-                      sizes="(min-width: 768px) 50vw, 100vw"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#1c1f2a] to-transparent" />
-                    <div className="absolute bottom-3 left-3">
-                      <span className="px-2 py-0.5 rounded bg-black/60 border border-white/[0.08] text-[9px] font-bold uppercase tracking-wider text-slate-300 backdrop-blur-md">
-                        {path.category}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-5">
-                    <h4 className="text-base font-semibold text-slate-100 mb-1 group-hover:text-primary transition-colors duration-200">
-                      {path.title}
-                    </h4>
-                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed min-h-[32px] mb-4">
-                      {path.description}
-                    </p>
-                    <div className="flex items-center justify-between text-[11px] text-slate-500 pt-3 border-t border-white/[0.04]">
-                      <span>{path.estimatedHours} hours</span>
-                      <span>{path._count.rooms} modules</span>
-                    </div>
-                  </div>
+            <CompletionList entries={completionRows} />
+            {completionRows.length === 0 ? <p className="py-3 text-sm text-ink-3">Passed rooms and quiz scores show up here.</p> : null}
+          </section>
+
+          <section className="sheet p-5 sm:p-6" aria-labelledby="paths-title">
+            <SectionHeader
+              id="paths-title"
+              title="Learning paths"
+              action={
+                <Link href="/learning-paths" className="text-link text-sm">
+                  All paths
                 </Link>
-              ))}
-            </div>
+              }
+            />
+            {pathRows.length > 0 ? (
+              <ul className="-mx-2 grid gap-1 sm:grid-cols-2">
+                {pathRows.map(({ path, total, done }) => (
+                  <li key={path.id}>
+                    <Link href={`/learning-paths/${path.slug}`} className="group flex items-center gap-3.5 rounded-lg px-2 py-2.5 transition-colors hover:bg-well">
+                      <EntityLogo name={path.title} src={path.logoUrl} size="md" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-display font-semibold text-ink group-hover:text-cyan-ink">{path.title}</span>
+                        <span className="mt-0.5 block text-sm text-ink-3">
+                          {total === 0 ? "No rooms yet" : `${done} of ${plural(total, "room")}`} · {path.difficulty}
+                        </span>
+                      </span>
+                      {total > 0 && done === total ? <StatusPill tone="done">Complete</StatusPill> : null}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <EmptyState title="No learning paths yet" message="Published paths will appear here." />
+            )}
           </section>
         </div>
 
-        {/* Right/Sidebar Column */}
-        <div className="space-y-6">
-          {/* Active Learning Path Timeline */}
-          {activePathDetails ? (
-            <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 shadow-lg backdrop-blur-md">
-              <h3 className="text-base font-semibold text-slate-100 mb-1 leading-tight">
-                {activePathDetails.path.title}
-              </h3>
-              <p className="text-xs text-slate-400 mb-4">{activePathDetails.percentage}% complete</p>
-              <div className="relative pl-6 border-l-2 border-white/[0.08] space-y-6 mt-4 ml-2">
-                {activePathDetails.path.rooms.map((room, idx) => {
-                  const isCompleted = completedRoomIds.has(room.id);
-                  const isRoomActive = activeRoom?.roomId === room.id;
-                  
-                  return (
-                    <div key={room.id} className="relative">
-                      {/* Connection Line */}
-                      {idx > 0 && (
-                        <div className={`absolute -left-[26px] bottom-[100%] w-0.5 h-full ${isCompleted || isRoomActive ? "bg-primary/40" : "bg-white/[0.04]"}`} />
-                      )}
-                      
-                      {/* Node Indicator */}
-                      <div
-                        className={`absolute -left-[31px] top-1.5 w-4 h-4 rounded-full border-4 border-[#1c1f2a] z-10 ${
-                          isCompleted
-                            ? "bg-emerald-400"
-                            : isRoomActive
-                            ? "bg-primary glow-active animate-pulse"
-                            : "bg-slate-700"
-                        }`}
-                      />
-                      
-                      <Link href={`/rooms/${room.slug}`} className="group block">
-                        <p className={`text-xs font-semibold group-hover:text-primary transition-colors ${isRoomActive ? "text-primary font-bold" : "text-slate-200"}`}>
-                          {room.title}
-                        </p>
-                        <p className="text-[10px] text-slate-500 mt-0.5 uppercase tracking-wider">
-                          {isCompleted ? "Completed" : isRoomActive ? `In Progress (${activeProgress}%)` : "Locked"}
-                        </p>
-                      </Link>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 shadow-lg backdrop-blur-md">
-              <h3 className="text-base font-semibold text-slate-100 mb-2">No Active Curricula</h3>
-              <p className="text-xs text-slate-400">
-                You are not currently enrolled in a learning path. Start one in the main curriulum list to track sequential progress.
-              </p>
-            </div>
-          )}
-
-          {/* Dynamic Activity Log */}
-          <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 shadow-lg backdrop-blur-md">
-            <h3 className="text-base font-semibold text-slate-100 mb-4 flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-primary" />
-              Activity Log
-            </h3>
-            <div className="space-y-4">
-              {activities.length > 0 ? (
-                activities.map((act) => (
-                  <div key={act.id} className="flex gap-3 items-start">
-                    <div className="w-8 h-8 rounded-full bg-[#262a35] border border-white/[0.04] flex items-center justify-center shrink-0">
-                      <span className={`text-[10px] font-black ${act.color}`}>{act.marker}</span>
-                    </div>
-                    <div>
-                      <p className="text-xs text-slate-200 leading-normal">{act.text}</p>
-                      <p className="text-[10px] text-slate-500 mt-1">{formatRelativeTime(act.date)}</p>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-xs text-slate-500 text-center py-2">No recent system activities found.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Top Operators List */}
-          <div className="bg-[#1c1f2a]/70 rounded-xl border border-white/[0.08] p-5 shadow-lg backdrop-blur-md">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-slate-100">Top Operators</h3>
-              <Link href="/leaderboard" className="text-xs font-bold text-slate-400 hover:text-primary transition-colors">
-                View
+        <div className="flex flex-col gap-5">
+          <section className="sheet px-5 pb-2 pt-4" aria-labelledby="top-members-title">
+            <div className="flex items-baseline justify-between border-b border-line pb-3">
+              <h2 id="top-members-title" className="text-base font-bold text-ink">
+                Top members
+              </h2>
+              <Link href="/leaderboard" className="text-link text-sm">
+                Leaderboard
               </Link>
             </div>
-            <div className="space-y-3">
-              {leaderboard.slice(0, 3).map((row, idx) => {
-                const colors = ["bg-yellow-500", "bg-slate-400", "bg-amber-600"];
-                const isCurrentUser = row.user?.id === profile.id;
-                
-                return (
-                  <div
-                    key={row.rank}
-                    className={`flex items-center justify-between p-2 rounded-lg border ${
-                      isCurrentUser ? "bg-primary/5 border-primary/30" : "bg-[#262a35]/40 border-white/[0.04]"
-                    } relative overflow-hidden`}
-                  >
-                    {idx < 3 && <div className={`absolute left-0 top-0 w-0.5 h-full ${colors[idx]}`} />}
-                    <div className="flex items-center gap-3 ml-2">
-                      <span className="text-[11px] font-bold text-slate-500 w-4 text-center">{row.rank}</span>
-                      <div className="w-6 h-6 rounded bg-[#262a35] border border-white/[0.08] flex items-center justify-center text-[9px] font-bold text-slate-300 uppercase">
-                        {(row.user?.username ?? "OP").substring(0, 2)}
-                      </div>
-                      <span className={`text-xs font-medium leading-none ${isCurrentUser ? "text-primary font-bold" : "text-slate-300"}`}>
+            {leaderboard.length > 0 ? (
+              <ol className="divide-y divide-line">
+                {leaderboard.map((row) => {
+                  const isYou = row.user?.id === profile.id;
+                  return (
+                    <li key={row.user?.id ?? `rank-${row.rank}`} className={`flex items-center gap-3 py-2.5 text-sm ${isYou ? "font-semibold text-cyan-ink" : "text-ink"}`}>
+                      <span className={`figure w-6 font-bold ${isYou ? "" : "text-ink-3"}`}>{row.rank}</span>
+                      <span className="min-w-0 flex-1 truncate">
                         {row.user?.username ?? "unknown"}
+                        {isYou ? <span className="ml-1.5 font-normal">(you)</span> : null}
                       </span>
-                    </div>
-                    <span className="text-xs font-bold text-primary mr-1">{row.points} pts</span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                      <span className={`figure ${isYou ? "" : "text-ink-2"}`}>{formatNumber(row.points)}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            ) : (
+              <p className="py-3 text-sm text-ink-3">No points recorded yet. The first correct answer takes the top spot.</p>
+            )}
+          </section>
+
+          <section className="sheet p-5" aria-labelledby="announcements-title">
+            <h2 id="announcements-title" className="text-base font-bold text-ink">
+              Announcements
+            </h2>
+            {announcements.length > 0 ? (
+              <ul className="mt-3 divide-y divide-line">
+                {announcements.map((item) => (
+                  <li key={item.id} className="py-3 first:pt-0 last:pb-0">
+                    <p className="text-xs text-ink-3">{formatRelativeTime(item.createdAt, now)}</p>
+                    <p className="mt-0.5 font-display font-semibold leading-snug text-ink">{item.title}</p>
+                    <p className="mt-1 whitespace-pre-line break-words text-sm text-ink-2">{item.content}</p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-sm text-ink-3">No announcements right now.</p>
+            )}
+          </section>
         </div>
       </div>
     </AppShell>

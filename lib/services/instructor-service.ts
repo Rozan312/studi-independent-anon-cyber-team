@@ -55,24 +55,26 @@ export async function getStudentProgress(instructorId: string, studentId?: strin
   });
 }
 
-export async function createRoomDraft(input: unknown) {
+export async function createRoomDraft(input: unknown, createdById?: string) {
   const data = roomDraftSchema.parse(input);
 
   return prisma.room.create({
     data: {
       ...data,
+      createdById: createdById ?? null,
       isPublished: false
     }
   });
 }
 
-export async function createRoomWithTasks(input: unknown) {
+export async function createRoomWithTasks(input: unknown, createdById?: string) {
   const data = roomBuilderSchema.parse(input);
   const { tasks, isPublished, ...roomData } = data;
 
   return prisma.room.create({
     data: {
       ...roomData,
+      createdById: createdById ?? null,
       isPublished,
       tasks: {
         create: tasks.map((task, index) => ({
@@ -81,6 +83,8 @@ export async function createRoomWithTasks(input: unknown) {
           orderIndex: index + 1,
           answerType: AnswerType.TEXT,
           expectedAnswer: task.expectedAnswer ?? null,
+          acceptedAnswers: task.acceptedAnswers ?? [],
+          hint: task.hint?.trim() ? task.hint.trim() : null,
           points: task.points
         }))
       }

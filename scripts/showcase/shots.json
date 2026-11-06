@@ -1,0 +1,159 @@
+{
+  "scale": 2,
+  "public": [
+    {
+      "path": "/",
+      "file": "desktop-light-home.png",
+      "width": 1440,
+      "height": 900,
+      "theme": "light"
+    },
+    {
+      "path": "/",
+      "file": "desktop-night-home.png",
+      "width": 1440,
+      "height": 900,
+      "theme": "night"
+    },
+    {
+      "path": "/",
+      "file": "mobile-light-home.png",
+      "width": 390,
+      "height": 844,
+      "theme": "light"
+    }
+  ],
+  "private": [
+    {
+      "path": "/dashboard",
+      "file": "desktop-light-dashboard.png",
+      "width": 1440,
+      "height": 900,
+      "theme": "light"
+    },
+    {
+      "path": "/learning-paths",
+      "file": "desktop-light-learning-paths.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/learning-paths/web-security-fundamentals",
+      "file": "desktop-light-path-detail.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/rooms/broken-access-control-basics",
+      "file": "desktop-light-room.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/rooms/incident-response-basics/quiz",
+      "file": "desktop-light-quiz.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/progress",
+      "file": "desktop-light-progress.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/leaderboard",
+      "file": "desktop-light-leaderboard.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/profile",
+      "file": "desktop-light-profile.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/dashboard",
+      "file": "desktop-light-dashboard-full.png",
+      "width": 1440,
+      "height": 900,
+      "fullPage": true
+    },
+    {
+      "path": "/progress",
+      "file": "desktop-light-progress-full.png",
+      "width": 1440,
+      "height": 900,
+      "fullPage": true
+    },
+    {
+      "path": "/dashboard",
+      "file": "desktop-night-dashboard.png",
+      "width": 1440,
+      "height": 900,
+      "theme": "night"
+    },
+    {
+      "path": "/rooms/broken-access-control-basics",
+      "file": "desktop-night-room.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/rooms/broken-access-control-basics/lab",
+      "file": "desktop-night-lab.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/progress",
+      "file": "desktop-night-progress.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/leaderboard",
+      "file": "desktop-night-leaderboard.png",
+      "width": 1440,
+      "height": 900
+    },
+    {
+      "path": "/dashboard",
+      "file": "mobile-night-dashboard.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "/rooms/broken-access-control-basics/lab",
+      "file": "mobile-night-lab.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "/dashboard",
+      "file": "mobile-light-dashboard.png",
+      "width": 390,
+      "height": 844,
+      "theme": "light"
+    },
+    {
+      "path": "/rooms/broken-access-control-basics",
+      "file": "mobile-light-room.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "/progress",
+      "file": "mobile-light-progress.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "/leaderboard",
+      "file": "mobile-light-leaderboard.png",
+      "width": 390,
+      "height": 844
+    }
+  ]
+}

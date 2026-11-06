@@ -2,26 +2,146 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Token tema gelap (bawaan): satu dasar hitam kebiruan dari garis logo, panel rata dengan sambungan tipis,
+   cyan logo untuk aksi maju, tautan, fokus, dan progres; warna status untuk selesai/benar/ulang/terjadwal.
+   Nilai berformat "R G B" agar bisa dipakai Tailwind dengan opasitas. Nama token lama (paper, sheet, well)
+   dipertahankan: paper = dasar halaman, sheet = panel, well = permukaan terangkat/isian. */
 :root {
   color-scheme: dark;
-  --color-primary: #adc6ff;
-  --color-primary-container: #4d8eff;
-  --color-surface: #0f131d;
-  --color-surface-container: #1c1f2a;
-  --color-surface-container-high: #262a35;
-  --color-background: #0f131d;
-  --color-tertiary: #4edea3;
-  --color-error: #ffb4ab;
+
+  --paper: 10 17 24;
+  --sheet: 15 25 34;
+  --well: 20 33 44;
+  --line: 30 44 56;
+  --line-soft: 24 36 47;
+  --line-strong: 42 59 73;
+  /* Tepi field teks: minimal 3:1 terhadap panel, dasar, dan well (kontras non-teks WCAG 1.4.11). */
+  --line-input: 92 116 133;
+
+  --ink: 231 238 242;
+  --ink-2: 163 179 190;
+  --ink-3: 133 151 163;
+
+  --cyan: 0 194 245;
+  --cyan-hover: 51 209 248;
+  --cyan-soft: 13 45 59;
+  --cyan-ink: 0 194 245;
+  /* Teks di atas isian cyan: biru-tinta gelap, lebih menyatu daripada hitam pekat. */
+  --on-cyan: 4 32 43;
+  /* Latar gelap di belakang drawer ponsel, dipakai pada opasitas 35% (hitam di tema gelap, #080C10 di tema terang). */
+  --scrim: 0 0 0;
+  /* Warna teks dan kode di materi room. */
+  --prose-ink: 214 224 230;
+  --code-ink: 228 237 241;
+
+  --violet: 168 151 245;
+  --violet-soft: 37 33 66;
+  --green: 95 203 142;
+  --green-soft: 19 48 36;
+  --red: 242 128 122;
+  --red-soft: 60 27 27;
+  --amber: 233 182 95;
+  --amber-soft: 57 43 19;
+
+  /* Kotak identitas (inisial room/path): palet sendiri agar tidak terbaca sebagai status. */
+  --tile-indigo: 30 38 70;
+  --tile-indigo-ink: 176 188 244;
+  --tile-teal: 16 48 50;
+  --tile-teal-ink: 124 216 202;
+
+  /* Satu-satunya gradasi: navy bernada cyan ke navy bernada periwinkle, untuk rail, drawer, dan panel login. */
+  --rail: linear-gradient(180deg, #0d1e29 0%, #0b141c 55%, #11132a 100%);
+}
+
+/* Tema terang (opsional): token yang sama dengan nilai terang. Dipasang di <html> oleh skrip awal di
+   app/layout.tsx (tanpa kedip) dan oleh tombol Light mode. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --paper: 244 247 249;
+  --sheet: 255 255 255;
+  --well: 237 242 245;
+  --line: 220 228 234;
+  --line-soft: 232 238 242;
+  --line-strong: 190 203 212;
+  --line-input: 118 140 149;
+
+  --ink: 14 23 32;
+  --ink-2: 58 71 80;
+  --ink-3: 92 106 114;
+
+  --cyan: 0 194 245;
+  --cyan-hover: 0 174 222;
+  --cyan-soft: 224 245 252;
+  --cyan-ink: 0 108 138;
+  --on-cyan: 4 32 43;
+  --scrim: 8 12 16;
+  --prose-ink: 29 41 51;
+  --code-ink: 36 49 59;
+
+  --violet: 90 61 176;
+  --violet-soft: 237 233 249;
+  --green: 38 115 69;
+  --green-soft: 228 242 233;
+  --red: 196 48 40;
+  --red-soft: 251 233 231;
+  --amber: 143 87 8;
+  --amber-soft: 251 241 220;
+
+  --tile-indigo: 231 234 248;
+  --tile-indigo-ink: 59 75 138;
+  --tile-teal: 225 241 239;
+  --tile-teal-ink: 15 106 99;
+
+  --rail: linear-gradient(180deg, #e3f3f9 0%, #f1f5f8 55%, #ecebf8 100%);
+}
+
+/* Materi room di tema gelap (tampilan student dan editor sama-sama .prose-cyber).
+   Warna teks pilihan instruktur dipilih untuk latar terang; kecerahannya dibalik (invert + hue-rotate 180°)
+   sehingga ronanya tetap tetapi terbaca di latar gelap (kontras palet 6-8:1 terhadap panel gelap). */
+:root:not([data-theme="light"])
+  .prose-cyber
+  :is([style^="color"], [style*=" color:"], [style*=";color:"]):not(mark):not([style*="color:inherit"]):not([style*="color: inherit"]) {
+  filter: invert(1) hue-rotate(180deg);
+}
+/* Elemen berwarna di dalam elemen berwarna sudah ikut dibalik oleh induknya; jangan dibalik dua kali. */
+:root:not([data-theme="light"]) .prose-cyber :is([style^="color"], [style*=" color:"], [style*=";color:"]) :is([style^="color"], [style*=" color:"], [style*=";color:"]) {
+  /* !important: aturan pembalik di atas lebih spesifik karena rantai :not(). */
+  filter: none !important;
+}
+/* Kode inline di dalam teks berwarna: latarnya ikut terbalik, jadi dibuat transparan. */
+:root:not([data-theme="light"]) .prose-cyber :is([style^="color"], [style*=" color:"], [style*=";color:"]) code {
+  background: transparent;
+  border-color: transparent;
+}
+/* Teks berstabilo di tema gelap: stabilo tidak dibalik, jadi teksnya memakai tinta gelap-tema (minimal 4,5:1 di atas
+   setiap stabilo palet, di panel maupun well). !important mengalahkan `color: inherit` inline dari TipTap. */
+:root:not([data-theme="light"]) .prose-cyber mark {
+  color: rgb(var(--ink)) !important;
+}
+/* Stabilo di dalam teks berwarna mengikuti warna induknya yang sudah dibalik. */
+:root:not([data-theme="light"]) .prose-cyber :is([style^="color"], [style*=" color:"], [style*=";color:"]) mark {
+  color: inherit !important;
+}
+/* Contoh warna teks di toolbar editor dibalik sama seperti di materi, jadi pratinjaunya sesuai warna yang tampil. */
+:root:not([data-theme="light"]) .swatch-ink {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   min-height: 100vh;
-  background:
-    linear-gradient(180deg, rgba(77, 142, 255, 0.06), transparent 320px),
-    #0a0e17;
-  color: #dfe2f1;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: rgb(var(--paper));
+  color: rgb(var(--ink));
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  font-feature-settings: "kern", "liga";
   overflow-x: hidden;
+  transition: background-color 200ms ease, color 200ms ease;
 }
 
 a {
@@ -29,61 +149,670 @@ a {
   text-decoration: none;
 }
 
+/* Judul, label, dan angka memakai Red Hat Display; teks baca memakai Red Hat Text (lihat app/layout.tsx). */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Hindari satu kata yatim di baris terakhir paragraf. */
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+::selection {
+  background: rgb(var(--cyan) / 0.3);
+  color: rgb(var(--ink));
+}
+
+:focus-visible {
+  outline: 2px solid rgb(var(--cyan-ink));
+  outline-offset: 2px;
+}
+
+/* Kursor tangan untuk semua kontrol yang bisa diklik; kontrol nonaktif memakai not-allowed. */
+a[href],
+button,
+summary,
+select,
+label[for],
+label:has(> input[type="checkbox"], > input[type="radio"]),
+input[type="checkbox"],
+input[type="radio"],
+input[type="file"],
+[role="button"],
+[role="tab"],
+[role="switch"] {
+  cursor: pointer;
+}
+
+:is(button, select, input, textarea, [role="button"]):disabled,
+:is(a[href], button, [role="button"], [role="tab"])[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
+/* Target sentuh minimal 44 px di perangkat sentuh; dengan mouse, desktop tetap rapat seperti desainnya.
+   Tombol dan field ikut tinggi minimum; link teks mendapat area sentuh tak terlihat tanpa berubah tampilan. */
+@media (pointer: coarse) {
+  /* Kelas varian menyalin .btn lewat @apply, jadi setiap varian disebut langsung. */
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-ghost,
+  .btn-danger,
+  .btn-sm,
+  .input,
+  select {
+    min-height: 2.75rem;
+  }
+  /* Tombol kecil (termasuk tombol ikon w-8) juga minimal 44 px lebarnya; min-width menang atas width. */
+  .btn-sm {
+    min-width: 2.75rem;
+  }
+  /* Teks field minimal 16 px agar iOS Safari tidak memperbesar halaman saat field difokus.
+     Blok ini berada setelah utilitas Tailwind, jadi .input juga menang atas text-sm/text-xs yang ditambahkan. */
+  .input,
+  select,
+  textarea {
+    font-size: 1rem;
+  }
+  .text-link,
+  .tap-target {
+    position: relative;
+  }
+  /* Tombol tepi rail berposisi absolute, jadi hanya memakai area sentuhnya (tanpa position: relative dari .tap-target). */
+  .text-link::after,
+  .tap-target::after,
+  .rail-edge-toggle::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 2.75rem);
+    height: max(100%, 2.75rem);
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Garis loading antarhalaman (components/ui/route-progress.tsx): cyan logo, tumbuh pelan lalu penuh saat selesai. */
+.route-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 70;
+  height: 3px;
+  background: rgb(var(--cyan));
+  transform: scaleX(0);
+  transform-origin: left;
+  opacity: 0;
+  pointer-events: none;
+}
+.route-progress-loading {
+  opacity: 1;
+  transform: scaleX(0.85);
+  transition:
+    transform 8s cubic-bezier(0.08, 0.7, 0.2, 1),
+    opacity 150ms;
+}
+.route-progress-done {
+  opacity: 0;
+  transform: scaleX(1);
+  transition:
+    transform 200ms ease-out,
+    opacity 250ms 150ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .route-progress-loading {
+    transform: scaleX(1);
+    transition: none;
+  }
+  .route-progress-done {
+    transition: none;
+  }
+}
+
 input,
 textarea,
 select {
-  color: #dfe2f1;
+  color: rgb(var(--ink));
+  caret-color: rgb(var(--cyan-ink));
 }
 
-input::placeholder {
-  color: #6f7a8f;
+input::placeholder,
+textarea::placeholder {
+  color: rgb(var(--ink-3));
+  opacity: 1;
 }
 
-/* Custom scrollbar for cyber aesthetic */
+/* Label sr-only (position: absolute) di dalam tabel yang bisa digulir tidak boleh lolos dari area gulir
+   lalu melebarkan halaman di layar sempit. */
+.overflow-x-auto,
+.table-scroll {
+  position: relative;
+}
+
+/* Scrollbar tipis bernada tinta. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--line-strong)) transparent;
+}
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: #0a0e17;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #262a35;
+  background: rgb(var(--line-strong) / 0.7);
+  border: 3px solid transparent;
+  background-clip: padding-box;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4d8eff/50;
+  background-color: rgb(var(--ink-3));
 }
 
-/* Grid & glass overlays */
-.cyber-grid {
-  background-image:
-    linear-gradient(rgba(77, 142, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(77, 142, 255, 0.025) 1px, transparent 1px);
-  background-size: 32px 32px;
+@layer components {
+  /* Panel: rata di atas dasar, dipisahkan sambungan tipis, tanpa bayangan (seamless). */
+  .sheet {
+    @apply rounded-sheet border border-line bg-sheet;
+  }
+
+  /* Label data: Red Hat Display kapital kecil. Hanya untuk data/field, tidak pernah di atas judul. */
+  .field-label {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    @apply text-label font-semibold uppercase text-ink-3;
+  }
+
+  /* Angka bersel tetap: tidak bergeser saat nilainya berubah. */
+  .figure {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums lining-nums;
+    letter-spacing: -0.01em;
+  }
+
+  /* Nomor anggota: string mesin, jadi monospace dan cyan logo. */
+  .serial {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+    @apply font-mono text-xs font-medium uppercase text-cyan-ink;
+  }
+
+  .btn {
+    font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-sm font-semibold transition-[background-color,border-color,color,transform] duration-150 ease-out disabled:cursor-not-allowed disabled:opacity-55 active:translate-y-px;
+  }
+  /* Aksi maju: isian cyan logo dengan teks biru-tinta gelap. */
+  .btn-primary {
+    @apply btn border border-transparent bg-cyan text-[rgb(var(--on-cyan))] hover:bg-cyan-hover;
+  }
+  /* Aksi lain: garis netral, berubah cyan saat disorot. Tombol nonaktif tetap netral saat disorot
+     (disabled:hover:, bukan enabled:hover:, karena .btn-secondary juga dipakai di <a> yang tidak punya :enabled). */
+  .btn-secondary {
+    @apply btn border border-line-strong bg-transparent text-ink hover:border-cyan-ink/60 hover:text-cyan-ink disabled:hover:border-line-strong disabled:hover:text-ink;
+  }
+  .btn-ghost {
+    @apply btn px-3 text-ink-2 hover:bg-well hover:text-ink;
+  }
+  .btn-danger {
+    @apply btn border border-red/45 bg-transparent text-red hover:border-red hover:bg-red-soft;
+  }
+  .btn-sm {
+    @apply min-h-8 px-3 text-[0.8125rem];
+  }
+
+  .input {
+    @apply w-full rounded-lg border border-line-input bg-paper px-3 py-2 text-[0.9375rem] text-ink transition-colors placeholder:text-ink-3 hover:border-ink-3 focus:border-cyan-ink focus:outline-none focus:ring-2 focus:ring-cyan/30 disabled:cursor-not-allowed disabled:bg-well disabled:text-ink-3;
+  }
+
+  .text-link {
+    @apply font-medium text-cyan-ink underline decoration-cyan-ink/40 underline-offset-[3px] transition-colors hover:decoration-cyan-ink;
+  }
+
+  /* Satu-satunya gradasi: rail, drawer mobile, dan panel login. */
+  .rail-surface {
+    background-image: var(--rail);
+  }
 }
 
-.glass-panel {
-  background: rgba(20, 24, 38, 0.75);
-  border: 1px solid rgba(66, 71, 84, 0.5);
-  box-shadow: 0 0 0 1px rgba(77, 142, 255, 0.02), 0 12px 40px rgba(0, 0, 0, 0.35);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+/* Penanda selesai: centang yang baru didapat digambar sekali. */
+@keyframes check-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
-.glow-active {
-  box-shadow: 0 0 20px rgba(77, 142, 255, 0.15);
+.check-draw path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: check-draw 460ms cubic-bezier(0.16, 1, 0.3, 1) 120ms forwards;
 }
 
-.text-glow {
-  text-shadow: 0 0 8px rgba(173, 198, 255, 0.45);
+/* Konten halaman masuk halus setiap pindah menu. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
-.glow-green {
-  box-shadow: 0 0 20px rgba(78, 222, 163, 0.15);
+.page-enter {
+  animation: page-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.focus-ring {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(77, 142, 255, 0.18);
+/* Tooltip rail yang diciutkan muncul cepat dari arah rail. Properti translate terpisah dari transform
+   -translate-y-1/2 yang memusatkannya pada item. */
+@keyframes rail-tip-in {
+  from {
+    opacity: 0;
+    translate: -4px 0;
+  }
+}
+
+.rail-tip-enter {
+  animation: rail-tip-in 110ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body {
+    transition: none;
+  }
+  .page-enter,
+  .rail-tip-enter {
+    animation: none;
+  }
+  .check-draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Materi room (mode baca): sama di editor dan tampilan student. */
+.prose-cyber {
+  color: rgb(var(--prose-ink));
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  overflow-wrap: break-word;
+}
+.prose-cyber > * + * {
+  margin-top: 0.9em;
+}
+.prose-cyber h1,
+.prose-cyber h2,
+.prose-cyber h3,
+.prose-cyber h4 {
+  color: rgb(var(--ink));
+  font-weight: 700;
+  letter-spacing: -0.012em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+/* Semua heading materi di bawah judul bab (1.5rem, components/rooms/room-chapter-panel.tsx), agar Heading 1 instruktur
+   tidak tampil lebih besar dari judul bab di atasnya. h3 seukuran teks baca dan h4 sedikit lebih kecil dalam ink 2,
+   jadi keduanya tetap berbeda dari paragraf lewat tebal huruf. */
+.prose-cyber h1 { font-size: 1.3rem; margin-top: 1.5em; }
+.prose-cyber h2 { font-size: 1.15rem; margin-top: 1.6em; }
+.prose-cyber h3 { font-size: 1.0625rem; margin-top: 1.4em; }
+.prose-cyber h4 { font-size: 1rem; margin-top: 1.2em; color: rgb(var(--ink-2)); }
+.prose-cyber > :first-child { margin-top: 0; }
+
+/* Lebar baca: panel materi selebar kolom konten, tetapi teks berjalan (paragraf, daftar, heading, kutipan, garis)
+   dibatasi sekitar 90 karakter per baris; tabel, blok kode, dan gambar boleh memakai seluruh lebar panel. Editor
+   memakai aturan yang sama karena area tulisnya juga .prose-cyber.
+   Satuannya rem, bukan ch: "0" Red Hat Text lebar (1ch = 0,66em), sehingga 90ch menjadi sekitar 130 huruf teks
+   biasa. 43.5rem pada ukuran baca 1.0625rem memuat sekitar 90 huruf, dan heading yang hurufnya lebih besar tetap
+   sejajar dengan paragraf. */
+.prose-cyber {
+  --prose-measure: 43.5rem;
+}
+.prose-cyber > :is(p, ul, ol, h1, h2, h3, h4, blockquote, hr) {
+  max-width: var(--prose-measure);
+}
+/* Paragraf dan heading rata tengah/kanan diratakan terhadap panel, sejajar dengan gambar yang berada di tengah panel. */
+.prose-cyber > :is(p, h1, h2, h3, h4):is([style*="text-align:center"], [style*="text-align: center"]) {
+  margin-inline: auto;
+}
+.prose-cyber > :is(p, h1, h2, h3, h4):is([style*="text-align:right"], [style*="text-align: right"]) {
+  margin-left: auto;
+}
+.prose-cyber h1 + *,
+.prose-cyber h2 + *,
+.prose-cyber h3 + *,
+.prose-cyber h4 + * {
+  margin-top: 0.5em;
+}
+.prose-cyber a {
+  color: rgb(var(--cyan-ink));
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--cyan-ink) / 0.4);
+  text-underline-offset: 3px;
+}
+.prose-cyber a:hover {
+  text-decoration-color: currentColor;
+}
+.prose-cyber strong,
+.prose-cyber b {
+  color: rgb(var(--ink));
+  font-weight: 650;
+}
+.prose-cyber ul,
+.prose-cyber ol { padding-left: 1.45em; }
+.prose-cyber ul { list-style: disc; }
+.prose-cyber ol { list-style: decimal; }
+.prose-cyber li::marker { color: rgb(var(--ink-3)); }
+.prose-cyber li + li { margin-top: 0.35em; }
+.prose-cyber blockquote {
+  border: 1px solid rgb(var(--line));
+  background: rgb(var(--well));
+  border-radius: 0.6rem;
+  padding: 0.75em 1.1em;
+  color: rgb(var(--ink-2));
+}
+.prose-cyber code {
+  font-family: var(--font-code), ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.86em;
+  background: rgb(var(--well));
+  border: 1px solid rgb(var(--line-soft));
+  border-radius: 0.35rem;
+  padding: 0.08em 0.38em;
+  color: rgb(var(--code-ink));
+}
+/* Blok kode: di tema gelap lebih gelap dari panel; di tema terang tetap panel kode gelap. */
+.prose-cyber pre {
+  background: #060b10;
+  color: #e4edf1;
+  border: 1px solid rgb(var(--line));
+  border-radius: 0.65rem;
+  padding: 1em 1.15em;
+  overflow-x: auto;
+}
+:root[data-theme="light"] .prose-cyber pre {
+  background: #17222b;
+  border-color: #0f171d;
+}
+.prose-cyber pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+.prose-cyber pre::selection,
+.prose-cyber pre *::selection {
+  background: rgb(0 194 245 / 0.35);
+  color: #fff;
+}
+.prose-cyber img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.6rem;
+  border: 1px solid rgb(var(--line));
+  display: block;
+  margin: 1.3em auto;
+}
+.prose-cyber hr {
+  border: 0;
+  border-top: 1px solid rgb(var(--line));
+  margin: 2em 0;
+}
+.prose-cyber table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  display: block;
+  overflow-x: auto;
+}
+.prose-cyber th,
+.prose-cyber td {
+  border: 1px solid rgb(var(--line));
+  padding: 0.5em 0.75em;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+.prose-cyber th {
+  background: rgb(var(--well));
+  color: rgb(var(--ink));
+  font-weight: 650;
+}
+
+/* Format tambahan dari editor visual (berlaku di editor dan tampilan student). */
+.prose-cyber u {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-cyber s,
+.prose-cyber del {
+  text-decoration: line-through;
+}
+.prose-cyber sub,
+.prose-cyber sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+.prose-cyber sup { top: -0.5em; }
+.prose-cyber sub { bottom: -0.25em; }
+.prose-cyber em { font-style: italic; }
+.prose-cyber mark {
+  background-color: rgba(250, 204, 21, 0.42);
+  color: inherit;
+  border-radius: 0.2em;
+  padding: 0 0.12em;
+}
+/* Warna teks pilihan instruktur dan warna link harus menang atas warna bawaan elemen di dalamnya. */
+.prose-cyber span[style*="color"] strong,
+.prose-cyber span[style*="color"] b,
+.prose-cyber span[style*="color"] code,
+.prose-cyber a strong,
+.prose-cyber a b {
+  color: inherit;
+}
+.prose-cyber a span[style*="color"] {
+  text-decoration-line: underline;
+  text-decoration-color: currentColor;
+  text-underline-offset: 3px;
+}
+/* Spasi beruntun di kode inline tetap terlihat seperti di editor. */
+.prose-cyber :not(pre) > code {
+  white-space: break-spaces;
+}
+/* Paragraf kosong (baris kosong di editor) tetap memberi jarak di tampilan student. */
+.prose-cyber p:empty::before {
+  content: "\00a0";
+}
+.prose-cyber li > p,
+.prose-cyber blockquote > p,
+.prose-cyber th > p,
+.prose-cyber td > p {
+  margin: 0;
+}
+.prose-cyber li > p + p,
+.prose-cyber blockquote > p + p,
+.prose-cyber td > p + p,
+.prose-cyber th > p + p {
+  margin-top: 0.5em;
+}
+.prose-cyber ol ol,
+.prose-cyber ul ul,
+.prose-cyber ol ul,
+.prose-cyber ul ol {
+  margin-top: 0.3em;
+}
+.prose-cyber ul ul { list-style: circle; }
+.prose-cyber ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.15em;
+}
+.prose-cyber ul[data-type="taskList"] > li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55em;
+}
+.prose-cyber ul[data-type="taskList"] > li > label {
+  flex: 0 0 auto;
+  margin-top: 0.32em;
+  user-select: none;
+}
+.prose-cyber ul[data-type="taskList"] > li > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.prose-cyber ul[data-type="taskList"] > li[data-checked="true"] > div {
+  color: rgb(var(--ink-3));
+}
+.prose-cyber input[type="checkbox"] {
+  accent-color: rgb(var(--violet));
+  width: 1em;
+  height: 1em;
+}
+
+/* Tabel materi di tampilan student: lebar penuh seperti di editor, bisa digulir horizontal di layar sempit. */
+.prose-cyber .table-scroll {
+  overflow-x: auto;
+}
+.prose-cyber .table-scroll > table {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  margin: 0;
+}
+
+/* Editor visual (TipTap / ProseMirror). Outline fokus global digambar ke dalam (offset -2px) agar tidak
+   terpotong oleh wadah overflow-y-auto di sekeliling editor. */
+.rich-editor .ProseMirror {
+  outline-offset: -2px;
+  min-height: 380px;
+  padding: 1.25rem 1.4rem 2.25rem;
+  caret-color: rgb(var(--cyan-ink));
+  word-wrap: break-word;
+}
+.rich-editor .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  color: rgb(var(--ink-3));
+  pointer-events: none;
+}
+.rich-editor .ProseMirror p:empty::before {
+  content: none;
+}
+.rich-editor .ProseMirror img {
+  cursor: default;
+}
+.rich-editor .ProseMirror img.ProseMirror-selectednode,
+.rich-editor .ProseMirror hr.ProseMirror-selectednode {
+  outline: 2px solid rgb(var(--cyan-ink));
+  outline-offset: 2px;
+}
+.rich-editor .ProseMirror a {
+  cursor: text;
+}
+.rich-editor .ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+.rich-editor .ProseMirror table {
+  display: table;
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.rich-editor .ProseMirror td,
+.rich-editor .ProseMirror th {
+  position: relative;
+  min-width: 1em;
+  box-sizing: border-box;
+}
+.rich-editor .ProseMirror .selectedCell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgb(var(--cyan) / 0.18);
+  pointer-events: none;
+  z-index: 2;
+}
+.rich-editor .ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: rgb(var(--cyan-ink));
+  pointer-events: none;
+}
+.rich-editor .ProseMirror.resize-cursor {
+  cursor: col-resize;
+}
+.rich-editor .ProseMirror ul[data-type="taskList"] > li > label input {
+  cursor: pointer;
+}
+/* Blok kode tampil sama seperti di halaman student: tidak dilipat, bisa digulir. */
+.rich-editor .ProseMirror pre {
+  white-space: pre;
+  overflow-x: auto;
+}
+.rich-editor .ProseMirror-gapcursor::after {
+  border-top-color: rgb(var(--ink));
+}
+
+/* Gambar yang bisa diubah ukurannya (node view TipTap): pegangan di keempat sudut. */
+.rich-editor .ProseMirror [data-resize-container] {
+  justify-content: center;
+  margin: 1.3em 0;
+}
+.rich-editor .ProseMirror [data-resize-wrapper] > img {
+  margin: 0;
+}
+.rich-editor .ProseMirror [data-resize-container].ProseMirror-selectednode img {
+  outline: 2px solid rgb(var(--cyan-ink));
+  outline-offset: 2px;
+}
+.rich-editor .ProseMirror [data-resize-handle] {
+  width: 12px;
+  height: 12px;
+  margin: -6px;
+  border: 1.5px solid rgb(var(--ink));
+  border-radius: 3px;
+  background: rgb(var(--cyan));
+  z-index: 3;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.rich-editor .ProseMirror [data-resize-container]:hover [data-resize-handle],
+.rich-editor .ProseMirror [data-resize-container].ProseMirror-selectednode [data-resize-handle] {
+  opacity: 1;
+}
+.rich-editor .ProseMirror [data-resize-handle="top-left"],
+.rich-editor .ProseMirror [data-resize-handle="bottom-right"] {
+  cursor: nwse-resize;
+}
+.rich-editor .ProseMirror [data-resize-handle="top-right"],
+.rich-editor .ProseMirror [data-resize-handle="bottom-left"] {
+  cursor: nesw-resize;
+}
+/* Di perangkat sentuh, pegangan 12 px mendapat area sentuh tak terlihat 44 px tanpa mengubah tampilannya. */
+@media (pointer: coarse) {
+  .rich-editor .ProseMirror [data-resize-handle]::after {
+    content: "";
+    position: absolute;
+    inset: -16px;
+  }
 }

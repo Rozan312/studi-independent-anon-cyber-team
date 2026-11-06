@@ -1,0 +1,802 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T18:00:00Z",
+  "title": "Design System: Anon Cyber Team",
+  "extensions": {
+    "themes": {
+      "default": "dark",
+      "dark": ":root",
+      "light": ":root[data-theme=\"light\"]",
+      "storageKey": "act-theme",
+      "note": "colorMeta.canonical is the dark value; colorMeta.light is the light-theme value of the same token."
+    },
+    "colorMeta": {
+      "ground": {
+        "role": "neutral",
+        "displayName": "Ground",
+        "canonical": "rgb(10 17 24)",
+        "light": "#F4F7F9",
+        "tonalRamp": [
+          "#172636",
+          "#27425E",
+          "#385E85",
+          "#487AAD",
+          "#6B96C2",
+          "#93B2D2",
+          "#BED1E4",
+          "#EDF2F8"
+        ]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel",
+        "canonical": "rgb(15 25 34)",
+        "light": "#FFFFFF",
+        "tonalRamp": [
+          "#172735",
+          "#29445C",
+          "#3A6083",
+          "#4B7DAA",
+          "#6E99BF",
+          "#95B4D0",
+          "#BFD2E3",
+          "#EDF3F7"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "rgb(20 33 44)",
+        "light": "#EDF2F5",
+        "tonalRamp": [
+          "#182735",
+          "#29445B",
+          "#3B6182",
+          "#4D7EA8",
+          "#6F9ABE",
+          "#96B5CF",
+          "#C0D3E2",
+          "#EDF3F7"
+        ]
+      },
+      "seam": {
+        "role": "neutral",
+        "displayName": "Seam",
+        "canonical": "rgb(30 44 56)",
+        "light": "#DCE4EA",
+        "tonalRamp": [
+          "#1B2732",
+          "#2E4456",
+          "#42617B",
+          "#557D9F",
+          "#7799B6",
+          "#9BB4CA",
+          "#C3D2DF",
+          "#EEF3F6"
+        ]
+      },
+      "seam-soft": {
+        "role": "neutral",
+        "displayName": "Soft Seam",
+        "canonical": "rgb(24 36 47)",
+        "light": "#E8EEF2",
+        "tonalRamp": [
+          "#1A2733",
+          "#2D4358",
+          "#40607D",
+          "#537CA2",
+          "#7598B8",
+          "#9AB4CB",
+          "#C2D2E0",
+          "#EEF2F6"
+        ]
+      },
+      "seam-strong": {
+        "role": "neutral",
+        "displayName": "Strong Seam",
+        "canonical": "rgb(42 59 73)",
+        "light": "#BECBD4",
+        "tonalRamp": [
+          "#1C2731",
+          "#304454",
+          "#456178",
+          "#597E9B",
+          "#7A99B3",
+          "#9EB4C7",
+          "#C5D2DD",
+          "#EFF3F6"
+        ]
+      },
+      "control-edge": {
+        "role": "neutral",
+        "displayName": "Control Edge",
+        "canonical": "rgb(92 116 133)",
+        "light": "#768C95",
+        "tonalRamp": [
+          "#1F272D",
+          "#36444E",
+          "#4D6170",
+          "#647E91",
+          "#839AAA",
+          "#A5B5C0",
+          "#C9D3D9",
+          "#F0F3F5"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "rgb(231 238 242)",
+        "light": "#0E1720",
+        "tonalRamp": [
+          "#1B2932",
+          "#2F4856",
+          "#42667A",
+          "#56849F",
+          "#779FB6",
+          "#9CB9C9",
+          "#C3D5DF",
+          "#EEF3F6"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "rgb(163 179 190)",
+        "light": "#3A4750",
+        "tonalRamp": [
+          "#20272D",
+          "#37444E",
+          "#4E616F",
+          "#657E8F",
+          "#849AA8",
+          "#A5B5C0",
+          "#C9D3D9",
+          "#F0F3F4"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "rgb(133 151 163)",
+        "light": "#5C6A72",
+        "tonalRamp": [
+          "#21272C",
+          "#39444C",
+          "#51616C",
+          "#697E8C",
+          "#8899A5",
+          "#A8B5BD",
+          "#CBD2D8",
+          "#F0F3F4"
+        ]
+      },
+      "logo-cyan": {
+        "role": "primary",
+        "displayName": "Logo Cyan",
+        "canonical": "rgb(0 194 245)",
+        "light": "#00C2F5",
+        "tonalRamp": [
+          "#003D4C",
+          "#006985",
+          "#0095BD",
+          "#00C2F5",
+          "#2ED3FF",
+          "#66DFFF",
+          "#A3ECFF",
+          "#E5FAFF"
+        ]
+      },
+      "logo-cyan-hover": {
+        "role": "primary",
+        "displayName": "Bright Cyan",
+        "canonical": "rgb(51 209 248)",
+        "light": "#00AEDE",
+        "tonalRamp": [
+          "#033C4A",
+          "#046880",
+          "#0694B6",
+          "#08BFED",
+          "#35D1F8",
+          "#6BDEFA",
+          "#A6EBFC",
+          "#E6F9FE"
+        ]
+      },
+      "cyan-wash": {
+        "role": "primary",
+        "displayName": "Cyan Wash",
+        "canonical": "rgb(13 45 59)",
+        "light": "#E0F5FC",
+        "tonalRamp": [
+          "#0E303F",
+          "#18536D",
+          "#22769B",
+          "#2C99C9",
+          "#54B1D9",
+          "#82C6E3",
+          "#B4DDEE",
+          "#EAF5FA"
+        ]
+      },
+      "cyan-ink": {
+        "role": "primary",
+        "displayName": "Cyan Ink",
+        "canonical": "rgb(0 194 245)",
+        "light": "#006C8A",
+        "tonalRamp": [
+          "#003D4C",
+          "#006985",
+          "#0095BD",
+          "#00C2F5",
+          "#2ED3FF",
+          "#66DFFF",
+          "#A3ECFF",
+          "#E5FAFF"
+        ]
+      },
+      "on-cyan": {
+        "role": "primary",
+        "displayName": "On Cyan",
+        "canonical": "rgb(4 32 43)",
+        "light": "#04202B",
+        "tonalRamp": [
+          "#073446",
+          "#0B5A79",
+          "#1080AD",
+          "#15A7E0",
+          "#40BCED",
+          "#73CEF2",
+          "#ABE2F7",
+          "#E8F7FD"
+        ]
+      },
+      "completed-violet": {
+        "role": "secondary",
+        "displayName": "Completed Violet",
+        "canonical": "rgb(168 151 245)",
+        "light": "#5A3DB0",
+        "tonalRamp": [
+          "#120746",
+          "#1F0C79",
+          "#2D11AC",
+          "#3A15DF",
+          "#5F40ED",
+          "#8A73F2",
+          "#B9ABF7",
+          "#ECE8FD"
+        ]
+      },
+      "completed-violet-wash": {
+        "role": "secondary",
+        "displayName": "Completed Violet Wash",
+        "canonical": "rgb(37 33 66)",
+        "light": "#EDE9F9",
+        "tonalRamp": [
+          "#1D1A33",
+          "#322C58",
+          "#473F7E",
+          "#5B52A3",
+          "#7C74B9",
+          "#9F99CC",
+          "#C6C2E0",
+          "#EFEEF6"
+        ]
+      },
+      "correct-green": {
+        "role": "secondary",
+        "displayName": "Correct Green",
+        "canonical": "rgb(95 203 142)",
+        "light": "#267345",
+        "tonalRamp": [
+          "#133A24",
+          "#21643E",
+          "#2E8E58",
+          "#3CB972",
+          "#61CC90",
+          "#8CD9AD",
+          "#BAE8CE",
+          "#ECF9F1"
+        ]
+      },
+      "correct-green-wash": {
+        "role": "secondary",
+        "displayName": "Correct Green Wash",
+        "canonical": "rgb(19 48 36)",
+        "light": "#E4F2E9",
+        "tonalRamp": [
+          "#163729",
+          "#265F47",
+          "#368765",
+          "#45AF84",
+          "#69C49E",
+          "#91D4B8",
+          "#BDE5D5",
+          "#EDF8F3"
+        ]
+      },
+      "retry-red": {
+        "role": "secondary",
+        "displayName": "Retry Red",
+        "canonical": "rgb(242 128 122)",
+        "light": "#C43028",
+        "tonalRamp": [
+          "#460A07",
+          "#79110C",
+          "#AC1911",
+          "#DF2016",
+          "#EC4941",
+          "#F17A74",
+          "#F7AFAB",
+          "#FDE9E8"
+        ]
+      },
+      "retry-red-wash": {
+        "role": "secondary",
+        "displayName": "Retry Red Wash",
+        "canonical": "rgb(60 27 27)",
+        "light": "#FBE9E7",
+        "tonalRamp": [
+          "#351818",
+          "#5B2929",
+          "#823B3B",
+          "#A94C4C",
+          "#BE6F6F",
+          "#D09595",
+          "#E3C0C0",
+          "#F7EDED"
+        ]
+      },
+      "scheduled-amber": {
+        "role": "secondary",
+        "displayName": "Scheduled Amber",
+        "canonical": "rgb(233 182 95)",
+        "light": "#8F5708",
+        "tonalRamp": [
+          "#432E09",
+          "#754F10",
+          "#A67117",
+          "#D7931E",
+          "#E6AB47",
+          "#EDC278",
+          "#F4DAAE",
+          "#FCF5E9"
+        ]
+      },
+      "scheduled-amber-wash": {
+        "role": "secondary",
+        "displayName": "Scheduled Amber Wash",
+        "canonical": "rgb(57 43 19)",
+        "light": "#FBF1DC",
+        "tonalRamp": [
+          "#392B13",
+          "#634B21",
+          "#8E6B2F",
+          "#B88B3D",
+          "#CBA462",
+          "#D9BD8C",
+          "#E8D7BA",
+          "#F9F4EC"
+        ]
+      },
+      "tile-indigo": {
+        "role": "tertiary",
+        "displayName": "Tile Indigo",
+        "canonical": "rgb(30 38 70)",
+        "light": "#E7EAF8",
+        "tonalRamp": [
+          "#171D36",
+          "#28325D",
+          "#394884",
+          "#495DAB",
+          "#6D7DC0",
+          "#94A0D1",
+          "#BFC6E3",
+          "#EDEFF7"
+        ]
+      },
+      "tile-indigo-ink": {
+        "role": "tertiary",
+        "displayName": "Tile Indigo Ink",
+        "canonical": "rgb(176 188 244)",
+        "light": "#3B4B8A",
+        "tonalRamp": [
+          "#091443",
+          "#102274",
+          "#1730A6",
+          "#1E3FD7",
+          "#4763E5",
+          "#798DEC",
+          "#AEBBF4",
+          "#E9ECFC"
+        ]
+      },
+      "tile-teal": {
+        "role": "tertiary",
+        "displayName": "Tile Teal",
+        "canonical": "rgb(16 48 50)",
+        "light": "#E1F1EF",
+        "tonalRamp": [
+          "#13383A",
+          "#206064",
+          "#2E898F",
+          "#3BB2B9",
+          "#61C6CC",
+          "#8BD5DA",
+          "#B9E6E9",
+          "#ECF8F9"
+        ]
+      },
+      "tile-teal-ink": {
+        "role": "tertiary",
+        "displayName": "Tile Teal Ink",
+        "canonical": "rgb(124 216 202)",
+        "light": "#0F6A63",
+        "tonalRamp": [
+          "#123B35",
+          "#1E665B",
+          "#2B9182",
+          "#38BDA8",
+          "#5ECFBE",
+          "#89DCCF",
+          "#B8EAE2",
+          "#EBF9F7"
+        ]
+      },
+      "prose-ink": {
+        "role": "neutral",
+        "displayName": "Prose Ink",
+        "canonical": "rgb(214 224 230)",
+        "light": "#1D2933",
+        "tonalRamp": [
+          "#1D2930",
+          "#324652",
+          "#476475",
+          "#5D8298",
+          "#7D9DB0",
+          "#A0B7C5",
+          "#C6D4DC",
+          "#EFF3F5"
+        ]
+      },
+      "code-ink": {
+        "role": "neutral",
+        "displayName": "Code Ink",
+        "canonical": "rgb(228 237 241)",
+        "light": "#24313B",
+        "tonalRamp": [
+          "#1A2B32",
+          "#2D4A57",
+          "#406A7C",
+          "#5489A1",
+          "#75A3B8",
+          "#9ABCCB",
+          "#C3D7E0",
+          "#EEF4F6"
+        ]
+      },
+      "code-block": {
+        "role": "neutral",
+        "displayName": "Code Block",
+        "canonical": "rgb(6 11 16)",
+        "light": "#17222B",
+        "tonalRamp": [
+          "#152638",
+          "#244260",
+          "#335E89",
+          "#437AB2",
+          "#6796C6",
+          "#90B2D5",
+          "#BCD1E6",
+          "#ECF2F8"
+        ]
+      },
+      "scrim": {
+        "role": "neutral",
+        "displayName": "Scrim",
+        "canonical": "rgb(0 0 0)",
+        "light": "#080C10",
+        "tonalRamp": [
+          "#262626",
+          "#424242",
+          "#5E5E5E",
+          "#7A7A7A",
+          "#969696",
+          "#B3B3B3",
+          "#D1D1D1",
+          "#F2F2F2"
+        ]
+      }
+    },
+    "gradients": [
+      {
+        "name": "rail",
+        "dark": "linear-gradient(180deg, #0d1e29 0%, #0b141c 55%, #11132a 100%)",
+        "light": "linear-gradient(180deg, #e3f3f9 0%, #f1f5f8 55%, #ecebf8 100%)",
+        "purpose": "The only gradient: navigation rail, mobile drawer, auth brand column."
+      }
+    ],
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Signed-out home hero (2.375rem, 3rem at sm, 3.25rem at lg); 404/error pages use 2.25rem, 2.75rem at sm."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Page title row and auth title (1.75rem, 2rem from lg)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings (1.125rem): SectionHeader, standalone form panels, the home panels and the path page's room list; 1rem for headings in the other ruled panel header rows."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Figure cells and fixed numbers with tabular lining numerals."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Interface text, descriptions, rows."
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "Room material (.prose-cyber), identical in editor and student view."
+      },
+      "label": {
+        "displayName": "Data Label",
+        "purpose": "Uppercase data field names, columns, figure labels, rail group names; never eyebrows."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "All buttons, in Red Hat Display."
+      },
+      "mono": {
+        "displayName": "Machine String",
+        "purpose": "Slugs, IPs, submitted answers, error references at the row's size and weight (usually 400, 0.75 to 0.875rem), no added tracking; code 0.86em inline, 0.84rem in blocks."
+      },
+      "serial": {
+        "displayName": "Serial",
+        "purpose": "Member serial only: 500, 0.75rem, 0.06em, uppercase, cyan ink."
+      }
+    },
+    "shadows": [
+      {
+        "name": "sheet",
+        "value": "0 0 #0000",
+        "purpose": "Deliberately empty: panels are flush."
+      },
+      {
+        "name": "lift",
+        "value": "0 24px 48px -16px rgb(0 0 0 / 0.55)",
+        "purpose": "Only true floating layers: mobile drawer, editor popovers and the collapsed rail's name tooltips."
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid rgb(var(--cyan-ink)); outline-offset: 2px",
+      "field": "border-color cyan-ink + 0 0 0 2px rgb(var(--cyan) / 0.3)",
+      "editor": "outline-offset: -2px"
+    },
+    "motion": [
+      {
+        "name": "control",
+        "value": "150ms ease-out",
+        "purpose": "Button colour/border transitions and 1px press."
+      },
+      {
+        "name": "theme",
+        "value": "200ms ease",
+        "purpose": "Background and text colour cross-fade on theme switch; off under reduced motion."
+      },
+      {
+        "name": "rail",
+        "value": "300ms ease-out",
+        "purpose": "Rail collapse/expand (width, content padding, chevron turn), only when the edge toggle is pressed; a page change renders the saved state with no transition. The collapsed rail's tooltip fades in over 110ms."
+      },
+      {
+        "name": "ease-arrive",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Drawer slide (300ms), page-enter (320ms, 6px rise), check-draw (460ms, 120ms delay)."
+      },
+      {
+        "name": "progress-fill",
+        "value": "500ms ease-out",
+        "purpose": "Progress bar width."
+      },
+      {
+        "name": "route-progress",
+        "value": "transform 8s cubic-bezier(0.08, 0.7, 0.2, 1)",
+        "purpose": "Loading line creeps to 85%, completes in 200ms on arrival."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "none",
+        "purpose": "Under prefers-reduced-motion all movement and the theme colour cross-fade stop (rail, drawer, nav, page-enter, check-draw, route-progress, progress-fill, theme-switch knob, body cross-fade). Only the 150ms colour transitions on controls, links and fields, the 1px button press, and the editor's 150ms resize-handle fade and swatch-ring change remain."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Rail replaces mobile top bar and drawer."
+      },
+      {
+        "name": "xl",
+        "value": "1280px",
+        "purpose": "Dashboard side column (340px)."
+      },
+      {
+        "name": "coarse",
+        "value": "(pointer: coarse)",
+        "purpose": "44px targets, 16px field text."
+      }
+    ],
+    "layout": {
+      "railWidth": "256px",
+      "railCollapsed": "76px",
+      "topBar": "56px",
+      "contentMax": "1240px",
+      "drawerWidth": "min(18rem, 86vw)",
+      "authBrandColumn": "18rem / 20rem at xl",
+      "authFormMax": "27rem"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one forward action of a view (Resume room, Start next room); may carry a forward arrow.",
+      "html": "<button class=\"ds-btn ds-btn-primary\">Resume room <svg viewBox=\"0 0 16 16\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" aria-hidden=\"true\"><path d=\"M3 8h10M9 4l4 4-4 4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
+      "css": ".ds-btn{font-family:'Red Hat Display',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:8px;font-size:0.875rem;font-weight:600;white-space:nowrap;transition:background-color 150ms ease-out,border-color 150ms ease-out,color 150ms ease-out,transform 150ms ease-out;cursor:pointer;} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid rgb(var(--cyan-ink, 0 194 245));outline-offset:2px;} .ds-btn-primary{background:rgb(var(--cyan, 0 194 245));color:rgb(var(--on-cyan, 4 32 43));border:1px solid transparent;} .ds-btn-primary:hover{background:rgb(var(--cyan-hover, 51 209 248));}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Every other action; neutral outline that turns cyan ink on hover.",
+      "html": "<button class=\"ds-btn ds-btn-secondary\">View path</button>",
+      "css": ".ds-btn{font-family:'Red Hat Display',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:8px;font-size:0.875rem;font-weight:600;white-space:nowrap;transition:background-color 150ms ease-out,border-color 150ms ease-out,color 150ms ease-out,transform 150ms ease-out;cursor:pointer;} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid rgb(var(--cyan-ink, 0 194 245));outline-offset:2px;} .ds-btn-secondary{background:transparent;color:rgb(var(--ink, 231 238 242));border:1px solid rgb(var(--line-strong, 42 59 73));} .ds-btn-secondary:hover{border-color:rgb(var(--cyan-ink, 0 194 245) / 0.6);color:rgb(var(--cyan-ink, 0 194 245));}"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Destructive actions: red outline, red wash on hover.",
+      "html": "<button class=\"ds-btn ds-btn-danger\">Delete room</button>",
+      "css": ".ds-btn{font-family:'Red Hat Display',ui-sans-serif,system-ui,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border-radius:8px;font-size:0.875rem;font-weight:600;white-space:nowrap;transition:background-color 150ms ease-out,border-color 150ms ease-out,color 150ms ease-out,transform 150ms ease-out;cursor:pointer;} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid rgb(var(--cyan-ink, 0 194 245));outline-offset:2px;} .ds-btn-danger{background:transparent;color:rgb(var(--red, 242 128 122));border:1px solid rgb(var(--red, 242 128 122) / 0.45);} .ds-btn-danger:hover{border-color:rgb(var(--red, 242 128 122));background:rgb(var(--red-soft, 60 27 27));}"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Ground-filled field with a 3:1 control edge and a sentence-case Display form label; cyan-ink border and ring on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-label\">Accepted answer</span><input class=\"ds-input\" placeholder=\"e.g. 10.10.0.5\"></label>",
+      "css": ".ds-field{display:grid;gap:6px;} .ds-label{display:block;font:600 0.875rem/1.25rem 'Red Hat Display',ui-sans-serif,sans-serif;color:rgb(var(--ink, 231 238 242));} .ds-input{width:100%;border-radius:8px;border:1px solid rgb(var(--line-input, 92 116 133));background:rgb(var(--paper, 10 17 24));padding:8px 12px;font:400 0.9375rem/1.55 'Red Hat Text',ui-sans-serif,sans-serif;color:rgb(var(--ink, 231 238 242));caret-color:rgb(var(--cyan-ink, 0 194 245));transition:border-color 150ms,box-shadow 150ms;} .ds-input::placeholder{color:rgb(var(--ink-3, 133 151 163));} .ds-input:hover{border-color:rgb(var(--ink-3, 133 151 163));} .ds-input:focus{outline:none;border-color:rgb(var(--cyan-ink, 0 194 245));box-shadow:0 0 0 2px rgb(var(--cyan, 0 194 245) / 0.3);}"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Gradient rail with stroked icons; active item in cyan wash, cyan ink and an inset cyan hairline. A 26px chevron edge toggle beside the logo collapses it to icons, which then show their names in floating tooltips.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Main\"><a class=\"ds-nav ds-nav-active\" href=\"#\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><rect x=\"4\" y=\"4\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"14\" y=\"4\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"4\" y=\"14\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"6\" height=\"6\" rx=\"1\"/></svg>Dashboard</a><a class=\"ds-nav\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M5 19V9M12 19V5M19 19v-7\"/></svg>Progress</a><p class=\"ds-group\">Teaching</p><a class=\"ds-nav\" href=\"#\"><svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><path d=\"M4 6h16M4 12h16M4 18h10\"/></svg>Room manager</a></nav>",
+      "css": ".ds-rail{width:256px;padding:12px;background-image:var(--rail, linear-gradient(180deg,#0d1e29 0%,#0b141c 55%,#11132a 100%));border-right:1px solid rgb(var(--line, 30 44 56));display:grid;gap:2px;} .ds-nav{display:flex;align-items:center;gap:12px;min-height:36px;padding:0 12px;border-radius:8px;font:400 0.9375rem 'Red Hat Text',ui-sans-serif,sans-serif;color:rgb(var(--ink-2, 163 179 190));text-decoration:none;transition:background-color 300ms ease-out,color 300ms ease-out;} .ds-nav svg{color:rgb(var(--ink-3, 133 151 163));} .ds-nav:hover{background:rgb(var(--well, 20 33 44) / 0.7);color:rgb(var(--ink, 231 238 242));} .ds-nav:focus-visible{outline:2px solid rgb(var(--cyan-ink, 0 194 245));outline-offset:2px;} .ds-nav-active{background:rgb(var(--cyan-soft, 13 45 59));color:rgb(var(--cyan-ink, 0 194 245));font-weight:600;box-shadow:inset 0 0 0 1px rgb(var(--cyan-ink, 0 194 245) / 0.3);} .ds-nav-active svg{color:rgb(var(--cyan-ink, 0 194 245));} .ds-group{margin:16px 12px 6px;font:600 0.6875rem/1rem 'Red Hat Display',ui-sans-serif,sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:rgb(var(--ink-3, 133 151 163));}"
+    },
+    {
+      "name": "Status Pills and State Tags",
+      "kind": "chip",
+      "refersTo": "status-pill-done",
+      "description": "Tinted wash with a 35% same-colour edge; one colour per meaning.",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-pill ds-done\">Done</span><span class=\"ds-pill ds-primary\">In progress</span><span class=\"ds-tag ds-green\"><svg viewBox=\"0 0 16 16\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m3.5 8.5 3 3 6-7\"/></svg>Solved</span><span class=\"ds-tag ds-amber\">Opens 24 Oct</span><span class=\"ds-tag ds-red\">Closed</span></div>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:8px;} .ds-pill,.ds-tag{display:inline-flex;align-items:center;gap:4px;border:1px solid;border-radius:6px;padding:2px 6px;font-family:'Red Hat Display',ui-sans-serif,sans-serif;font-weight:600;line-height:1rem;white-space:nowrap;} .ds-pill{font-size:0.6875rem;letter-spacing:0.06em;text-transform:uppercase;} .ds-tag{font-size:0.75rem;} .ds-done{background:rgb(var(--violet-soft, 37 33 66));color:rgb(var(--violet, 168 151 245));border-color:rgb(var(--violet, 168 151 245) / 0.35);} .ds-primary{background:rgb(var(--cyan-soft, 13 45 59));color:rgb(var(--cyan-ink, 0 194 245));border-color:rgb(var(--cyan-ink, 0 194 245) / 0.35);} .ds-green{background:rgb(var(--green-soft, 19 48 36));color:rgb(var(--green, 95 203 142));border-color:rgb(var(--green, 95 203 142) / 0.35);} .ds-amber{background:rgb(var(--amber-soft, 57 43 19));color:rgb(var(--amber, 233 182 95));border-color:rgb(var(--amber, 233 182 95) / 0.35);} .ds-red{background:rgb(var(--red-soft, 60 27 27));color:rgb(var(--red, 242 128 122));border-color:rgb(var(--red, 242 128 122) / 0.35);}"
+    },
+    {
+      "name": "Continue Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Flush panel with a hairline seam; the current item's panel takes a 35% cyan-ink seam and holds the one cyan action and progress.",
+      "html": "<section class=\"ds-panel ds-current\"><h2 class=\"ds-title\">Broken Access Control Basics</h2><p class=\"ds-meta\">Room 3 of 3 · Beginner · 230 pts · 60 min</p><div class=\"ds-progress-row\"><span>Room progress</span><span class=\"ds-fig\">33%</span></div><div class=\"ds-track\" role=\"progressbar\" aria-valuenow=\"33\" aria-valuemin=\"0\" aria-valuemax=\"100\"><div class=\"ds-fill\" style=\"width:33%\"></div></div></section>",
+      "css": ".ds-panel{background:rgb(var(--sheet, 15 25 34));border:1px solid rgb(var(--line, 30 44 56));border-radius:10px;padding:24px;} .ds-current{border-color:rgb(var(--cyan-ink, 0 194 245) / 0.35);} .ds-title{margin:0;font:700 1.375rem/1.25 'Red Hat Display',ui-sans-serif,sans-serif;letter-spacing:-0.015em;color:rgb(var(--ink, 231 238 242));} .ds-meta{margin:6px 0 20px;font:400 0.875rem 'Red Hat Text',ui-sans-serif,sans-serif;color:rgb(var(--ink-2, 163 179 190));} .ds-progress-row{display:flex;justify-content:space-between;font:400 0.75rem 'Red Hat Text',sans-serif;color:rgb(var(--ink-3, 133 151 163));margin-bottom:6px;} .ds-fig{font-family:'Red Hat Display',sans-serif;font-variant-numeric:tabular-nums lining-nums;} .ds-track{height:6px;border-radius:9999px;background:rgb(var(--line, 30 44 56));overflow:hidden;} .ds-fill{height:100%;border-radius:9999px;background:rgb(var(--cyan, 0 194 245));transition:width 500ms ease-out;}"
+    },
+    {
+      "name": "Completion Marks",
+      "kind": "custom",
+      "refersTo": "status-pill-done",
+      "description": "Room passed (violet circled check), quiz passed (green score), retry (red circled arrow), next (dashed cyan ring).",
+      "html": "<div class=\"ds-marks\"><span class=\"ds-mark ds-mark-done\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m5 12.5 4.5 4.5L19 7.5\"/></svg></span><span class=\"ds-score\">100%</span><span class=\"ds-mark ds-mark-retry\"><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M20 12a8 8 0 1 1-2.34-5.66L20 8.5\"/><path d=\"M20 3.5v5h-5\"/></svg></span><span class=\"ds-mark ds-mark-next\"></span></div>",
+      "css": ".ds-marks{display:flex;align-items:center;gap:16px;} .ds-mark{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9999px;border:1px solid;} .ds-mark-done{background:rgb(var(--violet-soft, 37 33 66));color:rgb(var(--violet, 168 151 245));border-color:rgb(var(--violet, 168 151 245) / 0.45);} .ds-mark-retry{background:rgb(var(--red-soft, 60 27 27));color:rgb(var(--red, 242 128 122));border-color:rgb(var(--red, 242 128 122) / 0.45);} .ds-mark-next{border:1.5px dashed rgb(var(--cyan-ink, 0 194 245));} .ds-score{font:700 0.8125rem/1 'Red Hat Display',sans-serif;font-variant-numeric:tabular-nums lining-nums;color:rgb(var(--green, 95 203 142));}"
+    },
+    {
+      "name": "Identity Tiles",
+      "kind": "custom",
+      "refersTo": "identity-tile",
+      "description": "Room/path initials on the identity palette; never a state.",
+      "html": "<div class=\"ds-tiles\"><span class=\"ds-tile ds-indigo\">TH</span><span class=\"ds-tile ds-teal\">BT</span><span class=\"ds-tile ds-neutral\">WS</span></div>",
+      "css": ".ds-tiles{display:flex;gap:12px;} .ds-tile{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:8px;border:1px solid rgb(var(--line-strong, 42 59 73));font:700 0.875rem 'Red Hat Display',sans-serif;letter-spacing:0.02em;} .ds-indigo{background:rgb(var(--tile-indigo, 30 38 70));color:rgb(var(--tile-indigo-ink, 176 188 244));} .ds-teal{background:rgb(var(--tile-teal, 16 48 50));color:rgb(var(--tile-teal-ink, 124 216 202));} .ds-neutral{background:rgb(var(--well, 20 33 44));color:rgb(var(--ink-2, 163 179 190));}"
+    },
+    {
+      "name": "Figure Strip",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Identical seam-divided figure cells for comparable numbers (dashboard, quiz result).",
+      "html": "<section class=\"ds-strip\"><div class=\"ds-cell\"><p class=\"ds-flabel\">Streak</p><p class=\"ds-fvalue\">7<span>days</span></p><p class=\"ds-fnote\">16 active days in the last 120 days</p></div><div class=\"ds-cell\"><p class=\"ds-flabel\">Rooms completed</p><p class=\"ds-fvalue\">6</p><p class=\"ds-fnote\">of 10 published</p></div><div class=\"ds-cell\"><p class=\"ds-flabel\">Quizzes passed</p><p class=\"ds-fvalue\">6</p><p class=\"ds-fnote\">Each quiz counted once</p></div></section>",
+      "css": ".ds-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:rgb(var(--line, 30 44 56));border:1px solid rgb(var(--line, 30 44 56));border-radius:10px;overflow:hidden;} .ds-cell{background:rgb(var(--sheet, 15 25 34));padding:20px;} .ds-cell p{margin:0;} .ds-flabel{font:600 0.6875rem/1rem 'Red Hat Display',sans-serif;letter-spacing:0.08em;text-transform:uppercase;color:rgb(var(--ink-3, 133 151 163));} .ds-fvalue{margin-top:6px !important;font:700 1.75rem/1 'Red Hat Display',sans-serif;letter-spacing:-0.01em;font-variant-numeric:tabular-nums lining-nums;color:rgb(var(--ink, 231 238 242));} .ds-fvalue span{margin-left:4px;font-size:0.875rem;font-weight:600;color:rgb(var(--ink-2, 163 179 190));} .ds-fnote{margin-top:6px !important;font:400 0.75rem 'Red Hat Text',sans-serif;color:rgb(var(--ink-3, 133 151 163));}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Seamless Console",
+    "overview": "A dark learning console in the Anon Cyber Team logo's colours. Every panel sits flush on one blue-black ground and is separated from its neighbours by a hairline seam, not by a shadow or a gap of empty floating cards. The logo's cyan is a signal rather than a fill: it marks the primary action, the current or next item, links, progress, and focus, so the next room is always one cyan action away. Four status colours each carry one meaning (violet completed, green correct and scores, red retry/error/destructive, amber scheduled), and everything else is calm neutral ink.\n\nThe world is the category standard for cybersecurity learning platforms, executed at Hack The Box's level of craft (its seamless flush panels) without copying it and without its green. It is built for long evening reading and answering sessions on laptops and phones: density is moderate, contrast is comfortable, and motion only explains a change of state. Dark is the default; a light theme mirrors the same tokens on a cool white ground. One soft gradient exists, and it lives only on the navigation rail, the mobile drawer, and the auth brand column.\n\nIt refuses the hacker costume (neon, glow, terminal green, matrix rain) and the floating rounded-card SaaS dashboard. The previous \"Security Paper\" world (iris gradient, dot grid, circuit traces, segmented progress ring, rounded floating cards, Archivo) is retired; nothing from it may return.",
+    "keyCharacteristics": [
+      "One blue-black ground, flush panels, 1px hairline seams, no panel shadows.",
+      "Logo cyan reserved for forward motion: primary action, current/next/active item, links, progress, focus.",
+      "Four single-meaning status colours; a separate identity palette for room/path initials.",
+      "One Red Hat family in three cuts: Display for headings, labels, figures and buttons; Text for reading; Mono for machine strings.",
+      "Tight corners (6 to 10px); circles only for marks, stop markers, progress tracks, radios, the heatmap's empty-day dot, the lab's empty-target icon ring, the theme switch and scrollbar thumbs.",
+      "Dark by default, light by choice, both from the same tokens."
+    ],
+    "rules": [
+      {
+        "name": "The Forward Cyan Rule",
+        "body": "Logo cyan marks only what moves the member forward or where they are: the primary action, the current/next/active item, links, progress, and focus. One identity accent joins them by owner direction (logo colour on type): the member's first name in the dashboard greeting. It is a signal on type, borders and small fills, never a large decorative fill, never a glow.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Meaning Rule",
+        "body": "Violet means completed, green means correct or a score, red means retry/error/destructive, amber means scheduled. No colour signals anything else, and no two colours share a meaning. Hints are not a state, so hint boxes stay neutral.",
+        "section": "colors"
+      },
+      {
+        "name": "The Identity Tile Rule",
+        "body": "Room, path and member-avatar initials tiles use only the identity palette (indigo, teal, raised neutral), so a tile can never be read as a state; state rides on a mark, tag or pill beside the name.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Token, Two Themes Rule",
+        "body": "Light and dark come from re-valuing tokens on `:root`, never from hard-coded colours or per-component dark variants (the code block and instructor re-inking are the named exceptions).",
+        "section": "colors"
+      },
+      {
+        "name": "The Three Cuts Rule",
+        "body": "Display labels, counts and acts (headings, labels, figures, buttons, titles in rows); Text reads; Mono is only for machine strings and code, never for headings or decoration.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Eyebrow Rule",
+        "body": "Uppercase labels name data. They never sit above a heading as a kicker.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flush Panel Rule",
+        "body": "Panels never cast shadows, never float with gutters of empty ground around them as decoration, and never glow. If something must look elevated, it must actually float above other content.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** put panels flush on the ground with 1px seams and 10px corners; separate content with ruled rows, not nested floating cards.",
+      "**Do** keep logo cyan for the primary action, the current/next/active item, links, progress and focus (The Forward Cyan Rule).",
+      "**Do** give every status exactly one colour: violet completed, green correct/score, red retry/error/destructive, amber scheduled.",
+      "**Do** use identity tiles (indigo, teal, neutral) for room and path initials.",
+      "**Do** set headings, labels, figures and buttons in Red Hat Display, reading in Red Hat Text, and serials, slugs, error references and code in Red Hat Mono.",
+      "**Do** build both themes from the same tokens; test every new surface in dark and light.",
+      "**Do** keep 44px targets and 16px field text on coarse pointers and a visible 2px cyan-ink focus outline.",
+      "**Do** limit motion to state changes: 150 to 320ms for transitions, with `cubic-bezier(0.16, 1, 0.3, 1)` for arrivals. The only longer ones are the progress-bar fill (500ms), the one-time check draw (460ms after a 120ms delay) and the route loading line's slow creep; the only shorter one is the rail tooltip's 110ms fade-in. Honour reduced motion."
+    ],
+    "donts": [
+      "**Don't** add a second gradient; the rail gradient lives only on the rail, mobile drawer and auth brand column.",
+      "**Don't** put shadows on panels; lift belongs only to the drawer, editor popovers and the collapsed rail's tooltips.",
+      "**Don't** use neon, glow, terminal green, matrix effects or a hacker costume.",
+      "**Don't** bring back anything from the retired Security Paper world: iris gradient, dot grid, circuit traces, segmented progress ring, rounded floating cards, Archivo.",
+      "**Don't** fill large areas with cyan or use a status colour for anything but its one meaning.",
+      "**Don't** place uppercase labels above headings as eyebrows or kickers.",
+      "**Don't** use emoji or glyph characters as icons; draw stroked inline SVG beside a label.",
+      "**Don't** put arrows on buttons that do not move the member forward or back.",
+      "**Don't** round past 10px on rectangular surfaces."
+    ]
+  }
+}

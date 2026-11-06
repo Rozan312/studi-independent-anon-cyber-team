@@ -1,9 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ActionMessage, type ActionMessageState } from "@/components/ui/action-message";
-import { ProgressBar, StatusPill } from "@/components/card";
+import { EmptyState, Figure, ProgressBar } from "@/components/card";
+import { CompletionMark } from "@/components/paper/completion";
+import { StateTag } from "@/components/paper/state-tag";
 
 interface Option {
   id: string;
@@ -30,9 +33,24 @@ interface Quiz {
   questions: Question[];
 }
 
+type ReviewItem = {
+  questionId: string;
+  orderIndex: number;
+  question: string;
+  explanation: string;
+  selectedLabel: string | null;
+  correctLabel: string | null;
+  isCorrect: boolean;
+};
+
 type AttemptResult = {
   score: number;
   passed: boolean;
+  review: ReviewItem[];
+  correctCount: number;
+  totalQuestions: number;
+  progressPercentage: number | null;
+  roomCompleted: boolean;
 };
 
 const emptyNotice: ActionMessageState = {
@@ -40,22 +58,44 @@ const emptyNotice: ActionMessageState = {
   message: ""
 };
 
-export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
+const SUBMIT_FAILED_MESSAGE = "Couldn't submit the quiz. Check your connection and try again.";
+const SESSION_ENDED_MESSAGE = "Your session ended. Sign in again in another tab, then submit here. Your answers are still on this page.";
+
+/** Tujuan sesudah quiz lulus. tasksHref (bab task terbuka pertama, #tasks) null bila semua task sudah benar. */
+type NextSteps = {
+  tasksHref: string | null;
+  pathHref: string;
+};
+
+export default function QuizView({ quiz, nextSteps }: { quiz: Quiz; nextSteps: NextSteps }) {
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState<ActionMessageState>(emptyNotice);
   const [attemptResult, setAttemptResult] = useState<AttemptResult | null>(null);
+  const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const questionHeadingRef = useRef<HTMLHeadingElement>(null);
+  // Fokus ke judul pertanyaan hanya setelah aksi pengguna (pindah pertanyaan, coba lagi), bukan saat halaman dimuat.
+  const focusQuestionAfterRender = useRef(false);
+
+  // Hasil menggantikan tombol Submit yang sedang difokus: pindahkan fokus ke judul hasil agar pembaca layar langsung membacanya.
+  useEffect(() => {
+    if (attemptResult) resultHeadingRef.current?.focus();
+  }, [attemptResult]);
+
+  // Pertanyaan berganti (Next/Previous/navigator/Try again): tombol yang difokus bisa hilang atau nonaktif,
+  // jadi fokus dipindah ke judul pertanyaan baru, yang juga mengumumkan "Question N of M".
+  useEffect(() => {
+    if (attemptResult || !focusQuestionAfterRender.current) return;
+    focusQuestionAfterRender.current = false;
+    questionHeadingRef.current?.focus();
+  }, [currentQuestionIndex, attemptResult]);
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
   const totalQuestions = quiz.questions.length;
   const answeredCount = Object.keys(answers).length;
   const answeredPercent = totalQuestions === 0 ? 0 : Math.round((answeredCount / totalQuestions) * 100);
-
-  const currentProgress = useMemo(() => {
-    return totalQuestions === 0 ? 0 : Math.round(((currentQuestionIndex + 1) / totalQuestions) * 100);
-  }, [currentQuestionIndex, totalQuestions]);
 
   function selectOption(questionId: string, optionId: string) {
     setAnswers((previous) => ({
@@ -65,16 +105,33 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
     setNotice(emptyNotice);
   }
 
+  function goToQuestion(index: number) {
+    if (index === currentQuestionIndex) {
+      questionHeadingRef.current?.focus();
+      return;
+    }
+    focusQuestionAfterRender.current = true;
+    setCurrentQuestionIndex(index);
+  }
+
   function moveToNextIncomplete() {
     const nextIncompleteIndex = quiz.questions.findIndex((question) => !answers[question.id]);
-    if (nextIncompleteIndex >= 0) setCurrentQuestionIndex(nextIncompleteIndex);
+    if (nextIncompleteIndex >= 0) goToQuestion(nextIncompleteIndex);
+  }
+
+  function retryQuiz() {
+    focusQuestionAfterRender.current = true;
+    setAttemptResult(null);
+    setAnswers({});
+    setCurrentQuestionIndex(0);
+    setNotice(emptyNotice);
   }
 
   async function handleSubmit() {
     if (answeredCount < totalQuestions) {
       setNotice({
         tone: "error",
-        message: "Selesaikan semua pertanyaan sebelum submit assessment."
+        message: "Answer every question before you submit the quiz."
       });
       moveToNextIncomplete();
       return;
@@ -95,212 +152,354 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
         })
       });
 
-      const payload = await response.json();
+      // Sesi habis: route memanggil redirect("/login") dan fetch mengikuti redirect itu, sehingga yang
+      // kembali adalah HTML halaman login (status 200), bukan JSON. Jangan tampilkan error parse mentah.
+      if (response.status === 401 || (response.redirected && new URL(response.url).pathname === "/login")) {
+        setNotice({ tone: "error", message: SESSION_ENDED_MESSAGE });
+        return;
+      }
 
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Assessment gagal dikirim.");
+      const isJson = (response.headers.get("content-type") ?? "").includes("application/json");
+      const payload = isJson ? await response.json() : null;
+
+      if (!response.ok || !payload?.data) {
+        // Pesan dari server (misalnya jadwal room) sudah ditulis untuk member; selain itu pakai pesan umum.
+        const serverMessage = typeof payload?.error === "string" && payload.error.trim() ? payload.error : null;
+        setNotice({ tone: "error", message: serverMessage ?? SUBMIT_FAILED_MESSAGE });
+        return;
       }
 
       setAttemptResult({
         score: payload.data.score,
-        passed: payload.data.passed
+        passed: payload.data.passed,
+        review: Array.isArray(payload.data.review) ? payload.data.review : [],
+        correctCount: payload.data.correctCount ?? 0,
+        totalQuestions: payload.data.totalQuestions ?? quiz.questions.length,
+        progressPercentage: typeof payload.data.progressPercentage === "number" ? payload.data.progressPercentage : null,
+        roomCompleted: Boolean(payload.data.roomCompleted)
       });
       router.refresh();
-    } catch (error) {
-      setNotice({
-        tone: "error",
-        message: error instanceof Error ? error.message : "Assessment gagal dikirim."
-      });
+    } catch {
+      // Gagal jaringan atau respons rusak: pesan mentah (misalnya "Failed to fetch") tidak membantu member.
+      setNotice({ tone: "error", message: SUBMIT_FAILED_MESSAGE });
     } finally {
       setIsSubmitting(false);
     }
   }
 
   if (attemptResult) {
+    const passed = attemptResult.passed;
+    const showProgress = attemptResult.progressPercentage !== null;
+
     return (
-      <div className="mx-auto max-w-2xl">
-        <section className="glass-panel rounded-xl p-6 text-center md:p-8">
-          <div
-            className={`mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border ${
-              attemptResult.passed
-                ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-200"
-            }`}
-          >
-            <span className="text-2xl font-black">{attemptResult.passed ? "OK" : "!"}</span>
+      <div className="mx-auto flex max-w-3xl flex-col gap-5">
+        <section className="sheet overflow-hidden" aria-labelledby="quiz-result-title">
+          <div className="flex flex-col items-center gap-6 p-5 text-center sm:flex-row sm:items-center sm:p-7 sm:text-left">
+            {/* Lulus: cukup angka skornya (hijau). Belum lulus: ikon retry merah, skornya disebut di teks. */}
+            <CompletionMark kind={passed ? "quiz-pass" : "quiz-retry"} score={attemptResult.score} size="lg" className="sm:ml-1" />
+            <div className="min-w-0 flex-1">
+              <h2
+                id="quiz-result-title"
+                ref={resultHeadingRef}
+                tabIndex={-1}
+                className="text-2xl font-bold leading-tight tracking-[-0.015em] text-ink [text-wrap:balance] focus:outline-none"
+              >
+                {passed ? "You passed this quiz" : "Not passed yet"}
+              </h2>
+              <p className="mt-1.5 text-ink-2">
+                {passed
+                  ? `You scored ${attemptResult.score}%, and the passing score is ${quiz.passingScore}%.${
+                      quiz.room.points > 0 ? ` The ${quiz.room.points}-point quiz bonus is added to your leaderboard total the first time you pass.` : ""
+                    }`
+                  : `You scored ${attemptResult.score}%, and you need ${quiz.passingScore}% to pass. Read the review below, then try again.`}
+              </p>
+              {showProgress && !attemptResult.roomCompleted ? (
+                <p className="mt-2 text-sm text-ink-3">
+                  Room progress is now {attemptResult.progressPercentage}%. The room is complete once every task is solved and the quiz is passed.
+                </p>
+              ) : null}
+
+              {/* Satu langkah berikutnya berwarna cyan. Lulus: task yang tersisa, atau kembali ke learning path bila
+                  room selesai. Belum lulus: coba lagi. Tab Material di atas sudah menjadi jalan kembali ke materi dan task-nya. */}
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
+                {passed ? (
+                  nextSteps.tasksHref && !attemptResult.roomCompleted ? (
+                    <Link href={nextSteps.tasksHref} className="btn-primary min-h-11 px-5">
+                      Go to open tasks
+                    </Link>
+                  ) : (
+                    <Link href={nextSteps.pathHref} className="btn-primary min-h-11 px-5">
+                      Back to learning path
+                    </Link>
+                  )
+                ) : null}
+                <button type="button" onClick={retryQuiz} className={`${passed ? "btn-secondary" : "btn-primary"} min-h-11 px-5`}>
+                  Try again
+                </button>
+              </div>
+            </div>
           </div>
-          <StatusPill tone={attemptResult.passed ? "success" : "danger"}>
-            {attemptResult.passed ? "Passed" : "Needs Review"}
-          </StatusPill>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-slate-100">
-            {attemptResult.passed ? "Assessment selesai" : "Assessment belum lulus"}
-          </h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-400">
-            {attemptResult.passed
-              ? `Skor memenuhi passing score. Poin ${quiz.room.points} akan masuk ke leaderboard jika attempt valid.`
-              : `Skor belum mencapai passing score ${quiz.passingScore}%. Review materi lalu coba ulang.`}
-          </p>
-          <div className="mx-auto mt-6 max-w-xs rounded-lg border border-white/[0.06] bg-black/25 p-5">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Skor Akhir</p>
-            <p className={`mt-1 text-4xl font-black ${attemptResult.passed ? "text-emerald-300" : "text-rose-300"}`}>
-              {attemptResult.score}%
-            </p>
-            <ProgressBar value={attemptResult.score} />
-          </div>
-          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <button
-              type="button"
-              onClick={() => {
-                setAttemptResult(null);
-                setAnswers({});
-                setCurrentQuestionIndex(0);
-                setNotice(emptyNotice);
-              }}
-              className="rounded-lg border border-white/[0.08] px-4 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/[0.05]"
-            >
-              Retake Assessment
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push(`/rooms/${slug}`)}
-              className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-slate-950 transition hover:bg-blue-300"
-            >
-              Back to Room
-            </button>
+
+          {/* Room selesai: centang violet mendarat (digambar sekali) di baris tersendiri. */}
+          {attemptResult.roomCompleted ? (
+            <div className="flex items-center gap-3 border-t border-line px-5 py-4 sm:px-7">
+              <CompletionMark kind="room" fresh />
+              <div className="min-w-0">
+                <p className="font-display font-semibold text-ink">Room passed</p>
+                <p className="text-sm text-ink-2">{quiz.room.title} is complete: every task is solved and the quiz is passed.</p>
+              </div>
+            </div>
+          ) : null}
+
+          <div className={`grid gap-px border-t border-line bg-line ${showProgress ? "grid-cols-3" : "grid-cols-2"}`}>
+            <Figure className="bg-sheet p-4 sm:px-7" label="Correct" value={attemptResult.correctCount} unit={`of ${attemptResult.totalQuestions}`} />
+            <Figure className="bg-sheet p-4 sm:px-7" label="Passing score" value={`${quiz.passingScore}%`} />
+            {showProgress ? <Figure className="bg-sheet p-4 sm:px-7" label="Room progress" value={`${attemptResult.progressPercentage}%`} /> : null}
           </div>
         </section>
+
+        {attemptResult.review.length > 0 ? (
+          <section className="sheet px-5 pt-4 sm:px-6" aria-labelledby="quiz-review-title">
+            <div className="border-b border-line pb-3">
+              <h2 id="quiz-review-title" className="text-base font-bold text-ink">
+                Question review
+              </h2>
+              <p className="mt-0.5 text-sm text-ink-2">Compare your answer with the correct one and read the explanation before you try again.</p>
+            </div>
+
+            <ol className="divide-y divide-line">
+              {attemptResult.review.map((item, index) => (
+                <li key={item.questionId} className="flex gap-3.5 py-5">
+                  <span
+                    className={`figure mt-px grid h-7 w-7 shrink-0 place-items-center rounded-full border text-[0.6875rem] font-bold ${
+                      item.isCorrect ? "border-green/45 bg-green-soft text-green" : "border-red/45 bg-red-soft text-red"
+                    }`}
+                    aria-hidden="true"
+                  >
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
+                      <h3 className="min-w-0 flex-1 pt-0.5 font-semibold leading-snug text-ink">
+                        <span className="sr-only">Question {index + 1}: </span>
+                        {item.question}
+                      </h3>
+                      {item.isCorrect ? (
+                        <StateTag tone="green" icon="check">
+                          Correct
+                        </StateTag>
+                      ) : (
+                        <StateTag tone="red">Wrong</StateTag>
+                      )}
+                    </div>
+
+                    {/* Jawaban sebagai baris label-nilai bergaris tipis, bukan kotak di dalam panel. */}
+                    <dl className="mt-3 grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[8.5rem_minmax(0,1fr)]">
+                      <dt className="field-label sm:pt-0.5">Your answer</dt>
+                      <dd className="flex items-start gap-1.5 font-medium text-ink">
+                        <svg
+                          viewBox="0 0 16 16"
+                          className={`mt-0.5 h-4 w-4 shrink-0 ${item.isCorrect ? "text-green" : "text-red"}`}
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.8"
+                          aria-hidden="true"
+                        >
+                          {item.isCorrect ? (
+                            <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                          ) : (
+                            <path d="m4.5 4.5 7 7M11.5 4.5l-7 7" strokeLinecap="round" />
+                          )}
+                        </svg>
+                        <span className="min-w-0">{item.selectedLabel ?? "Not answered"}</span>
+                      </dd>
+                      {!item.isCorrect ? (
+                        <>
+                          <dt className="field-label sm:pt-0.5">Correct answer</dt>
+                          <dd className="flex items-start gap-1.5 font-medium text-green">
+                            <svg viewBox="0 0 16 16" className="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                              <path d="m3.5 8.5 3 3 6-7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                            <span className="min-w-0">{item.correctLabel ?? "–"}</span>
+                          </dd>
+                        </>
+                      ) : null}
+                    </dl>
+
+                    {item.explanation ? (
+                      <p className="mt-3 max-w-[68ch] border-t border-line pt-3 text-sm leading-relaxed text-ink-2">
+                        <span className="font-semibold text-ink">Explanation: </span>
+                        {item.explanation}
+                      </p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        ) : null}
       </div>
     );
   }
 
+  // Quiz tanpa pertanyaan: tampilkan keadaan kosong alih-alih error render.
+  if (!currentQuestion) {
+    return (
+      <section className="sheet p-5 sm:p-6" aria-label="Quiz questions">
+        <EmptyState title="This quiz has no questions yet" message="The instructor hasn't added questions to this quiz. Check back later." />
+      </section>
+    );
+  }
+
+  const isLastQuestion = currentQuestionIndex >= totalQuestions - 1;
+  const currentAnswered = Boolean(answers[currentQuestion.id]);
+
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
-      <section className="glass-panel rounded-xl p-5 md:p-6">
-        <div className="mb-5 flex flex-col gap-4 border-b border-white/[0.06] pb-5 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">Concept Check</p>
-            <h2 className="mt-2 text-xl font-semibold leading-snug text-slate-100">{currentQuestion.question}</h2>
-          </div>
-          <div className="min-w-36">
-            <div className="mb-2 flex justify-between text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
-              <span>Question</span>
-              <span>
-                {currentQuestionIndex + 1}/{totalQuestions}
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <section className="sheet" aria-labelledby="quiz-question-title">
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start gap-4">
+            <p className="figure min-w-[3.25rem] shrink-0 pt-0.5 text-[1.75rem] font-bold leading-none text-ink" aria-hidden="true">
+              {currentQuestionIndex + 1}
+              <span className="ml-0.5 text-sm font-semibold text-ink-3">/{totalQuestions}</span>
+            </p>
+            <h2
+              id="quiz-question-title"
+              ref={questionHeadingRef}
+              tabIndex={-1}
+              className="min-w-0 flex-1 text-xl font-bold leading-snug tracking-[-0.01em] text-ink [text-wrap:pretty] focus:outline-none"
+            >
+              <span className="sr-only">
+                Question {currentQuestionIndex + 1} of {totalQuestions}:{" "}
               </span>
-            </div>
-            <ProgressBar value={currentProgress} />
+              {currentQuestion.question}
+            </h2>
           </div>
+
+          {/* Opsi sebagai baris yang bisa dipilih: terpilih = tepi cyan dan latar cyan lembut; radio digambar dari token. */}
+          <fieldset className="mt-5">
+            <legend className="sr-only">Answer options</legend>
+            <div className="space-y-2">
+              {currentQuestion.options.map((option) => {
+                const isSelected = answers[currentQuestion.id] === option.id;
+
+                return (
+                  <label
+                    key={option.id}
+                    className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border px-4 py-3 text-[0.9375rem] leading-relaxed transition-colors has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-cyan-ink ${
+                      isSelected ? "border-cyan-ink bg-cyan-soft text-ink" : "border-line-strong text-ink-2 hover:border-ink-3 hover:bg-well hover:text-ink"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name={`quiz-question-${currentQuestion.id}`}
+                      value={option.id}
+                      checked={isSelected}
+                      onChange={() => selectOption(currentQuestion.id, option.id)}
+                      className="mt-[0.2rem] h-[18px] w-[18px] shrink-0 cursor-pointer appearance-none rounded-full border-[1.5px] border-line-input bg-paper transition-[border-width,border-color] duration-150 checked:border-[5px] checked:border-cyan-ink focus-visible:outline-none motion-reduce:transition-none"
+                    />
+                    <span className="min-w-0">{option.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </fieldset>
         </div>
 
-        <div className="space-y-3">
-          {currentQuestion.options.map((option) => {
-            const isSelected = answers[currentQuestion.id] === option.id;
-
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => selectOption(currentQuestion.id, option.id)}
-                className={`focus-ring flex w-full items-start gap-3 rounded-lg border p-4 text-left text-sm transition ${
-                  isSelected
-                    ? "border-primary/60 bg-primary-container/15 text-slate-100"
-                    : "border-white/[0.06] bg-black/20 text-slate-300 hover:border-white/[0.14] hover:bg-white/[0.04]"
-                }`}
-              >
-                <span
-                  className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border ${
-                    isSelected ? "border-primary bg-primary" : "border-slate-600"
-                  }`}
-                >
-                  {isSelected ? <span className="h-1.5 w-1.5 rounded-full bg-slate-950" /> : null}
-                </span>
-                <span className="font-medium leading-relaxed">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 space-y-4 border-t border-white/[0.06] pt-5">
+        <div className="space-y-4 border-t border-line px-5 py-4 sm:px-6">
           <ActionMessage state={notice} />
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <button
               type="button"
-              onClick={() => setCurrentQuestionIndex((value) => Math.max(0, value - 1))}
+              onClick={() => goToQuestion(Math.max(0, currentQuestionIndex - 1))}
               disabled={currentQuestionIndex === 0}
-              className="rounded-lg border border-white/[0.08] px-4 py-2 text-xs font-bold text-slate-300 transition hover:bg-white/[0.05] disabled:cursor-not-allowed disabled:opacity-40"
+              className="btn-secondary"
             >
+              <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <path d="M13 8H3M7 4 3 8l4 4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
               Previous
             </button>
 
-            {currentQuestionIndex < totalQuestions - 1 ? (
-              <button
-                type="button"
-                onClick={() => setCurrentQuestionIndex((value) => Math.min(totalQuestions - 1, value + 1))}
-                disabled={!answers[currentQuestion.id]}
-                className="rounded-lg bg-primary px-5 py-2 text-xs font-bold text-slate-950 transition hover:bg-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Next Question
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting || answeredCount < totalQuestions}
-                className="rounded-lg bg-primary px-5 py-2 text-xs font-bold text-slate-950 transition hover:bg-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting ? "Submitting..." : "Submit Assessment"}
-              </button>
-            )}
+            <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+              <p className="text-sm text-ink-3" aria-live="polite">
+                Answered{" "}
+                <span className="figure font-semibold text-ink-2">
+                  {answeredCount} of {totalQuestions}
+                </span>
+              </p>
+              {!isLastQuestion ? (
+                <button
+                  type="button"
+                  onClick={() => goToQuestion(Math.min(totalQuestions - 1, currentQuestionIndex + 1))}
+                  disabled={!currentAnswered}
+                  className="btn-primary"
+                >
+                  Next question
+                  <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                    <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || answeredCount < totalQuestions}
+                  aria-busy={isSubmitting || undefined}
+                  className="btn-primary"
+                >
+                  {isSubmitting ? "Scoring…" : "Submit quiz"}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      <aside className="space-y-4">
-        <section className="glass-panel rounded-xl p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Navigator</p>
-            <StatusPill tone="primary">
-              {answeredCount}/{totalQuestions}
-            </StatusPill>
+      <aside className="sheet self-start" aria-labelledby="quiz-navigator-title">
+        <div className="border-b border-line px-5 pb-4 pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 id="quiz-navigator-title" className="text-base font-bold text-ink">
+              Questions
+            </h2>
+            <p className="figure text-sm text-ink-3">{answeredPercent}% answered</p>
           </div>
-          <div className="grid grid-cols-5 gap-2">
+          <ProgressBar value={answeredPercent} label="Questions answered" className="mt-3" />
+        </div>
+
+        <div className="p-5">
+          {/* Chip pertanyaan: terisi = garis penuh, belum = putus-putus, yang tampil = cincin cyan. */}
+          <ol className="grid grid-cols-5 gap-2">
             {quiz.questions.map((question, index) => {
               const isCurrent = index === currentQuestionIndex;
               const isAnswered = Boolean(answers[question.id]);
 
               return (
-                <button
-                  key={question.id}
-                  type="button"
-                  onClick={() => setCurrentQuestionIndex(index)}
-                  className={`aspect-square rounded-md border text-xs font-bold transition ${
-                    isCurrent
-                      ? "border-primary bg-primary text-slate-950"
-                      : isAnswered
-                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
-                        : "border-white/[0.06] bg-black/20 text-slate-500 hover:bg-white/[0.04]"
-                  }`}
-                >
-                  {index + 1}
-                </button>
+                <li key={question.id}>
+                  <button
+                    type="button"
+                    onClick={() => goToQuestion(index)}
+                    aria-current={isCurrent ? "step" : undefined}
+                    aria-label={`Question ${index + 1}, ${isAnswered ? "answered" : "not answered"}`}
+                    className={`figure flex h-10 w-full items-center justify-center rounded-md border text-sm font-semibold transition-colors coarse:h-11 ${
+                      isCurrent
+                        ? "border-cyan-ink bg-cyan-soft text-cyan-ink ring-1 ring-cyan-ink"
+                        : isAnswered
+                          ? "border-line-strong bg-well text-ink hover:border-cyan-ink/60 hover:text-cyan-ink"
+                          : "border-dashed border-line-strong text-ink-3 hover:border-cyan-ink/60 hover:text-cyan-ink"
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                </li>
               );
             })}
-          </div>
-        </section>
+          </ol>
 
-        <section className="glass-panel rounded-xl p-5">
-          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Completion</p>
-          <div className="mt-3 flex items-end justify-between">
-            <span className="text-2xl font-black text-slate-100">{answeredPercent}%</span>
-            <span className="text-xs text-slate-500">answered</span>
-          </div>
-          <div className="mt-3">
-            <ProgressBar value={answeredPercent} />
-          </div>
-          <p className="mt-4 text-xs leading-relaxed text-slate-500">
-            Submit hanya aktif ketika semua pertanyaan sudah dijawab.
+          <p className="mt-4 text-xs leading-relaxed text-ink-3">
+            Solid squares are answered, dashed ones are still open, and the cyan one is on screen. Submit unlocks once every question has an answer.
           </p>
-        </section>
+        </div>
       </aside>
     </div>
   );

@@ -1,24 +1,40 @@
 import "server-only";
 
-import { LeaderboardSourceType, ProgressStatus } from "@prisma/client";
+import { LeaderboardSourceType } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { UserFacingError } from "@/lib/errors";
 import { addLeaderboardPoints } from "@/lib/services/leaderboard-service";
+import { recalculateRoomProgress } from "@/lib/services/progress-service";
 import { taskSubmissionSchema } from "@/lib/validation/platform";
+import { HINT_UNLOCK_AFTER_WRONG_ATTEMPTS, isHintUnlocked } from "@/lib/learning/hints";
+import { availabilityErrorMessage, getRoomAvailability } from "@/lib/learning/availability";
 
-function normalizeAnswer(value: string) {
-  return value.trim().toLowerCase();
+/** Huruf besar/kecil, spasi di tepi, dan spasi ganda diabaikan saat menilai. */
+export function normalizeAnswer(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+export function isAnswerAccepted(answer: string, task: { expectedAnswer: string | null; acceptedAnswers: string[] }) {
+  const normalized = normalizeAnswer(answer);
+  if (!normalized) return false;
+
+  const candidates = [task.expectedAnswer, ...task.acceptedAnswers].filter((value): value is string => Boolean(value && value.trim()));
+  return candidates.some((candidate) => normalizeAnswer(candidate) === normalized);
 }
 
 export async function submitTaskAnswer(userId: string, input: { taskId: string; answer: string }) {
   const data = taskSubmissionSchema.parse(input);
   const task = await prisma.roomTask.findUnique({
     where: { id: data.taskId },
-    include: { room: true }
+    include: { room: { select: { id: true, isPublished: true, availableFrom: true, availableUntil: true } } }
   });
 
-  if (!task) throw new Error("Task not found.");
+  if (!task) throw new UserFacingError("Task not found.");
 
-  const isCorrect = task.expectedAnswer ? normalizeAnswer(data.answer) === normalizeAnswer(task.expectedAnswer) : false;
+  const availability = getRoomAvailability(task.room);
+  if (!availability.isOpen) throw new UserFacingError(availabilityErrorMessage(availability));
+
+  const isCorrect = isAnswerAccepted(data.answer, task);
 
   const submission = await prisma.userTaskSubmission.create({
     data: {
@@ -29,6 +45,8 @@ export async function submitTaskAnswer(userId: string, input: { taskId: string; 
     }
   });
 
+  let progressPercentage: number | null = null;
+
   if (isCorrect) {
     await addLeaderboardPoints({
       userId,
@@ -37,47 +55,35 @@ export async function submitTaskAnswer(userId: string, input: { taskId: string; 
       sourceId: task.id
     });
 
-    const [taskCount, completedTaskCount] = await Promise.all([
-      prisma.roomTask.count({ where: { roomId: task.roomId } }),
-      prisma.roomTask.count({
-        where: {
-          roomId: task.roomId,
-          userSubmissions: {
-            some: {
-              userId,
-              isCorrect: true
-            }
-          }
-        }
-      })
-    ]);
-
-    const progressPercentage = taskCount === 0 ? 0 : Math.round((completedTaskCount / taskCount) * 100);
-
-    await prisma.userRoomProgress.upsert({
-      where: {
-        userId_roomId: {
-          userId,
-          roomId: task.roomId
-        }
-      },
-      update: {
-        progressPercentage,
-        status: progressPercentage >= 100 ? ProgressStatus.COMPLETED : ProgressStatus.IN_PROGRESS,
-        completedAt: progressPercentage >= 100 ? new Date() : null
-      },
-      create: {
-        userId,
-        roomId: task.roomId,
-        progressPercentage,
-        status: progressPercentage >= 100 ? ProgressStatus.COMPLETED : ProgressStatus.IN_PROGRESS,
-        startedAt: new Date(),
-        completedAt: progressPercentage >= 100 ? new Date() : null
-      }
-    });
+    const { progress } = await recalculateRoomProgress(userId, task.roomId);
+    progressPercentage = progress.progressPercentage;
   }
 
-  return submission;
+  const wrongAttempts = await prisma.userTaskSubmission.count({
+    where: { userId, taskId: task.id, isCorrect: false }
+  });
+
+  const hasHint = Boolean(task.hint && task.hint.trim());
+
+  return {
+    ...submission,
+    wrongAttempts,
+    hasHint,
+    hintUnlocked: hasHint && isHintUnlocked(wrongAttempts),
+    hintUnlockAfter: HINT_UNLOCK_AFTER_WRONG_ATTEMPTS,
+    progressPercentage
+  };
+}
+
+/** Jumlah percobaan salah per task untuk satu user di satu room; dipakai untuk membuka hint. */
+export async function getWrongAttemptCounts(userId: string, roomId: string) {
+  const rows = await prisma.userTaskSubmission.groupBy({
+    by: ["taskId"],
+    where: { userId, isCorrect: false, task: { roomId } },
+    _count: { _all: true }
+  });
+
+  return Object.fromEntries(rows.map((row) => [row.taskId, row._count._all])) as Record<string, number>;
 }
 
 export async function checkTaskCompletion(userId: string, taskId: string) {

@@ -1,17 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { ZodError } from "zod";
 import { requireRole } from "@/lib/auth/guards";
-import { createRoomWithTasks, publishRoom } from "@/lib/services/instructor-service";
+import { userMessage } from "@/lib/errors";
+import { createRoomWithTasks } from "@/lib/services/instructor-service";
+import { setRoomPublished } from "@/lib/services/content-service";
 import type { ActionMessageState } from "@/components/ui/action-message";
+import { zodErrorMessage, type FieldLabels } from "@/lib/actions/form-errors";
 
 export type InstructorActionState = ActionMessageState;
-
-const initialState: InstructorActionState = {
-  tone: "idle",
-  message: ""
-};
 
 function fieldValue(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -27,23 +26,45 @@ function boolValue(formData: FormData, key: string) {
   return formData.get(key) === "true" || formData.get(key) === "on";
 }
 
+/** Nama field seperti di form room builder, agar pesan validasi server menyebut label yang terlihat. */
+const ROOM_BUILDER_FIELDS: FieldLabels = {
+  fields: {
+    learningPathId: "Learning path",
+    title: "Room title",
+    slug: { label: "Slug", invalid: "Slug may only contain lowercase letters, numbers, and hyphens." },
+    description: "Description",
+    category: "Category",
+    difficulty: "Difficulty",
+    estimatedMinutes: "Estimated time",
+    points: "Room points",
+    orderIndex: "Order in path",
+    tasks: { label: "Starter tasks", tooSmall: "Add at least one starter task before creating the room." }
+  },
+  nested: {
+    tasks: { item: "Task", fields: { title: "Title", description: "Instructions", expectedAnswer: "Expected answer", points: "Points" } }
+  }
+};
+
 function actionError(error: unknown): InstructorActionState {
   if (error instanceof ZodError) {
-    return {
-      tone: "error",
-      message: error.issues[0]?.message ?? "Validasi room gagal."
-    };
+    return { tone: "error", message: zodErrorMessage(error, ROOM_BUILDER_FIELDS) };
   }
 
   return {
     tone: "error",
-    message: error instanceof Error ? error.message : "Aksi instructor gagal diproses."
+    message: userMessage(error, "Couldn't complete that action.")
   };
 }
 
+/**
+ * Membuat room beserta task awal, mencatat pembuatnya, lalu membuka editor room
+ * agar instruktur dapat langsung mengisi materi dan quiz.
+ */
 export async function createInstructorRoomAction(_state: InstructorActionState, formData: FormData): Promise<InstructorActionState> {
+  let createdRoomId: string | null = null;
+
   try {
-    await requireRole(["INSTRUCTOR"]);
+    const profile = await requireRole(["INSTRUCTOR"]);
 
     const taskTitles = formData.getAll("taskTitle").map(String);
     const taskDescriptions = formData.getAll("taskDescription").map(String);
@@ -59,45 +80,49 @@ export async function createInstructorRoomAction(_state: InstructorActionState, 
       }))
       .filter((task) => task.title || task.description || task.expectedAnswer);
 
-    const room = await createRoomWithTasks({
-      learningPathId: fieldValue(formData, "learningPathId"),
-      title: fieldValue(formData, "title"),
-      slug: fieldValue(formData, "slug"),
-      description: fieldValue(formData, "description"),
-      category: fieldValue(formData, "category"),
-      difficulty: fieldValue(formData, "difficulty"),
-      estimatedMinutes: intValue(formData, "estimatedMinutes", 45),
-      points: intValue(formData, "points", 100),
-      orderIndex: intValue(formData, "orderIndex", 100),
-      isPublished: boolValue(formData, "isPublished"),
-      tasks
-    });
+    const room = await createRoomWithTasks(
+      {
+        learningPathId: fieldValue(formData, "learningPathId"),
+        title: fieldValue(formData, "title"),
+        slug: fieldValue(formData, "slug"),
+        description: fieldValue(formData, "description"),
+        category: fieldValue(formData, "category"),
+        difficulty: fieldValue(formData, "difficulty"),
+        estimatedMinutes: intValue(formData, "estimatedMinutes", 45),
+        points: intValue(formData, "points", 100),
+        orderIndex: intValue(formData, "orderIndex", 100),
+        isPublished: boolValue(formData, "isPublished"),
+        tasks
+      },
+      profile.id
+    );
 
+    createdRoomId = room.id;
     revalidatePath("/instructor/rooms");
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.slug}`);
-
-    return {
-      tone: "success",
-      message: room.isPublished ? "Room berhasil dibuat dan dipublish." : "Draft room berhasil dibuat."
-    };
+    revalidatePath("/rooms/[slug]", "layout");
+    revalidatePath("/learning-paths");
   } catch (error) {
     return actionError(error);
   }
+
+  redirect(`/instructor/rooms/${createdRoomId}?created=1`);
 }
 
 export async function publishInstructorRoomAction(_state: InstructorActionState, formData: FormData): Promise<InstructorActionState> {
   try {
-    await requireRole(["INSTRUCTOR"]);
-    const room = await publishRoom(fieldValue(formData, "roomId"));
+    const profile = await requireRole(["INSTRUCTOR"]);
+    const room = await setRoomPublished(profile, { roomId: fieldValue(formData, "roomId"), isPublished: true });
 
     revalidatePath("/instructor/rooms");
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.slug}`);
+    revalidatePath("/rooms/[slug]", "layout");
 
     return {
       tone: "success",
-      message: "Room berhasil dipublish."
+      message: "Room published."
     };
   } catch (error) {
     return actionError(error);

@@ -8,6 +8,10 @@ Main content hierarchy:
 
 `LearningPath -> Room -> RoomTask`
 
+Room material:
+
+`Room -> RoomChapter` (ordered by `orderIndex`; `Room.content`/`Room.contentFormat` remain only as a legacy backup)
+
 Quiz hierarchy:
 
 `Room -> Quiz -> QuizQuestion -> QuizOption`
@@ -22,7 +26,7 @@ Submissions:
 
 Quiz attempts:
 
-`Profile -> UserQuizAttempt -> Quiz`
+`Profile -> UserQuizAttempt -> Room` (plus `-> Quiz` while the quiz exists; `quizId` is set to NULL when a quiz is removed, and `roomId` + `quizTitle` keep the history readable)
 
 Instructor monitoring:
 
@@ -44,11 +48,11 @@ Represents a learning room. Each room belongs to one learning path and can have 
 
 `RoomTask`
 
-Represents a safe educational task. `expectedAnswer` is stored server-side and checked only by backend services.
+Represents a safe educational task. `expectedAnswer` is stored server-side and checked only by backend services; members only receive its `answerPattern` clue. `chapterId` (nullable, `ON DELETE SET NULL`) places the task under a chapter; a task without one shows under the room's last chapter.
 
 `Quiz`, `QuizQuestion`, `QuizOption`
 
-Support room quizzes. Public quiz fetches omit correctness data through the service mapping.
+Support room quizzes. A quiz is optional (at most one per room) and can be removed by its room's instructor. Public quiz fetches omit correctness data through the service mapping.
 
 `UserRoomProgress`
 

@@ -1,5 +1,7 @@
 # Studi Independent Anon Cyber Team
 
+> Dokumen serah terima terbaru (setup, akun lokal, ringkasan fitur): [handover.md](handover.md) dan [docs/ARCHITECTURE-HANDOVER.md](docs/ARCHITECTURE-HANDOVER.md). README ini berisi catatan awal proyek.
+
 Backend-first foundation for an interactive cybersecurity learning platform. The UI can later be replaced with the Google Stitch "CyberGuard Academy UI" output; this repository focuses on authentication, authorization, database modeling, API structure, route protection, local development, and deployment readiness.
 
 ## Tech Stack
@@ -167,7 +169,8 @@ Student routes:
 - `/learning-paths`
 - `/learning-paths/[slug]`
 - `/rooms`
-- `/rooms/[slug]`
+- `/rooms/[slug]` (material, one chapter per page with `?chapter=N`; each chapter's tasks sit under it)
+- `/rooms/[slug]/tasks` (redirects to the chapter with the first open task)
 - `/rooms/[slug]/lab`
 - `/rooms/[slug]/quiz`
 - `/progress`

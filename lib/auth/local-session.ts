@@ -75,6 +75,11 @@ export async function getLocalAuthUser() {
   };
 }
 
+/**
+ * Membuat atau memakai profil lokal lalu memasang cookie sesi.
+ * `fullName` hanya diisi saat registrasi: profil yang sudah ada mempertahankan namanya bila tidak diberikan,
+ * dan profil baru dari login memakai username sebagai nama awal.
+ */
 export async function createLocalSession(input: {
   email?: string;
   fullName?: string;
@@ -102,7 +107,7 @@ export async function createLocalSession(input: {
     create: {
       id: randomUUID(),
       email,
-      fullName: input.fullName || "Local Developer",
+      fullName: input.fullName || input.username || "Local Developer",
       username,
       role
     }

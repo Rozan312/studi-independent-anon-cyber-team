@@ -1,5 +1,7 @@
 # Architecture
 
+> Updated code-based architecture handover: [Architecture Handover for Developers and AI](ARCHITECTURE-HANDOVER.md). The overview below is historical; use the handover for current UI, authentication, progress, and service behavior.
+
 ## High-Level Architecture
 
 Studi Independent Anon Cyber Team is a Next.js App Router application backed by Supabase Auth and Supabase PostgreSQL. Prisma is the database access layer. The codebase is structured so UI replacement from Google Stitch can happen later without rewriting authentication, authorization, or data services.

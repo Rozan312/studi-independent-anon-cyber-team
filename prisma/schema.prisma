@@ -20,6 +20,11 @@ enum AnswerType {
   CHECKBOX
 }
 
+enum ContentFormat {
+  MARKDOWN
+  HTML
+}
+
 enum ProgressStatus {
   NOT_STARTED
   IN_PROGRESS
@@ -84,6 +89,9 @@ model Profile {
   announcements     Announcement[]       @relation("AnnouncementAuthor")
   leaderboardPoints LeaderboardPoint[]
   labSessions       LabSession[]
+  authoredRooms     Room[]               @relation("RoomAuthor")
+  authoredPaths     LearningPath[]       @relation("LearningPathAuthor")
+  mediaAssets       MediaAsset[]
 
   @@index([role])
 }
@@ -96,10 +104,16 @@ model LearningPath {
   category       String
   difficulty     String
   estimatedHours Int
+  coverImageUrl  String?
+  logoUrl        String?
+  createdById    String?  @db.Uuid
   isPublished    Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   rooms          Room[]
+  createdBy      Profile? @relation("LearningPathAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([createdById])
 }
 
 model Room {
@@ -113,34 +127,69 @@ model Room {
   estimatedMinutes Int
   points           Int
   orderIndex       Int
+  // Cadangan materi lama (sebelum ada bab). Tidak dibaca/ditulis lagi; materi kini di RoomChapter.
+  content          String             @default("")
+  contentFormat    ContentFormat      @default(MARKDOWN)
+  coverImageUrl    String?
+  logoUrl          String?
+  createdById      String?            @db.Uuid
   isPublished      Boolean            @default(false)
+  availableFrom    DateTime?
+  availableUntil   DateTime?
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   learningPath     LearningPath       @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  chapters         RoomChapter[]
   tasks            RoomTask[]
   quiz             Quiz?
+  quizAttempts     UserQuizAttempt[]
   userProgress     UserRoomProgress[]
   labSessions      LabSession[]
+  createdBy        Profile?           @relation("RoomAuthor", fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([learningPathId, orderIndex])
+  @@index([createdById])
   @@index([isPublished])
 }
 
+/// Bab materi room. Urutan bab hanya navigasi baca; tidak memengaruhi syarat selesai room.
+model RoomChapter {
+  id            String        @id @default(uuid()) @db.Uuid
+  roomId        String        @db.Uuid
+  title         String
+  content       String        @default("")
+  contentFormat ContentFormat @default(HTML)
+  orderIndex    Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  room          Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tasks         RoomTask[]
+
+  @@index([roomId, orderIndex])
+}
+
+/// Task boleh ditempel ke satu bab room yang sama. chapterId null (atau babnya dihapus) berarti tampil di bab terakhir.
+/// orderIndex tetap urutan 1..n per room; urutan di dalam bab mengikuti orderIndex itu.
 model RoomTask {
   id              String               @id @default(uuid()) @db.Uuid
   roomId          String               @db.Uuid
+  chapterId       String?              @db.Uuid
   title           String
   description     String
   orderIndex      Int
   answerType      AnswerType
   expectedAnswer  String?
+  acceptedAnswers String[]             @default([])
+  hint            String?
   points          Int
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   room            Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  chapter         RoomChapter?         @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   userSubmissions UserTaskSubmission[]
 
   @@index([roomId, orderIndex])
+  @@index([chapterId, orderIndex])
 }
 
 model Quiz {
@@ -175,11 +224,12 @@ model QuizOption {
   questionId String       @db.Uuid
   label      String
   isCorrect  Boolean      @default(false)
+  orderIndex Int          @default(0)
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   question   QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-  @@index([questionId])
+  @@index([questionId, orderIndex])
 }
 
 model UserRoomProgress {
@@ -213,19 +263,25 @@ model UserTaskSubmission {
   @@index([userId, taskId])
 }
 
+/// Riwayat attempt tetap ada walau quiz-nya dihapus instruktur: quizId menjadi null, sedangkan roomId dan
+/// quizTitle menyimpan room dan judul quiz untuk halaman riwayat member.
 model UserQuizAttempt {
   id          String    @id @default(uuid()) @db.Uuid
   userId      String    @db.Uuid
-  quizId      String    @db.Uuid
+  quizId      String?   @db.Uuid
+  roomId      String?   @db.Uuid
+  quizTitle   String    @default("")
   score       Int
   passed      Boolean
   startedAt   DateTime  @default(now())
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   user        Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quiz        Quiz?     @relation(fields: [quizId], references: [id], onDelete: SetNull)
+  room        Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([userId, quizId])
+  @@index([userId, roomId])
 }
 
 model Class {
@@ -299,4 +355,17 @@ model LabSession {
 
   @@index([userId, roomId])
   @@index([status])
+}
+
+model MediaAsset {
+  id         String   @id @default(uuid()) @db.Uuid
+  uploaderId String?  @db.Uuid
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String   @unique
+  createdAt  DateTime @default(now())
+  uploader   Profile? @relation(fields: [uploaderId], references: [id], onDelete: SetNull)
+
+  @@index([uploaderId, createdAt])
 }
