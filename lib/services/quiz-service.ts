@@ -110,10 +110,13 @@ export async function submitQuizAttempt(userId: string, input: { quizId: string;
   const score = total === 0 ? 0 : Math.round((correctCount / total) * 100);
   const passed = total > 0 && score >= quiz.passingScore;
 
+  // roomId dan judul quiz disalin agar riwayat attempt tetap terbaca bila quiz ini kelak dihapus.
   const attempt = await prisma.userQuizAttempt.create({
     data: {
       userId,
       quizId: quiz.id,
+      roomId: quiz.roomId,
+      quizTitle: quiz.title,
       score,
       passed,
       completedAt: new Date()
@@ -121,12 +124,22 @@ export async function submitQuizAttempt(userId: string, input: { quizId: string;
   });
 
   if (passed) {
-    await addLeaderboardPoints({
-      userId,
-      points: Math.max(quiz.room.points, 0),
-      sourceType: LeaderboardSourceType.QUIZ_COMPLETION,
-      sourceId: quiz.id
+    // Poin quiz dibayar sekali per peserta per room. Dedup per id quiz ada di addLeaderboardPoints; attempt lulus pada
+    // quiz room ini yang sudah dihapus (quizId null) berarti peserta pernah lulus quiz room ini, jadi quiz penggantinya
+    // tidak membayar lagi.
+    const passedRemovedQuiz = await prisma.userQuizAttempt.findFirst({
+      where: { userId, roomId: quiz.roomId, quizId: null, passed: true },
+      select: { id: true }
     });
+
+    if (!passedRemovedQuiz) {
+      await addLeaderboardPoints({
+        userId,
+        points: Math.max(quiz.room.points, 0),
+        sourceType: LeaderboardSourceType.QUIZ_COMPLETION,
+        sourceId: quiz.id
+      });
+    }
   }
 
   const { progress } = await recalculateRoomProgress(userId, quiz.roomId);

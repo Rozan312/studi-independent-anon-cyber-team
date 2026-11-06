@@ -23,6 +23,9 @@ export const dangerButtonClass = "btn-danger btn-sm";
 /** Kotak centang dan radio: warna kendali aktif (cyan logo), bukan warna status. */
 export const checkboxClass = "h-4 w-4 shrink-0 rounded border-line-input accent-cyan-ink";
 
+/** Label yang membungkus kotak centang: seluruh baris bisa diklik, dan setinggi 44 px di perangkat sentuh. */
+export const checkboxLabelClass = "flex items-center gap-2.5 font-display text-sm font-semibold text-ink coarse:min-h-11";
+
 /** Panel form: rata di atas dasar, sambungan tipis, tanpa bayangan. */
 export const panelClass = "sheet p-5 md:p-6";
 

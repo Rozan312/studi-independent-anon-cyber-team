@@ -10,7 +10,7 @@ import {
 } from "@/lib/actions/admin-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { checkboxClass, helpClass, inputClass, labelClass, panelClass, primaryButtonClass } from "@/components/instructor/form-styles";
+import { checkboxClass, checkboxLabelClass, helpClass, inputClass, labelClass, panelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 
 const initialState: AdminActionState = {
   tone: "idle",
@@ -72,7 +72,7 @@ export function AnnouncementCreateForm() {
       </div>
 
       <div>
-        <label className="flex items-center gap-2.5 font-display text-sm font-semibold text-ink">
+        <label className={checkboxLabelClass}>
           <input name="isPublished" type="checkbox" aria-describedby="new-announcement-publish-help" className={checkboxClass} />
           Publish immediately
         </label>

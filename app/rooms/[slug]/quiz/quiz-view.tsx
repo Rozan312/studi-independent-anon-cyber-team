@@ -61,7 +61,13 @@ const emptyNotice: ActionMessageState = {
 const SUBMIT_FAILED_MESSAGE = "Couldn't submit the quiz. Check your connection and try again.";
 const SESSION_ENDED_MESSAGE = "Your session ended. Sign in again in another tab, then submit here. Your answers are still on this page.";
 
-export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
+/** Tujuan sesudah quiz lulus. tasksHref (bab task terbuka pertama, #tasks) null bila semua task sudah benar. */
+type NextSteps = {
+  tasksHref: string | null;
+  pathHref: string;
+};
+
+export default function QuizView({ quiz, nextSteps }: { quiz: Quiz; nextSteps: NextSteps }) {
   const router = useRouter();
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
@@ -213,21 +219,23 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
                 </p>
               ) : null}
 
-              {/* Satu langkah berikutnya berwarna cyan: kembali ke room bila lulus, coba lagi bila belum. */}
+              {/* Satu langkah berikutnya berwarna cyan. Lulus: task yang tersisa, atau kembali ke learning path bila
+                  room selesai. Belum lulus: coba lagi. Tab Material di atas sudah menjadi jalan kembali ke materi dan task-nya. */}
               <div className="mt-5 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
                 {passed ? (
-                  <Link href={`/rooms/${slug}`} className="btn-primary min-h-11 px-5">
-                    Back to room
-                  </Link>
+                  nextSteps.tasksHref && !attemptResult.roomCompleted ? (
+                    <Link href={nextSteps.tasksHref} className="btn-primary min-h-11 px-5">
+                      Go to open tasks
+                    </Link>
+                  ) : (
+                    <Link href={nextSteps.pathHref} className="btn-primary min-h-11 px-5">
+                      Back to learning path
+                    </Link>
+                  )
                 ) : null}
                 <button type="button" onClick={retryQuiz} className={`${passed ? "btn-secondary" : "btn-primary"} min-h-11 px-5`}>
                   Try again
                 </button>
-                {!passed ? (
-                  <Link href={`/rooms/${slug}`} className="text-link text-sm">
-                    Back to room
-                  </Link>
-                ) : null}
               </div>
             </div>
           </div>
@@ -338,15 +346,7 @@ export default function QuizView({ quiz, slug }: { quiz: Quiz; slug: string }) {
   if (!currentQuestion) {
     return (
       <section className="sheet p-5 sm:p-6" aria-label="Quiz questions">
-        <EmptyState
-          title="This quiz has no questions yet"
-          message="The instructor hasn't added questions to this quiz. Check back later or return to the room."
-          action={
-            <Link href={`/rooms/${slug}`} className="btn-secondary">
-              Back to room
-            </Link>
-          }
-        />
+        <EmptyState title="This quiz has no questions yet" message="The instructor hasn't added questions to this quiz. Check back later." />
       </section>
     );
   }

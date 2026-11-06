@@ -262,6 +262,112 @@ Setiap aksi memeriksa hak akses di server, termasuk kepemilikan resource.
 > Simpan checklist ini dan pakai ulang setiap kali meninjau fitur baru.`
 };
 
+export type SeedChapter = { title: string; content: string };
+
+/** Judul bab pembuka bila judulnya hanya mengulang judul room (yang sudah tampil sebagai judul halaman). */
+export const INTRO_CHAPTER_TITLE = "Introduction";
+
+export function sameTitle(a: string, b: string) {
+  return a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+/**
+ * Memecah materi seed menjadi bab di setiap heading "## " (di luar blok kode). Teks sebelum heading
+ * pertama menjadi bab pembuka berjudul heading "# ", atau "Introduction" bila heading itu tidak ada atau
+ * sama dengan judul room (fallbackTitle) dan masih ada bab lain. Baris heading tidak ikut ke isi bab karena
+ * judul bab sudah ditampilkan halaman room.
+ */
+export function splitSeedMaterialIntoChapters(markdown: string, fallbackTitle: string): SeedChapter[] {
+  const chapters: SeedChapter[] = [];
+  let title = fallbackTitle;
+  let body: string[] = [];
+  let inFence = false;
+  let inIntro = true;
+  let hasIntroChapter = false;
+
+  const flush = () => {
+    const content = body.join("\n").trim();
+    if (!content) return;
+    if (inIntro) hasIntroChapter = true;
+    chapters.push({ title, content });
+  };
+
+  for (const line of markdown.split("\n")) {
+    if (line.trimStart().startsWith("```")) inFence = !inFence;
+
+    const heading = inFence ? null : /^(#{1,2})\s+(.+?)\s*$/.exec(line);
+
+    if (heading?.[1] === "#" && inIntro && body.every((entry) => entry.trim() === "")) {
+      title = heading[2];
+      continue;
+    }
+    if (heading?.[1] === "##") {
+      flush();
+      inIntro = false;
+      title = heading[2];
+      body = [];
+      continue;
+    }
+    body.push(line);
+  }
+
+  flush();
+
+  // Satu bab saja berarti seluruh materi, jadi judulnya tidak diganti; halaman room menyembunyikan judul
+  // bab yang sama dengan judul room.
+  if (hasIntroChapter && chapters.length > 1 && sameTitle(chapters[0].title, fallbackTitle)) {
+    chapters[0] = { ...chapters[0], title: INTRO_CHAPTER_TITLE };
+  }
+  return chapters;
+}
+
+/**
+ * Bab tempat task seed tampil, dari judul task ke judul bab hasil splitSeedMaterialIntoChapters (bab yang membahas
+ * jawabannya). Task yang tidak ada di sini, atau judul babnya tidak ditemukan, masuk ke bab terakhir.
+ */
+export const taskChapterByRoomSlug: Record<string, Record<string, string>> = {
+  "introduction-to-http": {
+    "Identify a successful response code": "Kelompok status code",
+    "Map request and response responsibilities": "Request dan response"
+  },
+  "linux-command-line-basics": {
+    "Recognize least privilege": "Prinsip least privilege",
+    "Understand permission categories": "Prinsip least privilege"
+  },
+  "authentication-concepts": {
+    "Separate authentication and authorization": "Authentication vs authorization",
+    "Recognize account protection": "Faktor verifikasi"
+  },
+  "broken-access-control-basics": {
+    "Identify authorization": INTRO_CHAPTER_TITLE,
+    "Review safe object access": "Prinsip defensif"
+  },
+  "log-analysis-fundamentals": {
+    "Identify a timestamp": "Field yang hampir selalu ada",
+    "Classify an event": "Label triase"
+  },
+  "network-traffic-basics": {
+    "Recognize protocol purpose": "Protokol",
+    "Identify network metadata": "Port"
+  },
+  "security-monitoring-basics": {
+    "Define alert triage": "Triage",
+    "Identify escalation": "Escalation"
+  },
+  "incident-response-basics": {
+    "Identify preparation": "Fase siklus",
+    "Recognize documentation": "Dokumentasi"
+  },
+  "secure-password-policy": {
+    "Recognize password storage": "Penyimpanan password",
+    "Identify recovery safety": "Pemulihan akun"
+  },
+  "web-application-security-review": {
+    "Identify validation": "1. Validation",
+    "Recognize audit logging": "4. Logging"
+  }
+};
+
 export type SeedTaskHint = { hint: string; acceptedAnswers: string[] };
 
 /** Hint dan jawaban alternatif per room, dipetakan dari judul task. */

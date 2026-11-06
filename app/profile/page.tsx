@@ -6,6 +6,7 @@ import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { formatNumber, formatShortDate } from "@/lib/format/date";
 import { formatScheduleDate } from "@/lib/learning/availability";
+import { taskChapterHref } from "@/lib/learning/chapters";
 import { getLearningActivity } from "@/lib/services/activity-service";
 import { ActivityHeatmap } from "@/components/paper/activity-heatmap";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
@@ -36,6 +37,12 @@ const roomStatusLabel: Record<string, { label: string; tone: "done" | "neutral" 
 type RecentCompletion = CompletionEntry & { at: Date };
 
 const thClass = "field-label border-b border-line px-3 py-2.5";
+
+/** Attempt dari quiz yang sudah dihapus menaut ke halaman room-nya, karena halaman quiz room itu tidak ada lagi. */
+function attemptHref(attempt: { quiz: object | null; room: { slug: string } | null }) {
+  if (!attempt.room) return "/rooms";
+  return attempt.quiz ? `/rooms/${attempt.room.slug}/quiz` : `/rooms/${attempt.room.slug}`;
+}
 
 /** Tabel riwayat task dan quiz memuat maksimal 25 baris; angka ringkasan dihitung dari agregat seluruh riwayat. */
 const HISTORY_LIMIT = 25;
@@ -87,13 +94,26 @@ export default async function ProfilePage() {
     }),
     prisma.userTaskSubmission.findMany({
       where: { userId: profile.id },
-      include: { task: { select: { title: true, points: true, room: { select: { title: true, slug: true } } } } },
+      // Bab room ikut dimuat agar tautan task menuju bab tempat task itu tampil.
+      include: {
+        task: {
+          select: {
+            title: true,
+            points: true,
+            chapterId: true,
+            room: {
+              select: { title: true, slug: true, chapters: { select: { id: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] } }
+            }
+          }
+        }
+      },
       orderBy: { submittedAt: "desc" },
       take: HISTORY_LIMIT
     }),
     prisma.userQuizAttempt.findMany({
       where: { userId: profile.id },
-      include: { quiz: { select: { title: true, passingScore: true, room: { select: { title: true, slug: true, points: true } } } } },
+      // Room dan judul dari salinan di attempt bila quiz-nya sudah dihapus (quiz null).
+      include: { quiz: { select: { title: true, passingScore: true } }, room: { select: { title: true, slug: true } } },
       orderBy: { startedAt: "desc" },
       take: HISTORY_LIMIT
     }),
@@ -112,8 +132,8 @@ export default async function ProfilePage() {
       _max: { score: true }
     }),
     prisma.userQuizAttempt.groupBy({
-      by: ["quizId"],
-      where: { userId: profile.id, passed: true }
+      by: ["roomId"],
+      where: { userId: profile.id, passed: true, roomId: { not: null } }
     })
   ]);
 
@@ -121,7 +141,7 @@ export default async function ProfilePage() {
   const completedRooms = progressRows.filter(
     (row) => row.status === "COMPLETED" && row.room.isPublished && row.room.learningPath.isPublished
   ).length;
-  // Quiz berbeda yang pernah lulus; lulus ulang quiz yang sama tidak dihitung dua kali.
+  // Quiz lulus dihitung per room (termasuk quiz yang sudah dihapus); lulus ulang tidak dihitung dua kali.
   const quizzesPassed = passedQuizGroups.length;
   const attemptTotal = attemptStats._count._all;
   const averageScore = Math.round(attemptStats._avg.score ?? 0);
@@ -147,7 +167,7 @@ export default async function ProfilePage() {
           id: `quiz-${row.id}`,
           at,
           kind: "quiz-pass" as const,
-          title: row.quiz.room.title,
+          title: row.room?.title ?? row.quizTitle,
           score: row.score,
           date: formatShortDate(at)
         };
@@ -338,17 +358,19 @@ export default async function ProfilePage() {
                       <tr key={attempt.id} className="group transition-colors hover:bg-well">
                         <td className="px-3 py-2.5 pl-5 sm:pl-6">
                           <Link
-                            href={`/rooms/${attempt.quiz.room.slug}/quiz`}
+                            href={attemptHref(attempt)}
                             className="tap-target block font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink"
                           >
-                            {attempt.quiz.title}
+                            {attempt.quiz?.title ?? attempt.quizTitle}
                           </Link>
-                          <span className="block text-xs text-ink-3">{attempt.quiz.room.title}</span>
+                          {attempt.room ? <span className="block text-xs text-ink-3">{attempt.room.title}</span> : null}
                           <span className="block text-xs text-ink-3 sm:hidden">{formatDateTime(attempt.startedAt)}</span>
                         </td>
                         <td className="figure px-3 py-2.5 text-right">
                           <span className="font-semibold text-ink">{attempt.score}%</span>
-                          <span className="block whitespace-nowrap text-xs text-ink-3">pass {attempt.quiz.passingScore}%</span>
+                          <span className="block whitespace-nowrap text-xs text-ink-3">
+                            {attempt.quiz ? `pass ${attempt.quiz.passingScore}%` : "quiz removed"}
+                          </span>
                         </td>
                         <td className="px-3 py-2.5 pr-5 sm:pr-3">
                           <StatusPill tone={attempt.passed ? "success" : "danger"}>{attempt.passed ? "Passed" : "Retry"}</StatusPill>
@@ -403,7 +425,7 @@ export default async function ProfilePage() {
                       <tr key={submission.id} className="group transition-colors hover:bg-well">
                         <td className="px-3 py-2.5 pl-5 sm:pl-6">
                           <Link
-                            href={`/rooms/${submission.task.room.slug}`}
+                            href={taskChapterHref(submission.task.room.slug, submission.task.chapterId, submission.task.room.chapters)}
                             className="tap-target block font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink"
                           >
                             {submission.task.title}

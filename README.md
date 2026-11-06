@@ -169,7 +169,8 @@ Student routes:
 - `/learning-paths`
 - `/learning-paths/[slug]`
 - `/rooms`
-- `/rooms/[slug]`
+- `/rooms/[slug]` (material, one chapter per page with `?chapter=N`; each chapter's tasks sit under it)
+- `/rooms/[slug]/tasks` (redirects to the chapter with the first open task)
 - `/rooms/[slug]/lab`
 - `/rooms/[slug]/quiz`
 - `/progress`

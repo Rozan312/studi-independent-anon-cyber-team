@@ -127,6 +127,7 @@ model Room {
   estimatedMinutes Int
   points           Int
   orderIndex       Int
+  // Cadangan materi lama (sebelum ada bab). Tidak dibaca/ditulis lagi; materi kini di RoomChapter.
   content          String             @default("")
   contentFormat    ContentFormat      @default(MARKDOWN)
   coverImageUrl    String?
@@ -138,8 +139,10 @@ model Room {
   createdAt        DateTime           @default(now())
   updatedAt        DateTime           @updatedAt
   learningPath     LearningPath       @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  chapters         RoomChapter[]
   tasks            RoomTask[]
   quiz             Quiz?
+  quizAttempts     UserQuizAttempt[]
   userProgress     UserRoomProgress[]
   labSessions      LabSession[]
   createdBy        Profile?           @relation("RoomAuthor", fields: [createdById], references: [id], onDelete: SetNull)
@@ -149,9 +152,28 @@ model Room {
   @@index([isPublished])
 }
 
+/// Bab materi room. Urutan bab hanya navigasi baca; tidak memengaruhi syarat selesai room.
+model RoomChapter {
+  id            String        @id @default(uuid()) @db.Uuid
+  roomId        String        @db.Uuid
+  title         String
+  content       String        @default("")
+  contentFormat ContentFormat @default(HTML)
+  orderIndex    Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  room          Room          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  tasks         RoomTask[]
+
+  @@index([roomId, orderIndex])
+}
+
+/// Task boleh ditempel ke satu bab room yang sama. chapterId null (atau babnya dihapus) berarti tampil di bab terakhir.
+/// orderIndex tetap urutan 1..n per room; urutan di dalam bab mengikuti orderIndex itu.
 model RoomTask {
   id              String               @id @default(uuid()) @db.Uuid
   roomId          String               @db.Uuid
+  chapterId       String?              @db.Uuid
   title           String
   description     String
   orderIndex      Int
@@ -163,9 +185,11 @@ model RoomTask {
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
   room            Room                 @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  chapter         RoomChapter?         @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   userSubmissions UserTaskSubmission[]
 
   @@index([roomId, orderIndex])
+  @@index([chapterId, orderIndex])
 }
 
 model Quiz {
@@ -239,19 +263,25 @@ model UserTaskSubmission {
   @@index([userId, taskId])
 }
 
+/// Riwayat attempt tetap ada walau quiz-nya dihapus instruktur: quizId menjadi null, sedangkan roomId dan
+/// quizTitle menyimpan room dan judul quiz untuk halaman riwayat member.
 model UserQuizAttempt {
   id          String    @id @default(uuid()) @db.Uuid
   userId      String    @db.Uuid
-  quizId      String    @db.Uuid
+  quizId      String?   @db.Uuid
+  roomId      String?   @db.Uuid
+  quizTitle   String    @default("")
   score       Int
   passed      Boolean
   startedAt   DateTime  @default(now())
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   user        Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quiz        Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  quiz        Quiz?     @relation(fields: [quizId], references: [id], onDelete: SetNull)
+  room        Room?     @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([userId, quizId])
+  @@index([userId, roomId])
 }
 
 model Class {

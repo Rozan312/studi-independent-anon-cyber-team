@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { SiteFooter } from "@/components/site-footer";
@@ -66,7 +66,38 @@ const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Admin"
 };
 
-const COLLAPSE_KEY = "si-act-sidebar-collapsed";
+/** Cookie status rail desktop ("1" diciutkan, "0" terbuka); dibaca server di components/app-shell.tsx dengan nama yang sama. */
+const RAIL_COOKIE = "act-rail-collapsed";
+/** Kunci localStorage lama; hanya dibaca sekali untuk dipindahkan ke cookie. */
+const LEGACY_COLLAPSE_KEY = "si-act-sidebar-collapsed";
+
+// Setelah hydrate pertama, frame yang dipasang ulang saat pindah halaman membaca cookie langsung, karena payload
+// halaman dari cache router Next bisa membawa nilai cookie yang lama.
+let shellHydrated = false;
+
+function readRailCookie(): boolean | null {
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)act-rail-collapsed=([01])(?:;|$)/);
+    return match ? match[1] === "1" : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeRailCookie(collapsed: boolean) {
+  try {
+    document.cookie = `${RAIL_COOKIE}=${collapsed ? "1" : "0"}; path=/; max-age=31536000; SameSite=Lax`;
+  } catch {
+    // Cookie diblokir: rail tetap berganti untuk halaman ini saja.
+  }
+}
+
+/** Tooltip nama menu di rail yang diciutkan; posisinya fixed agar tidak terpotong daftar menu yang bisa digulir. */
+type RailTip = { label: string; group?: string; top: number; left: number; instant: boolean };
+
+function tipAnchor(target: EventTarget | null) {
+  return target instanceof Element ? target.closest<HTMLElement>("[data-rail-tip]") : null;
+}
 
 function NavIcon({ name }: { name: IconName }) {
   const paths: Record<IconName, React.ReactNode> = {
@@ -130,7 +161,8 @@ export function AppShellFrame({
   actions,
   role,
   member,
-  stats
+  stats,
+  initialCollapsed = false
 }: {
   children: React.ReactNode;
   title: React.ReactNode;
@@ -139,9 +171,18 @@ export function AppShellFrame({
   role?: string | null;
   member?: ShellMember | null;
   stats?: ShellStats | null;
+  /** Status rail dari cookie, dibaca di server agar HTML awal sudah sesuai dan tidak berubah setelah hydrate. */
+  initialCollapsed?: boolean;
 }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => (shellHydrated ? readRailCookie() ?? initialCollapsed : initialCollapsed));
+  // Transisi lebar, padding, dan pudar label baru dipasang saat rail benar-benar diciutkan/dibuka di halaman ini,
+  // sehingga halaman yang baru dimuat atau dibuka lewat navigasi langsung tampil dalam keadaan akhirnya.
+  const [railMotion, setRailMotion] = useState(false);
+  const [tip, setTip] = useState<RailTip | null>(null);
+  const railRef = useRef<HTMLElement>(null);
+  const tipAnchorRef = useRef<HTMLElement | null>(null);
+  const tipHiddenAtRef = useRef(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -164,13 +205,66 @@ export function AppShellFrame({
   const activeGroupLabel = activeGroup?.label ?? "Learn";
   const activeLabel = activeGroup?.links.find((link) => link.href === activeHref)?.label;
 
+  // Preferensi lama tersimpan di localStorage dan baru terbaca setelah mount (penyebab rail melompat). Bila cookie belum
+  // ada, pindahkan sekali ke cookie (rail boleh beranimasi kali ini saja); setelah itu localStorage tidak dibaca lagi.
   useEffect(() => {
+    shellHydrated = true;
+    if (readRailCookie() !== null) return;
+    let legacyCollapsed = false;
     try {
-      setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "true");
+      legacyCollapsed = localStorage.getItem(LEGACY_COLLAPSE_KEY) === "true";
+      localStorage.removeItem(LEGACY_COLLAPSE_KEY);
     } catch {
       // Penyimpanan lokal tidak tersedia (mode privat): pakai rail terbuka.
     }
+    writeRailCookie(legacyCollapsed);
+    if (legacyCollapsed) {
+      setRailMotion(true);
+      setCollapsed(true);
+    }
   }, []);
+
+  const hideTip = useCallback(() => {
+    if (!tipAnchorRef.current) return;
+    tipAnchorRef.current = null;
+    tipHiddenAtRef.current = performance.now();
+    setTip(null);
+  }, []);
+
+  function showTip(anchor: HTMLElement) {
+    const rail = railRef.current;
+    const label = anchor.dataset.railTip;
+    if (!rail || !label) return;
+    const box = anchor.getBoundingClientRect();
+    // Jarak 14 px dari tepi rail (atau dari tombol tepi yang menonjol keluar), di tengah tinggi item.
+    const left = Math.max(rail.getBoundingClientRect().right, box.right) + 14;
+    // Berpindah langsung dari satu item ke item lain tidak memudar ulang.
+    const instant = tipAnchorRef.current !== null || performance.now() - tipHiddenAtRef.current < 150;
+    tipAnchorRef.current = anchor;
+    setTip({ label, group: anchor.dataset.railTipGroup, top: box.top + box.height / 2, left, instant });
+  }
+
+  // Tooltip mengikuti posisi saat muncul; gulir, ubah ukuran, atau Escape menutupnya.
+  const tipOpen = tip !== null;
+  useEffect(() => {
+    if (!tipOpen) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") hideTip();
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("scroll", hideTip, true);
+    window.addEventListener("resize", hideTip);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("scroll", hideTip, true);
+      window.removeEventListener("resize", hideTip);
+    };
+  }, [tipOpen, hideTip]);
+
+  // Rail yang menetap di layout (editor room) tidak dipasang ulang saat pindah halaman; tutup tooltip-nya.
+  useEffect(() => {
+    hideTip();
+  }, [pathname, hideTip]);
 
   // Drawer tertutup tidak boleh bisa difokus atau dibaca walau tetap terpasang untuk animasi.
   useEffect(() => {
@@ -241,16 +335,19 @@ export function AppShellFrame({
   }, [drawerOpen]);
 
   function toggleCollapsed() {
-    setCollapsed((current) => {
-      const next = !current;
-      try {
-        localStorage.setItem(COLLAPSE_KEY, String(next));
-      } catch {
-        // Abaikan: preferensi hanya kenyamanan.
-      }
-      return next;
-    });
+    const next = !collapsed;
+    hideTip();
+    setRailMotion(true);
+    setCollapsed(next);
+    writeRailCookie(next);
   }
+
+  const railEase = "duration-300 ease-out motion-reduce:transition-none";
+  const widthMotion = railMotion ? `transition-[width] ${railEase}` : "";
+  const paddingMotion = railMotion ? `transition-[padding] ${railEase}` : "";
+  const fadeMotion = railMotion ? "transition-opacity duration-200 motion-reduce:transition-none" : "";
+  // Item rail selalu memudarkan warna saat disorot; padding hanya ikut beranimasi setelah rail di-toggle.
+  const itemMotion = `${railMotion ? "transition-[padding,background-color,color]" : "transition-colors"} ${railEase}`;
 
   function renderNav(isCollapsed: boolean, ariaLabel: string, onNavigate?: () => void) {
     const idPrefix = isCollapsed ? "rail-collapsed" : onNavigate ? "rail-mobile" : "rail";
@@ -264,7 +361,7 @@ export function AppShellFrame({
               // Label grup memudar saat rail diciutkan; tingginya tetap agar ikon tidak melompat.
               <p
                 id={groupId}
-                className={`field-label mb-1.5 whitespace-nowrap px-3 transition-opacity motion-reduce:transition-none duration-200 ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`}
+                className={`field-label mb-1.5 whitespace-nowrap px-3 ${fadeMotion} ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`}
               >
                 {group.label}
               </p>
@@ -273,6 +370,7 @@ export function AppShellFrame({
               {group.links.map((link) => {
                 const active = link.href === activeHref;
                 // Di rail yang diciutkan hanya ikon terlihat: beri nama lengkap agar "Overview" Teaching dan Admin bisa dibedakan.
+                // Tooltip menampilkan grup dan nama menu seperti breadcrumb bar atas ("Teaching / Overview").
                 const collapsedName = group.label ? `${group.label} ${link.label.toLowerCase()}` : link.label;
                 return (
                   <li key={link.href}>
@@ -280,9 +378,10 @@ export function AppShellFrame({
                       href={link.href}
                       onClick={onNavigate}
                       aria-current={active ? "page" : undefined}
-                      title={isCollapsed ? collapsedName : undefined}
                       aria-label={isCollapsed ? collapsedName : undefined}
-                      className={`flex min-h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-[0.9375rem] transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out lg:min-h-9 coarse:!min-h-11 ${
+                      data-rail-tip={isCollapsed ? link.label : undefined}
+                      data-rail-tip-group={isCollapsed ? group.label : undefined}
+                      className={`flex min-h-10 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-[0.9375rem] ${itemMotion} lg:min-h-9 coarse:!min-h-11 ${
                         isCollapsed ? "px-[17px]" : "px-3"
                       } ${
                         active
@@ -294,7 +393,7 @@ export function AppShellFrame({
                         <NavIcon name={link.icon} />
                       </span>
                       <span
-                        className={`truncate transition-opacity motion-reduce:transition-none duration-200 ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`}
+                        className={`truncate ${fadeMotion} ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`}
                         aria-hidden={isCollapsed || undefined}
                       >
                         {link.label}
@@ -317,7 +416,7 @@ export function AppShellFrame({
         {member ? (
           // Kartu anggota menyusut halus saat rail diciutkan (grid 1fr -> 0fr), lalu tidak bisa difokus.
           <div
-            className={`grid transition-[grid-template-rows,opacity] motion-reduce:transition-none duration-300 ease-out ${isCollapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"}`}
+            className={`grid ${railMotion ? `transition-[grid-template-rows,opacity] ${railEase}` : ""} ${isCollapsed ? "grid-rows-[0fr] opacity-0" : "grid-rows-[1fr] opacity-100"}`}
             aria-hidden={isCollapsed || undefined}
           >
             <div className="overflow-hidden">
@@ -339,16 +438,16 @@ export function AppShellFrame({
         <form action={logoutAction}>
           <button
             type="submit"
-            title={isCollapsed ? "Sign out" : undefined}
             aria-label={isCollapsed ? "Sign out" : undefined}
-            className={`flex min-h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink coarse:min-h-11 ${
+            data-rail-tip={isCollapsed ? "Sign out" : undefined}
+            className={`flex min-h-10 w-full items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 ${itemMotion} hover:bg-sheet/60 hover:text-ink coarse:min-h-11 ${
               isCollapsed ? "px-[17px]" : "px-3"
             }`}
           >
             <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0 text-ink-3" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
               <path d="M14 5h4a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-4M10 16l-4-4 4-4M6 12h9" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            <span className={`transition-opacity motion-reduce:transition-none duration-200 ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={isCollapsed || undefined}>
+            <span className={`${fadeMotion} ${isCollapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={isCollapsed || undefined}>
               Sign out
             </span>
           </button>
@@ -362,44 +461,84 @@ export function AppShellFrame({
       {/* Rail desktop dengan satu-satunya gradasi. Landmark header (banner); di layar kecil perannya
           dipegang bar atas, dan hanya satu dari keduanya yang tampil. */}
       <header
-        className={`rail-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line transition-[width] motion-reduce:transition-none duration-300 ease-out lg:flex ${
-          collapsed ? "w-[76px]" : "w-64"
-        }`}
+        ref={railRef}
+        id="app-rail"
+        className={`rail-surface fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-line lg:flex ${widthMotion} ${collapsed ? "w-[76px]" : "w-64"}`}
+        // Tooltip hanya untuk mouse/pena dan fokus keyboard; item tanpa data-rail-tip (rail terbuka) diabaikan.
+        onPointerOver={(event) => {
+          if (event.pointerType === "touch") return;
+          const anchor = tipAnchor(event.target);
+          if (anchor && anchor !== tipAnchorRef.current) showTip(anchor);
+        }}
+        onPointerOut={(event) => {
+          const from = tipAnchor(event.target);
+          if (from && from === tipAnchorRef.current && tipAnchor(event.relatedTarget) !== from) hideTip();
+        }}
+        onFocus={(event) => {
+          const anchor = tipAnchor(event.target);
+          if (anchor?.matches(":focus-visible")) showTip(anchor);
+        }}
+        onBlur={hideTip}
       >
         <Link
           href="/dashboard"
           aria-label="Anon Cyber Team, go to dashboard"
-          className={`flex items-center gap-3 overflow-hidden whitespace-nowrap pb-5 pt-5 transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "px-[19px]" : "px-5"}`}
+          className={`flex items-center gap-3 overflow-hidden whitespace-nowrap pb-5 pt-5 ${paddingMotion} ${collapsed ? "px-[19px]" : "px-5"}`}
         >
           <BrandMark size={38} />
-          <span className={`font-display text-base font-bold leading-tight tracking-[-0.01em] text-ink transition-opacity motion-reduce:transition-none duration-200 ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
+          <span className={`font-display text-base font-bold leading-tight tracking-[-0.01em] text-ink ${fadeMotion} ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
             Anon Cyber Team
           </span>
         </Link>
+
+        {/* Tombol tepi: menumpang garis kanan rail sejajar logo, terlihat di kedua keadaan. Rail tanpa overflow,
+            jadi tombol tidak terpotong; bagian yang menonjol hanya menutup padding kiri bar atas, bukan isi. */}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!collapsed}
+          aria-controls="app-rail"
+          data-rail-tip={collapsed ? "Expand sidebar" : undefined}
+          className="rail-edge-toggle absolute -right-3.5 top-[26px] flex h-[26px] w-[26px] items-center justify-center rounded-md border border-line-strong bg-sheet text-ink-2 transition-colors duration-150 ease-out hover:border-cyan-ink/60 hover:text-cyan-ink focus-visible:border-cyan-ink/60 focus-visible:text-cyan-ink"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className={`h-3.5 w-3.5 ${railMotion ? "transition-transform duration-300 ease-out motion-reduce:transition-none" : ""} ${collapsed ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            aria-hidden="true"
+          >
+            <path d="M11.5 6.5 6 12l5.5 5.5M18 6.5 12.5 12l5.5 5.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
 
         {renderNav(collapsed, "Main navigation")}
 
         <ThemeToggle variant="rail" collapsed={collapsed} />
 
-        <button
-          type="button"
-          onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-3 transition-[padding,background-color,color] motion-reduce:transition-none duration-300 ease-out hover:bg-sheet/60 hover:text-ink coarse:min-h-11 ${
-            collapsed ? "px-[17px]" : "px-3"
-          }`}
-        >
-          <svg viewBox="0 0 24 24" className={`h-[18px] w-[18px] transition-transform motion-reduce:transition-none duration-300 ${collapsed ? "rotate-180" : ""}`} fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-            <path d="M15 6l-6 6 6 6M5 5v14" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-          <span className={`transition-opacity motion-reduce:transition-none duration-200 ${collapsed ? "opacity-0" : "opacity-100 delay-100"}`} aria-hidden={collapsed || undefined}>
-            Collapse
-          </span>
-        </button>
-
         {renderMemberCard(collapsed)}
       </header>
+
+      {/* Tooltip rail diciutkan: lapisan mengambang di luar rail (lift), dekoratif karena item sudah punya aria-label. */}
+      {tip ? (
+        <div
+          aria-hidden="true"
+          className={`pointer-events-none fixed z-40 hidden -translate-y-1/2 whitespace-nowrap rounded-md border border-line-strong bg-sheet px-2.5 py-1 font-display text-[0.8125rem] font-semibold leading-5 text-ink shadow-lift lg:block ${
+            tip.instant ? "" : "rail-tip-enter"
+          }`}
+          style={{ top: tip.top, left: tip.left }}
+        >
+          {tip.group ? (
+            <>
+              <span className="font-medium text-ink-3">{tip.group}</span>
+              <span className="px-1 text-line-strong">/</span>
+            </>
+          ) : null}
+          {tip.label}
+        </div>
+      ) : null}
 
       {/* Bar atas mobile. */}
       <header className="sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-line bg-paper/95 px-4 py-2.5 backdrop-blur lg:hidden">
@@ -425,7 +564,7 @@ export function AppShellFrame({
         </div>
       </header>
 
-      <main className={`transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+      <main className={`${paddingMotion} ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         {/* Bar atas desktop: posisi di menu (grup / halaman) dan poin anggota, menempel saat halaman digulir. */}
         <div className="sticky top-0 z-20 hidden h-14 items-center justify-between gap-4 border-b border-line bg-paper px-10 lg:flex">
           <p className="min-w-0 truncate text-sm text-ink-3">
@@ -458,7 +597,7 @@ export function AppShellFrame({
         </div>
       </main>
 
-      <div className={`transition-[padding] motion-reduce:transition-none duration-300 ease-out ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
+      <div className={`${paddingMotion} ${collapsed ? "lg:pl-[76px]" : "lg:pl-64"}`}>
         <SiteFooter className="mx-auto w-full max-w-[1240px] px-4 pb-8 sm:px-6 lg:px-10" />
       </div>
 

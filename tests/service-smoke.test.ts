@@ -32,6 +32,49 @@ async function main() {
   assert.deepEqual(getRequiredRolesForPath("/instructor/rooms"), ["INSTRUCTOR"]);
   assert.deepEqual(getRequiredRolesForPath("/rooms/example"), ["STUDENT"]);
 
+  // Pola petunjuk jawaban: huruf/angka menjadi "*", spasi dan tanda baca tetap, spasi berlebih dirapikan.
+  const { answerPattern } = await import("@/lib/learning/answer-pattern");
+  assert.equal(answerPattern("false positive"), "***** ********");
+  assert.equal(answerPattern("ACT{flag_1}"), "***{****_*}");
+  assert.equal(answerPattern("2xx"), "***");
+  assert.equal(answerPattern("server-side authorization"), "******-**** *************");
+  assert.equal(answerPattern("10.0.0.15"), "**.*.*.**");
+  assert.equal(answerPattern("  least \t  privilege\n"), "***** *********", "edges are trimmed and inner whitespace collapses");
+  assert.equal(answerPattern("café"), "****");
+  assert.equal(answerPattern("café"), "****", "a letter and its combining accent count as one character");
+  assert.equal(answerPattern("Ünïcödé 日本"), "******* **");
+  for (const empty of ["", "   ", null, undefined]) {
+    assert.equal(answerPattern(empty), null, `no pattern for ${JSON.stringify(empty)}`);
+  }
+
+  // Bab tampil task dan urutan buka per bab (tanpa database).
+  const { chapterTaskStatuses, taskChapterHref, taskChapterId } = await import("@/lib/learning/chapters");
+  const sampleChapters = [{ id: "ch-1" }, { id: "ch-2" }];
+  assert.equal(taskChapterId("ch-1", sampleChapters), "ch-1");
+  assert.equal(taskChapterId(null, sampleChapters), "ch-2", "a task without a chapter shows under the last chapter");
+  assert.equal(taskChapterId("deleted", sampleChapters), "ch-2", "a task whose chapter is gone shows under the last chapter");
+  assert.equal(taskChapterId("ch-1", []), null);
+  assert.equal(taskChapterHref("web", "ch-1", sampleChapters), "/rooms/web?chapter=1#tasks");
+  assert.equal(taskChapterHref("web", null, sampleChapters), "/rooms/web?chapter=2#tasks");
+  assert.equal(taskChapterHref("web", null, []), "/rooms/web#tasks", "a room without chapters shows its tasks on the material page");
+  const sampleTasks = [
+    { id: "a", chapterId: "ch-1" },
+    { id: "b", chapterId: "ch-1" },
+    { id: "c", chapterId: "ch-2" },
+    { id: "d", chapterId: null }
+  ];
+  assert.deepEqual(Object.fromEntries(chapterTaskStatuses(sampleTasks, sampleChapters, new Set())), {
+    a: "active",
+    b: "locked",
+    c: "active",
+    d: "locked"
+  });
+  assert.deepEqual(
+    Object.fromEntries(chapterTaskStatuses(sampleTasks, sampleChapters, new Set(["a", "d"]))),
+    { a: "completed", b: "active", c: "active", d: "completed" },
+    "unlocking is per chapter: an open task in one chapter does not lock another chapter"
+  );
+
   const testId = randomUUID();
   const userId = randomUUID();
   const slug = `test-room-${testId}`;
@@ -179,6 +222,8 @@ async function main() {
     });
     assert.equal(attempt.score, 100);
     assert.equal(attempt.passed, true);
+    assert.equal(attempt.roomId, room.id, "a new attempt keeps its room for history");
+    assert.equal(attempt.quizTitle, "Service Test Quiz");
 
     await submitQuizAttempt(profile.id, {
       quizId: quiz.id,
@@ -190,6 +235,37 @@ async function main() {
     assert.ok(row);
     assert.equal(row.points, 55);
 
+    // Kolom materi lama Room tidak pernah ikut terkirim lewat path (GET /api/learning-paths?slug=…).
+    const { getLearningPathBySlug, getLearningPathProgressForCurrentUser } = await import("@/lib/services/learning-path-service");
+    const publicPath = await getLearningPathBySlug(pathSlug);
+    assert.ok(publicPath?.rooms[0]);
+    assert.equal("content" in publicPath.rooms[0], false, "a path's rooms carry no legacy material");
+    assert.equal("contentFormat" in publicPath.rooms[0], false);
+    const pathProgress = await getLearningPathProgressForCurrentUser(profile.id, pathSlug);
+    assert.ok(pathProgress?.path.rooms[0]);
+    assert.equal("content" in pathProgress.path.rooms[0], false, "path progress carries no legacy material");
+    assert.equal(pathProgress.completedRooms, 1);
+
+    // Judul tab halaman materi: room tanpa bab memakai judul room saja.
+    const { publishedRoomMaterialTitle } = await import("@/lib/services/page-title-service");
+    assert.equal(await publishedRoomMaterialTitle(slug, "2"), "Service Test Room");
+
+    // Bab seed: bab pembuka yang hanya mengulang judul room menjadi "Introduction"; satu bab saja tidak diganti.
+    const { splitSeedMaterialIntoChapters } = await import("../prisma/seed-content");
+    assert.deepEqual(
+      splitSeedMaterialIntoChapters("# Seed Room\n\nPembuka.\n\n## Detail\n\nIsi.", "Seed Room").map((chapter) => chapter.title),
+      ["Introduction", "Detail"]
+    );
+    assert.deepEqual(
+      splitSeedMaterialIntoChapters("Tanpa heading.\n\n## Detail\n\nIsi.", "Seed Room").map((chapter) => chapter.title),
+      ["Introduction", "Detail"]
+    );
+    assert.deepEqual(
+      splitSeedMaterialIntoChapters("# Pembuka Lain\n\nTeks.\n\n## Detail\n\nIsi.", "Seed Room").map((chapter) => chapter.title),
+      ["Pembuka Lain", "Detail"]
+    );
+    assert.deepEqual(splitSeedMaterialIntoChapters("# Seed Room\n\nSemua materi.", "Seed Room").map((chapter) => chapter.title), ["Seed Room"]);
+
     // -----------------------------------------------------------------------
     // Content authoring service: ownership, tasks, quiz, option ordering
     // -----------------------------------------------------------------------
@@ -199,20 +275,28 @@ async function main() {
       addRoomTask,
       addRoomToLearningPath,
       createLearningPath,
+      createRoomChapter,
+      deleteRoomChapter,
+      deleteRoomQuiz,
+      deleteRoomTask,
       getLearningPathForEditor,
       getRoomForEditor,
+      listRoomsForManagement,
       listRoomsOutsidePath,
+      moveRoomChapter,
       moveRoomInPath,
       moveRoomTask,
       setRoomPublished,
       updateQuizQuestion,
-      updateRoomContent,
+      updateRoomChapter,
       updateRoomMetadata,
+      updateRoomSchedule,
       updateRoomTask,
       upsertRoomQuiz
     } = await import("@/lib/services/content-service");
     const { createRoomWithTasks } = await import("@/lib/services/instructor-service");
     const { getQuizByRoomSlug } = await import("@/lib/services/quiz-service");
+    const { getRoomBySlug, getRoomChapterForReader, getRoomForMemberApi, getRoomTasks } = await import("@/lib/services/room-service");
 
     const makeProfile = async (role: Role, label: string) => {
       const id = randomUUID();
@@ -282,14 +366,38 @@ async function main() {
     );
     assert.equal(editorAfterMove.room.tasks[0].id, secondTask.id);
 
-    await updateRoomContent(authorA, { roomId: contentRoom.id, content: "# Walkthrough\n\nMateri uji." });
+    // Materi room berupa bab: bab baru di akhir, hak kelola mengikuti room, admin boleh menyunting.
+    const roomBeforeChapter = await prisma.room.findUniqueOrThrow({ where: { id: contentRoom.id }, select: { updatedAt: true } });
+    const introChapter = await createRoomChapter(authorA, { roomId: contentRoom.id, title: "  Walkthrough  " });
+    assert.equal(introChapter.title, "Walkthrough", "chapter titles are trimmed");
+    assert.equal(introChapter.orderIndex, 0);
+    assert.equal(introChapter.content, "");
+    assert.equal(introChapter.contentFormat, "HTML");
+    assert.equal(introChapter.room.slug, contentRoom.slug);
+    const roomAfterChapter = await prisma.room.findUniqueOrThrow({ where: { id: contentRoom.id }, select: { updatedAt: true } });
+    assert.ok(roomAfterChapter.updatedAt > roomBeforeChapter.updatedAt, "a chapter change counts as a room edit");
+
+    await updateRoomChapter(authorA, { chapterId: introChapter.id, title: "Walkthrough", contentFormat: "MARKDOWN", content: "# Walkthrough\n\nMateri uji." });
     await assert.rejects(
-      updateRoomContent(authorB, { roomId: contentRoom.id, content: "hijack" }),
+      createRoomChapter(authorB, { roomId: contentRoom.id, title: "Hijack" }),
       (error: unknown) => error instanceof ContentAccessError
     );
+    await assert.rejects(
+      updateRoomChapter(authorB, { chapterId: introChapter.id, title: "Hijack", content: "hijack" }),
+      (error: unknown) => error instanceof ContentAccessError
+    );
+    await assert.rejects(createRoomChapter(authorA, { roomId: contentRoom.id, title: "   " }), (error: unknown) => error instanceof ZodError);
+    await assert.rejects(createRoomChapter(authorA, { roomId: contentRoom.id, title: "x".repeat(161) }), (error: unknown) => error instanceof ZodError);
     const editorAsB = await getRoomForEditor(authorB, contentRoom.id);
     assert.equal(editorAsB?.canManage, false);
-    await updateRoomContent(adminActor, { roomId: contentRoom.id, content: "# Walkthrough\n\nDiubah admin." });
+    const adminEdit = await updateRoomChapter(adminActor, {
+      chapterId: introChapter.id,
+      title: "Walkthrough",
+      contentFormat: "MARKDOWN",
+      content: "# Walkthrough\n\nDiubah admin."
+    });
+    assert.equal(adminEdit.content, "# Walkthrough\n\nDiubah admin.");
+    assert.equal(adminEdit.contentFormat, "MARKDOWN");
 
     const { quiz: contentQuiz } = await upsertRoomQuiz(authorA, {
       roomId: contentRoom.id,
@@ -413,28 +521,65 @@ async function main() {
       difficulty: contentRoom.difficulty,
       estimatedMinutes: contentRoom.estimatedMinutes,
       points: contentRoom.points,
-      orderIndex: contentRoom.orderIndex,
-      coverImageUrl: ""
+      orderIndex: contentRoom.orderIndex
     };
     const inOneDay = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
     // Logo room: URL media internal tersimpan, string kosong menghapusnya, URL tidak valid ditolak.
     const logoUrl = `/api/media/${randomUUID()}`;
-    const withLogo = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl, availableFrom: "", availableUntil: "" });
+    const withLogo = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl });
     assert.equal(withLogo.logoUrl, logoUrl, "an uploaded room logo is stored");
-    const withoutLogo = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "", availableFrom: "", availableUntil: "" });
+    const withoutLogo = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "" });
     assert.equal(withoutLogo.logoUrl, null, "clearing the logo falls back to the name initials");
     await assert.rejects(
-      updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "javascript:alert(1)", availableFrom: "", availableUntil: "" }),
+      updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "javascript:alert(1)" }),
       (error: unknown) => error instanceof ZodError
     );
 
-    const upcomingRoom = await updateRoomMetadata(authorA, { ...baseMetadata, availableFrom: inOneDay, availableUntil: "" });
-    assert.equal(upcomingRoom.content, "# Walkthrough\n\nDiubah admin.", "metadata update must not wipe material content");
+    // Jadwal disimpan terpisah dari Details: simpan Details tidak menyentuh jadwal maupun sampul lama.
+    await prisma.room.update({ where: { id: contentRoom.id }, data: { coverImageUrl: logoUrl } });
+    await updateRoomSchedule(authorA, { roomId: contentRoom.id, availableFrom: inOneDay, availableUntil: "" });
+    await assert.rejects(updateRoomSchedule(authorB, { roomId: contentRoom.id, availableFrom: "", availableUntil: "" }), (error: unknown) => error instanceof ContentAccessError);
+    const detailsSaved = await updateRoomMetadata(authorA, { ...baseMetadata, logoUrl: "", availableFrom: "", availableUntil: "", coverImageUrl: "" });
+    assert.equal(detailsSaved.availableFrom?.toISOString(), inOneDay, "saving Details keeps the schedule");
+    assert.equal(detailsSaved.coverImageUrl, logoUrl, "saving Details keeps the stored cover image");
+    const chaptersAfterMetadata = await prisma.roomChapter.findMany({ where: { roomId: contentRoom.id }, select: { content: true } });
+    assert.deepEqual(
+      chaptersAfterMetadata.map((chapter) => chapter.content),
+      ["# Walkthrough\n\nDiubah admin."],
+      "metadata update must not wipe chapter material"
+    );
     await assert.rejects(submitTaskAnswer(scheduler.id, { taskId: remainingTask.id, answer: "read" }), /opens on/);
 
-    await updateRoomMetadata(authorA, { ...baseMetadata, availableFrom: "", availableUntil: oneDayAgo });
+    // GET /api/rooms?slug=…: tanpa hint; room yang belum dibuka hanya ringkasan jadwal untuk member.
+    const upcomingForMember = await getRoomForMemberApi(contentRoom.slug, "STUDENT");
+    assert.ok(upcomingForMember);
+    assert.equal(upcomingForMember.availability.state, "upcoming");
+    assert.equal("tasks" in upcomingForMember, false, "an upcoming room hides its tasks from members");
+    assert.equal("chapters" in upcomingForMember, false, "an upcoming room hides its chapters from members");
+    assert.equal("content" in upcomingForMember, false);
+    const upcomingForInstructor = await getRoomForMemberApi(contentRoom.slug, "INSTRUCTOR");
+    assert.ok(upcomingForInstructor && "tasks" in upcomingForInstructor);
+    assert.ok(upcomingForInstructor.tasks.length > 0);
+    assert.ok(
+      upcomingForInstructor.tasks.every((entry) => !("hint" in entry)),
+      "task hints are never part of the room API"
+    );
+    assert.equal(upcomingForInstructor.tasks.find((entry) => entry.id === secondTask.id)?.hasHint, true);
+
+    // GET /api/rooms?roomId=…: aturan jadwal yang sama; member mendapat daftar kosong untuk room yang belum dibuka.
+    assert.deepEqual(await getRoomTasks(contentRoom.id, "STUDENT"), [], "an upcoming room lists no tasks to members by id either");
+    const upcomingTasksForInstructor = await getRoomTasks(contentRoom.id, "INSTRUCTOR");
+    assert.ok(upcomingTasksForInstructor && upcomingTasksForInstructor.length > 0, "instructors still preview the tasks");
+    assert.ok(
+      upcomingTasksForInstructor.every((entry) => !("expectedAnswer" in entry) && !("acceptedAnswers" in entry) && !("hint" in entry)),
+      "the task list by id carries no answers or hints"
+    );
+    assert.equal(await getRoomTasks("not-a-uuid", "STUDENT"), null);
+    assert.equal(await getRoomTasks(randomUUID(), "STUDENT"), null);
+
+    await updateRoomSchedule(authorA, { roomId: contentRoom.id, availableFrom: "", availableUntil: oneDayAgo });
     await assert.rejects(submitTaskAnswer(scheduler.id, { taskId: remainingTask.id, answer: "read" }), /closed on/);
     await assert.rejects(
       submitQuizAttempt(scheduler.id, { quizId: publicQuiz.id, answers: learnerAnswers }),
@@ -442,13 +587,21 @@ async function main() {
     );
 
     await assert.rejects(
-      updateRoomMetadata(authorA, { ...baseMetadata, availableFrom: inOneDay, availableUntil: oneDayAgo }),
+      updateRoomSchedule(authorA, { roomId: contentRoom.id, availableFrom: inOneDay, availableUntil: oneDayAgo }),
       (error: unknown) => error instanceof ZodError
     );
 
-    await updateRoomMetadata(authorA, { ...baseMetadata, availableFrom: "", availableUntil: "" });
+    await updateRoomSchedule(authorA, { roomId: contentRoom.id, availableFrom: "", availableUntil: "" });
     const reopened = await submitTaskAnswer(scheduler.id, { taskId: remainingTask.id, answer: "read" });
     assert.equal(reopened.isCorrect, true);
+    const openForMember = await getRoomForMemberApi(contentRoom.slug, "STUDENT");
+    assert.ok(openForMember && "tasks" in openForMember);
+    assert.ok(openForMember.tasks.every((entry) => !("hint" in entry)), "an open room's API has no hints either");
+    assert.deepEqual(
+      (await getRoomTasks(contentRoom.id, "STUDENT"))?.map((entry) => entry.id),
+      openForMember.tasks.map((entry) => entry.id),
+      "an open room lists its tasks by id in the same order"
+    );
 
     // -----------------------------------------------------------------------
     // Path composition: add an existing room to another path and reorder
@@ -492,6 +645,7 @@ async function main() {
       },
       authorA.id
     );
+    assert.equal(await getRoomTasks(extraRoom.id, "STUDENT"), null, "a draft room's tasks are not served by id");
 
     await moveRoomInPath(authorA, { roomId: extraRoom.id, direction: "up" });
     const secondPathEditor = await getLearningPathForEditor(authorA, secondPath.id);
@@ -561,12 +715,14 @@ async function main() {
     assert.equal(isRichHtmlEmpty("<p></p><p> </p>"), true);
     assert.equal(isRichHtmlEmpty('<p><img src="/api/media/a5e06387-ed12-4c47-8359-e16c904fa4a6"></p>'), false);
 
-    const savedHtml = await updateRoomContent(authorA, {
-      roomId: contentRoom.id,
+    const savedHtml = await updateRoomChapter(authorA, {
+      chapterId: introChapter.id,
+      title: "Walkthrough",
       contentFormat: "HTML",
       content: '<p><strong>Halo</strong> <span style="color: #4ade80">dunia</span></p><script>alert(1)</script><img src=x onerror=alert(1)>'
     });
     assert.equal(savedHtml.contentFormat, "HTML");
+    assert.equal(savedHtml.room.id, contentRoom.id);
     assert.equal(savedHtml.content.includes("<script"), false);
     assert.equal(savedHtml.content.includes("onerror"), false);
     assert.ok(savedHtml.content.includes("<strong>Halo</strong>"));
@@ -576,13 +732,407 @@ async function main() {
       "a legacy dark-theme colour renders as its readable counterpart"
     );
 
-    const emptied = await updateRoomContent(authorA, { roomId: contentRoom.id, contentFormat: "HTML", content: "<p></p>" });
+    const emptied = await updateRoomChapter(authorA, { chapterId: introChapter.id, title: "Walkthrough", contentFormat: "HTML", content: "<p></p>" });
     assert.equal(emptied.content, "", "an empty editor must be stored as empty content");
+    const listedRoom = (await listRoomsForManagement()).find((entry) => entry.id === contentRoom.id);
+    assert.equal(listedRoom?._count.chapters, 0, "a room whose only chapter is empty has no material yet");
 
     await assert.rejects(
-      updateRoomContent(authorB, { roomId: contentRoom.id, contentFormat: "HTML", content: "<p>x</p>" }),
+      updateRoomChapter(authorB, { chapterId: introChapter.id, title: "Walkthrough", contentFormat: "HTML", content: "<p>x</p>" }),
       (error: unknown) => error instanceof ContentAccessError
     );
+
+    // -----------------------------------------------------------------------
+    // Room chapters: append order, rename, move, delete + renumber, reader access
+    // -----------------------------------------------------------------------
+    const requestChapter = await createRoomChapter(authorA, { roomId: contentRoom.id, title: "Request basics" });
+    const statusChapter = await createRoomChapter(authorA, { roomId: contentRoom.id, title: "Status codes" });
+    assert.deepEqual([requestChapter.orderIndex, statusChapter.orderIndex], [1, 2], "new chapters are appended at the end");
+
+    const renamed = await updateRoomChapter(authorA, {
+      chapterId: requestChapter.id,
+      title: "Requests and responses",
+      contentFormat: "HTML",
+      content: "<p>Isi bab dua.</p>"
+    });
+    assert.equal(renamed.title, "Requests and responses");
+    assert.equal(renamed.content, "<p>Isi bab dua.</p>");
+
+    const chapterOrder = async () => {
+      const editor = await getRoomForEditor(authorA, contentRoom.id);
+      assert.ok(editor);
+      return editor.room.chapters.map((chapter) => [chapter.id, chapter.orderIndex]);
+    };
+    const chapterEditTimes = async () =>
+      Object.fromEntries(
+        (await prisma.roomChapter.findMany({ where: { roomId: contentRoom.id }, select: { id: true, updatedAt: true } })).map((chapter) => [
+          chapter.id,
+          chapter.updatedAt.getTime()
+        ])
+      );
+    const editTimesBeforeMove = await chapterEditTimes();
+    await moveRoomChapter(authorA, { chapterId: statusChapter.id, direction: "up" });
+    await moveRoomChapter(authorA, { chapterId: introChapter.id, direction: "up" });
+    assert.deepEqual(await chapterEditTimes(), editTimesBeforeMove, "moving chapters does not change their edit time");
+    assert.deepEqual(
+      await chapterOrder(),
+      [
+        [introChapter.id, 0],
+        [statusChapter.id, 1],
+        [requestChapter.id, 2]
+      ],
+      "moving swaps neighbours; moving the first chapter up changes nothing"
+    );
+
+    await assert.rejects(
+      moveRoomChapter(authorB, { chapterId: statusChapter.id, direction: "down" }),
+      (error: unknown) => error instanceof ContentAccessError
+    );
+    await assert.rejects(deleteRoomChapter(authorB, { chapterId: statusChapter.id }), (error: unknown) => error instanceof ContentAccessError);
+
+    // Pembaca: daftar bab tanpa isi; isi diambil per bab dan hanya untuk bab milik room terbit itu.
+    const publicRoom = await getRoomBySlug(contentRoom.slug);
+    assert.ok(publicRoom);
+    assert.deepEqual(
+      publicRoom.chapters.map((chapter) => chapter.title),
+      ["Walkthrough", "Status codes", "Requests and responses"]
+    );
+    assert.equal("content" in publicRoom.chapters[0], false, "the chapter list carries no material");
+    assert.equal("content" in publicRoom, false, "the legacy room material is not read");
+    const readerChapter = await getRoomChapterForReader(contentRoom.id, requestChapter.id);
+    assert.deepEqual(readerChapter, { id: requestChapter.id, title: "Requests and responses", content: "<p>Isi bab dua.</p>", contentFormat: "HTML" });
+
+    const draftRoomChapter = await createRoomChapter(authorA, { roomId: extraRoom.id, title: "Draft room chapter" });
+    assert.equal(draftRoomChapter.orderIndex, 0, "chapter order is per room");
+    assert.equal(await getRoomChapterForReader(contentRoom.id, draftRoomChapter.id), null, "a chapter from another room is not served");
+    assert.equal(await getRoomChapterForReader(extraRoom.id, draftRoomChapter.id), null, "chapters of a draft room are not served");
+    assert.equal(await getRoomChapterForReader(contentRoom.id, "not-a-uuid"), null);
+
+    // Task per bab: bab harus milik room yang sama; kosong berarti tanpa bab (tampil di bab terakhir).
+    // Urutan bab sekarang: Walkthrough (0), Status codes (1), Requests and responses (2, terakhir).
+    const firstTaskInput = { title: "First safe task", description: "Read the walkthrough carefully.", expectedAnswer: "read", points: 5 };
+    const secondTaskInput = {
+      title: "Second safe task",
+      description: "Identify the defensive principle described.",
+      expectedAnswer: "defense in depth",
+      acceptedAnswers: ["defence in depth"],
+      hint: "Pikirkan pertahanan berlapis.",
+      points: 10
+    };
+    const statusTaskInput = { title: "Read the status line", description: "Name the status code family for success.", expectedAnswer: "2xx", points: 5 };
+    const { task: statusTask } = await addRoomTask(authorA, { roomId: contentRoom.id, chapterId: statusChapter.id, ...statusTaskInput });
+    assert.equal(statusTask.chapterId, statusChapter.id);
+    assert.equal(statusTask.orderIndex, 3, "a new task goes to the end of the room order");
+    const { task: looseTask } = await addRoomTask(authorA, {
+      roomId: contentRoom.id,
+      chapterId: "",
+      title: "Loose task",
+      description: "A task saved without a chapter.",
+      expectedAnswer: "ACT{flag_1}",
+      points: 5
+    });
+    assert.equal(looseTask.chapterId, null, "an empty chapter choice is stored as no chapter");
+    await assert.rejects(
+      addRoomTask(authorA, { roomId: contentRoom.id, chapterId: draftRoomChapter.id, ...statusTaskInput }),
+      /isn't part of this room/,
+      "a chapter from another room is rejected"
+    );
+    await assert.rejects(
+      updateRoomTask(authorA, { taskId: statusTask.id, chapterId: draftRoomChapter.id, ...statusTaskInput }),
+      /isn't part of this room/
+    );
+    await assert.rejects(
+      addRoomTask(authorA, { roomId: contentRoom.id, chapterId: "not-a-uuid", ...statusTaskInput }),
+      (error: unknown) => error instanceof ZodError
+    );
+    await assert.rejects(
+      addRoomTask(authorB, { roomId: contentRoom.id, chapterId: statusChapter.id, ...statusTaskInput }),
+      (error: unknown) => error instanceof ContentAccessError
+    );
+
+    const taskOrder = async () =>
+      (await prisma.roomTask.findMany({ where: { roomId: contentRoom.id }, orderBy: { orderIndex: "asc" }, select: { id: true, chapterId: true, orderIndex: true } })).map(
+        (task) => [task.id, task.chapterId, task.orderIndex]
+      );
+    const firstTaskId = remainingTask.id;
+    assert.deepEqual(await taskOrder(), [
+      [secondTask.id, null, 1],
+      [firstTaskId, null, 2],
+      [statusTask.id, statusChapter.id, 3],
+      [looseTask.id, null, 4]
+    ]);
+
+    // Naik/turun hanya di dalam bab tampil: task lepas bertukar dengan task terdekat di bab terakhir, bukan dengan
+    // task bab Status codes di antaranya; task satu-satunya di babnya tidak berpindah.
+    await moveRoomTask(authorA, { taskId: looseTask.id, direction: "up" });
+    await moveRoomTask(authorA, { taskId: statusTask.id, direction: "up" });
+    assert.deepEqual(await taskOrder(), [
+      [secondTask.id, null, 1],
+      [looseTask.id, null, 2],
+      [statusTask.id, statusChapter.id, 3],
+      [firstTaskId, null, 4]
+    ]);
+
+    // Menyimpan task dengan bab terakhir yang ditulis eksplisit tidak memindahkan urutannya (bab tampilnya sama).
+    const pinnedLast = await updateRoomTask(authorA, { taskId: firstTaskId, chapterId: requestChapter.id, ...firstTaskInput });
+    assert.equal(pinnedLast.task.chapterId, requestChapter.id);
+    assert.equal(pinnedLast.task.orderIndex, 4);
+    // Pindah ke bab lain: task menjadi task terakhir di bab tujuan.
+    const movedToIntro = await updateRoomTask(authorA, { taskId: secondTask.id, chapterId: introChapter.id, ...secondTaskInput });
+    assert.equal(movedToIntro.task.chapterId, introChapter.id);
+    assert.deepEqual(await taskOrder(), [
+      [looseTask.id, null, 1],
+      [statusTask.id, statusChapter.id, 2],
+      [firstTaskId, requestChapter.id, 3],
+      [secondTask.id, introChapter.id, 4]
+    ]);
+    // Field chapterId yang tidak dikirim juga berarti tanpa bab.
+    const unpinned = await updateRoomTask(authorA, { taskId: firstTaskId, ...firstTaskInput });
+    assert.equal(unpinned.task.chapterId, null);
+    assert.equal(unpinned.task.orderIndex, 3, "no chapter and the last chapter are the same place, so the order stays");
+
+    // Pembaca: setiap task membawa bab dan pola petunjuk, tanpa jawaban.
+    const readerRoom = await getRoomBySlug(contentRoom.slug);
+    assert.ok(readerRoom);
+    for (const task of readerRoom.tasks) {
+      assert.equal("expectedAnswer" in task, false, "the reader never receives the expected answer");
+      assert.equal("acceptedAnswers" in task, false, "the reader never receives other accepted answers");
+    }
+    const readerTask = (id: string) => readerRoom.tasks.find((task) => task.id === id);
+    assert.equal(readerTask(statusTask.id)?.answerPattern, "***");
+    assert.equal(readerTask(statusTask.id)?.chapterId, statusChapter.id);
+    assert.equal(readerTask(looseTask.id)?.answerPattern, "***{****_*}");
+    assert.equal(readerTask(secondTask.id)?.answerPattern, "******* ** *****");
+    const readerApi = await getRoomForMemberApi(contentRoom.slug, "STUDENT");
+    assert.ok(readerApi && "tasks" in readerApi);
+    assert.ok(
+      readerApi.tasks.every((task) => !("expectedAnswer" in task) && !("acceptedAnswers" in task) && !("hint" in task)),
+      "the room API carries no answers or hints"
+    );
+    assert.equal(JSON.stringify(readerApi).includes("defense in depth"), false);
+
+    await deleteRoomChapter(authorA, { chapterId: statusChapter.id });
+    const orphaned = await prisma.roomTask.findUniqueOrThrow({ where: { id: statusTask.id }, select: { chapterId: true } });
+    assert.equal(orphaned.chapterId, null, "deleting a chapter keeps its tasks, now without a chapter (shown under the last chapter)");
+    assert.deepEqual(
+      await chapterOrder(),
+      [
+        [introChapter.id, 0],
+        [requestChapter.id, 1]
+      ],
+      "deleting renumbers the remaining chapters"
+    );
+    const remainingEditTimes = Object.fromEntries(Object.entries(editTimesBeforeMove).filter(([id]) => id !== statusChapter.id));
+    assert.deepEqual(await chapterEditTimes(), remainingEditTimes, "deleting a chapter does not change the others' edit time");
+    await assert.rejects(
+      updateRoomChapter(authorA, { chapterId: statusChapter.id, title: "Gone", content: "" }),
+      /Chapter not found/
+    );
+
+    // -----------------------------------------------------------------------
+    // Optional quiz: removing it keeps attempt history and recalculates progress
+    // -----------------------------------------------------------------------
+    const { getRoomCompletionSnapshot } = await import("@/lib/services/progress-service");
+    const { getLearningActivity } = await import("@/lib/services/activity-service");
+
+    const quizRoom = await createRoomWithTasks(
+      {
+        learningPathId: secondPath.id,
+        title: "Quiz Removal Room",
+        slug: `quiz-removal-room-${testId}`,
+        description: "Temporary room whose quiz the instructor removes during the test.",
+        category: "Testing",
+        difficulty: "Beginner",
+        estimatedMinutes: 10,
+        points: 30,
+        orderIndex: 3,
+        isPublished: true,
+        tasks: [{ title: "Name the principle", description: "Name the principle that limits access.", expectedAnswer: "least privilege", points: 5 }]
+      },
+      authorA.id
+    );
+    const quizRoomTask = await prisma.roomTask.findFirstOrThrow({ where: { roomId: quizRoom.id } });
+    const { quiz: removableQuiz } = await upsertRoomQuiz(authorA, {
+      roomId: quizRoom.id,
+      title: "Removal Quiz",
+      description: "A quiz that the instructor removes later.",
+      passingScore: 50
+    });
+    const { question: removableQuestion } = await addQuizQuestion(authorA, {
+      quizId: removableQuiz.id,
+      question: "Which principle limits access to what is needed?",
+      explanation: "Least privilege grants only the access a task needs.",
+      options: [
+        { label: "Least privilege", isCorrect: true },
+        { label: "Shared admin", isCorrect: false }
+      ]
+    });
+    const removableOptions = await prisma.quizOption.findMany({ where: { questionId: removableQuestion.id } });
+    const passAnswers = { [removableQuestion.id]: removableOptions.find((option) => option.isCorrect)!.id };
+    const failAnswers = { [removableQuestion.id]: removableOptions.find((option) => !option.isCorrect)!.id };
+
+    const taskOnly = await makeProfile(Role.STUDENT, "qa"); // task benar, quiz gagal
+    const quizOnly = await makeProfile(Role.STUDENT, "qb"); // quiz lulus, task belum
+    const finisher = await makeProfile(Role.STUDENT, "qc"); // task benar, quiz lulus dua kali
+
+    await submitTaskAnswer(taskOnly.id, { taskId: quizRoomTask.id, answer: "least privilege" });
+    await submitQuizAttempt(taskOnly.id, { quizId: removableQuiz.id, answers: failAnswers });
+    await submitQuizAttempt(quizOnly.id, { quizId: removableQuiz.id, answers: passAnswers });
+    await submitTaskAnswer(finisher.id, { taskId: quizRoomTask.id, answer: "least privilege" });
+    await submitQuizAttempt(finisher.id, { quizId: removableQuiz.id, answers: passAnswers });
+    await submitQuizAttempt(finisher.id, { quizId: removableQuiz.id, answers: passAnswers });
+
+    const progressOf = (userId: string) => prisma.userRoomProgress.findUniqueOrThrow({ where: { userId_roomId: { userId, roomId: quizRoom.id } } });
+    assert.equal((await progressOf(taskOnly.id)).status, "IN_PROGRESS");
+    assert.equal((await progressOf(quizOnly.id)).progressPercentage, 50);
+    const finisherBefore = await progressOf(finisher.id);
+    assert.equal(finisherBefore.status, "COMPLETED");
+    const quizPointsOf = async (userId: string) =>
+      (await prisma.leaderboardPoint.aggregate({ where: { userId, sourceType: "QUIZ_COMPLETION" }, _sum: { points: true } }))._sum.points ?? 0;
+    const quizOnlyPointsBefore = await quizPointsOf(quizOnly.id);
+    assert.equal(quizOnlyPointsBefore, 30);
+
+    // Judul terakhir quiz yang tersimpan di riwayat, walau attempt dibuat saat judulnya masih lama.
+    await upsertRoomQuiz(authorA, { roomId: quizRoom.id, title: "Removal Quiz v2", description: "A quiz that the instructor removes later.", passingScore: 50 });
+
+    await assert.rejects(deleteRoomQuiz(authorB, { quizId: removableQuiz.id }), (error: unknown) => error instanceof ContentAccessError);
+    await assert.rejects(deleteRoomQuiz(authorA, { quizId: "not-a-uuid" }), (error: unknown) => error instanceof ZodError);
+    const removal = await deleteRoomQuiz(adminActor, { quizId: removableQuiz.id });
+    assert.equal(removal.roomId, quizRoom.id);
+    assert.equal(removal.room.slug, quizRoom.slug, "the result names the room for revalidation");
+    assert.equal(removal.recalculatedProgress, 3);
+    await assert.rejects(deleteRoomQuiz(adminActor, { quizId: removableQuiz.id }), /Quiz not found/);
+
+    assert.equal(await prisma.quiz.findUnique({ where: { id: removableQuiz.id } }), null);
+    assert.equal(await prisma.quizQuestion.count({ where: { quizId: removableQuiz.id } }), 0, "questions go with the quiz");
+    const keptAttempts = await prisma.userQuizAttempt.findMany({ where: { roomId: quizRoom.id } });
+    assert.equal(keptAttempts.length, 4, "every attempt survives the removal");
+    assert.ok(keptAttempts.every((entry) => entry.quizId === null && entry.quizTitle === "Removal Quiz v2"));
+
+    // Tanpa quiz, semua task benar berarti room selesai; yang hanya lulus quiz kini 0%. Tanggal selesai lama tetap.
+    const taskOnlyAfter = await progressOf(taskOnly.id);
+    assert.equal(taskOnlyAfter.status, "COMPLETED", "a member with every task solved completes the room once the quiz is gone");
+    assert.equal(taskOnlyAfter.progressPercentage, 100);
+    assert.ok(taskOnlyAfter.completedAt);
+    const quizOnlyAfter = await progressOf(quizOnly.id);
+    assert.equal(quizOnlyAfter.status, "IN_PROGRESS");
+    assert.equal(quizOnlyAfter.progressPercentage, 0);
+    const finisherAfter = await progressOf(finisher.id);
+    assert.equal(finisherAfter.status, "COMPLETED");
+    assert.equal(finisherAfter.completedAt?.getTime(), finisherBefore.completedAt?.getTime());
+    assert.equal(await quizPointsOf(quizOnly.id), quizOnlyPointsBefore, "points already awarded stay");
+    const snapshotAfter = await getRoomCompletionSnapshot(taskOnly.id, quizRoom.id);
+    assert.equal(snapshotAfter.hasQuiz, false);
+    assert.equal((await getRoomBySlug(quizRoom.slug))?.quiz, null);
+
+    // Riwayat: kueri halaman Dashboard/Progress/Profile tetap terbaca lewat room attempt, dan quiz lulus dihitung per room.
+    const passedRooms = (userId: string) =>
+      prisma.userQuizAttempt.groupBy({ by: ["roomId"], where: { userId, passed: true, roomId: { not: null } } });
+    assert.equal((await passedRooms(finisher.id)).length, 1, "passing the same quiz twice counts once");
+    assert.equal((await passedRooms(quizOnly.id)).length, 1, "a removed quiz still counts as passed");
+    assert.equal((await passedRooms(taskOnly.id)).length, 0);
+    const historyRows = await prisma.userQuizAttempt.findMany({
+      where: { userId: finisher.id },
+      select: { quizTitle: true, quiz: { select: { title: true } }, room: { select: { title: true, slug: true } } }
+    });
+    assert.ok(historyRows.every((entry) => entry.quiz === null && entry.room?.slug === quizRoom.slug && entry.quizTitle === "Removal Quiz v2"));
+    const finisherActivity = await getLearningActivity(finisher.id);
+    assert.equal(finisherActivity.calendar.total, 3, "the activity calendar still counts attempts of a removed quiz");
+
+    // Quiz boleh ditambahkan lagi; attempt lama tidak dihitung untuk quiz baru. Membuat quiz menghitung ulang progress
+    // semua peserta yang sudah mulai, jadi yang sudah COMPLETED kembali IN_PROGRESS sampai lulus quiz baru.
+    const fresh = await upsertRoomQuiz(authorA, { roomId: quizRoom.id, title: "Fresh Quiz", description: "A new quiz after the removal.", passingScore: 50 });
+    assert.equal(fresh.created, true);
+    assert.equal(fresh.recalculatedProgress, 3, "creating a quiz recalculates every member who started the room");
+    const snapshotWithNewQuiz = await getRoomCompletionSnapshot(quizOnly.id, quizRoom.id);
+    assert.equal(snapshotWithNewQuiz.hasQuiz, true);
+    assert.equal(snapshotWithNewQuiz.quizPassed, false);
+    for (const member of [taskOnly, finisher]) {
+      const reopenedProgress = await progressOf(member.id);
+      assert.equal(reopenedProgress.status, "IN_PROGRESS", "a new quiz reopens a completed room until it is passed");
+      assert.equal(reopenedProgress.progressPercentage, 50);
+      assert.equal(reopenedProgress.completedAt, null);
+    }
+    assert.equal((await progressOf(quizOnly.id)).progressPercentage, 0);
+    const freshSaved = await upsertRoomQuiz(authorA, { roomId: quizRoom.id, title: "Fresh Quiz", description: "A new quiz after the removal.", passingScore: 60 });
+    assert.equal(freshSaved.quiz.id, fresh.quiz.id);
+    assert.equal(freshSaved.created, false);
+    assert.equal(freshSaved.recalculatedProgress, 0, "saving an existing quiz's settings recalculates nothing");
+
+    // Poin quiz dibayar sekali per peserta per room: lulus quiz pengganti tidak membayar lagi.
+    const { question: freshQuestion } = await addQuizQuestion(authorA, {
+      quizId: fresh.quiz.id,
+      question: "Which principle limits access to what is needed?",
+      explanation: "Least privilege grants only the access a task needs.",
+      options: [
+        { label: "Least privilege", isCorrect: true },
+        { label: "Shared admin", isCorrect: false }
+      ]
+    });
+    const freshOptions = await prisma.quizOption.findMany({ where: { questionId: freshQuestion.id } });
+    const freshPass = { [freshQuestion.id]: freshOptions.find((option) => option.isCorrect)!.id };
+    await submitQuizAttempt(quizOnly.id, { quizId: fresh.quiz.id, answers: freshPass });
+    assert.equal(await quizPointsOf(quizOnly.id), 30, "passing a replacement quiz does not pay the room's quiz points again");
+    await submitQuizAttempt(taskOnly.id, { quizId: fresh.quiz.id, answers: freshPass });
+    await submitQuizAttempt(taskOnly.id, { quizId: fresh.quiz.id, answers: freshPass });
+    assert.equal(await quizPointsOf(taskOnly.id), 30, "a member who never passed a quiz in this room earns the points once");
+    const finisherReturn = await submitQuizAttempt(finisher.id, { quizId: fresh.quiz.id, answers: freshPass });
+    assert.equal(finisherReturn.roomCompleted, true, "passing the new quiz completes the room again");
+    assert.equal(await quizPointsOf(finisher.id), 30);
+
+    // Room yang hanya punya quiz: quiz tidak boleh dihapus, karena tanpa unit progress COMPLETED akan menjadi 0%
+    // dan tidak ada peserta yang bisa menyelesaikan room itu lagi.
+    const soleQuizRoom = await createRoomWithTasks(
+      {
+        learningPathId: secondPath.id,
+        title: "Quiz Only Room",
+        slug: `quiz-only-room-${testId}`,
+        description: "Temporary room whose only unit is its quiz.",
+        category: "Testing",
+        difficulty: "Beginner",
+        estimatedMinutes: 5,
+        points: 10,
+        orderIndex: 4,
+        isPublished: true,
+        tasks: [{ title: "Temporary task", description: "Removed before the quiz is added.", expectedAnswer: "gone", points: 5 }]
+      },
+      authorA.id
+    );
+    await deleteRoomTask(authorA, { taskId: soleQuizRoom.tasks[0].id });
+    const { quiz: soleQuiz } = await upsertRoomQuiz(authorA, {
+      roomId: soleQuizRoom.id,
+      title: "Sole Quiz",
+      description: "The only unit of this room.",
+      passingScore: 50
+    });
+    const { question: soleQuestion } = await addQuizQuestion(authorA, {
+      quizId: soleQuiz.id,
+      question: "Which principle limits access to what is needed?",
+      explanation: "Least privilege grants only the access a task needs.",
+      options: [
+        { label: "Least privilege", isCorrect: true },
+        { label: "Shared admin", isCorrect: false }
+      ]
+    });
+    const soleOptions = await prisma.quizOption.findMany({ where: { questionId: soleQuestion.id } });
+    const soleResult = await submitQuizAttempt(quizOnly.id, {
+      quizId: soleQuiz.id,
+      answers: { [soleQuestion.id]: soleOptions.find((option) => option.isCorrect)!.id }
+    });
+    assert.equal(soleResult.roomCompleted, true);
+    const soleProgress = () =>
+      prisma.userRoomProgress.findUniqueOrThrow({ where: { userId_roomId: { userId: quizOnly.id, roomId: soleQuizRoom.id } } });
+    const soleBefore = await soleProgress();
+    await assert.rejects(
+      deleteRoomQuiz(authorA, { quizId: soleQuiz.id }),
+      /Add at least one task before removing the quiz\. Without tasks or a quiz, members can't complete this room\./
+    );
+    assert.ok(await prisma.quiz.findUnique({ where: { id: soleQuiz.id } }), "the quiz of a room without tasks stays");
+    const soleAfter = await soleProgress();
+    assert.equal(soleAfter.status, "COMPLETED");
+    assert.equal(soleAfter.progressPercentage, 100);
+    assert.ok(soleBefore.completedAt);
+    assert.equal(soleAfter.completedAt?.getTime(), soleBefore.completedAt.getTime(), "the completion date is kept");
 
     // Legacy Markdown fidelity and display parity
     const legacy = markdownToHtml(

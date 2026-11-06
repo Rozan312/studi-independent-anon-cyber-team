@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CHAPTER_TITLE_MAX } from "@/lib/content/rich-text-config";
 
 export const uuidSchema = z.string().uuid();
 
@@ -134,11 +135,20 @@ export const scheduleDateSchema = z
   .optional()
   .transform((value) => (value ? new Date(value) : null));
 
-export const roomMetadataSchema = roomDraftSchema
-  .extend({
+/**
+ * Form Details room. Jadwal (availableFrom/Until) dan gambar sampul sengaja tidak ada di sini: jadwal disimpan
+ * lewat roomScheduleSchema di halaman Schedule & publishing, dan sampul belum punya tempat tampil. Kolom yang
+ * tidak dikirim tidak tersentuh, jadi simpan Details tidak pernah mengosongkan keduanya.
+ */
+export const roomMetadataSchema = roomDraftSchema.extend({
+  roomId: uuidSchema,
+  logoUrl: imageUrlSchema
+});
+
+/** Jadwal buka/tutup room; kosong berarti tanpa batas di sisi itu. */
+export const roomScheduleSchema = z
+  .object({
     roomId: uuidSchema,
-    coverImageUrl: imageUrlSchema,
-    logoUrl: imageUrlSchema,
     availableFrom: scheduleDateSchema,
     availableUntil: scheduleDateSchema
   })
@@ -147,24 +157,25 @@ export const roomMetadataSchema = roomDraftSchema
     path: ["availableUntil"]
   });
 
-/** Materi room. HTML dari editor visual (disanitasi di service) atau Markdown untuk data lama/skrip. */
-export const roomContentSchema = z.object({
-  roomId: uuidSchema,
-  content: z.string().max(200_000, "Material is too long (200,000 characters max)."),
-  contentFormat: z.enum(["MARKDOWN", "HTML"]).default("MARKDOWN")
-});
-
 export const publishRoomSchema = z.object({
   roomId: uuidSchema,
   isPublished: z.boolean()
 });
 
+/** Bab task: kosong atau tidak dikirim berarti tanpa bab (tampil di bab terakhir). Kepemilikan bab dicek di service. */
+const taskChapterSchema = z
+  .union([z.literal(""), uuidSchema])
+  .nullish()
+  .transform((value) => (value ? value : null));
+
 export const addRoomTaskSchema = roomTaskDraftSchema.extend({
-  roomId: uuidSchema
+  roomId: uuidSchema,
+  chapterId: taskChapterSchema
 });
 
 export const updateRoomTaskSchema = roomTaskDraftSchema.extend({
-  taskId: uuidSchema
+  taskId: uuidSchema,
+  chapterId: taskChapterSchema
 });
 
 export const moveDirectionSchema = z.enum(["up", "down"]);
@@ -177,11 +188,39 @@ export const moveRoomTaskSchema = taskReferenceSchema.extend({
   direction: moveDirectionSchema
 });
 
+// Bab materi room. Isi berupa HTML dari editor visual (disanitasi di service) atau Markdown untuk data lama/skrip.
+
+const chapterTitleSchema = z.string().trim().min(1).max(CHAPTER_TITLE_MAX);
+
+export const createRoomChapterSchema = z.object({
+  roomId: uuidSchema,
+  title: chapterTitleSchema
+});
+
+export const updateRoomChapterSchema = z.object({
+  chapterId: uuidSchema,
+  title: chapterTitleSchema,
+  content: z.string().max(200_000, "Material is too long (200,000 characters max)."),
+  contentFormat: z.enum(["MARKDOWN", "HTML"]).default("HTML")
+});
+
+export const chapterReferenceSchema = z.object({
+  chapterId: uuidSchema
+});
+
+export const moveRoomChapterSchema = chapterReferenceSchema.extend({
+  direction: moveDirectionSchema
+});
+
 export const quizUpsertSchema = z.object({
   roomId: uuidSchema,
   title: z.string().min(3).max(160),
   description: z.string().min(10).max(2000),
   passingScore: z.number().int().min(0).max(100)
+});
+
+export const quizReferenceSchema = z.object({
+  quizId: uuidSchema
 });
 
 export const quizOptionInputSchema = z.object({

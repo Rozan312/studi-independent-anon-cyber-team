@@ -16,12 +16,18 @@ export async function listPublishedLearningPaths() {
   return sortByDifficulty(paths);
 }
 
+// Kolom materi lama Room (content, contentFormat) hanya cadangan beku dari sebelum bab; tidak pernah ikut
+// dikirim, karena materi member dibaca per bab dengan cek terbit dan jadwal (lihat room-service.ts).
+const legacyRoomMaterial = { content: true, contentFormat: true } as const;
+
+/** Path terbit beserta room terbitnya (juga GET /api/learning-paths?slug=…). */
 export async function getLearningPathBySlug(slug: string) {
   return prisma.learningPath.findFirst({
     where: { slug, isPublished: true },
     include: {
       rooms: {
         where: { isPublished: true },
+        omit: legacyRoomMaterial,
         orderBy: { orderIndex: "asc" }
       }
     }
@@ -34,6 +40,7 @@ export async function getLearningPathProgressForCurrentUser(userId: string, slug
     include: {
       rooms: {
         where: { isPublished: true },
+        omit: legacyRoomMaterial,
         include: {
           userProgress: {
             where: { userId }

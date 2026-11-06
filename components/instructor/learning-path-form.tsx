@@ -6,7 +6,7 @@ import { createLearningPathAction, updateLearningPathAction } from "@/lib/action
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUploadField } from "@/components/instructor/image-upload-field";
-import { checkboxClass, helpClass, idleActionState, inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
+import { checkboxClass, checkboxLabelClass, helpClass, idleActionState, inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 
 export type LearningPathFormValues = {
   id: string;
@@ -170,7 +170,7 @@ export function LearningPathForm({
       </div>
 
       {mode === "create" ? (
-        <label className="flex items-center gap-2.5 font-display text-sm font-semibold text-ink">
+        <label className={checkboxLabelClass}>
           <input name="isPublished" type="checkbox" className={checkboxClass} disabled={disabled} />
           Publish as soon as it&apos;s created
         </label>

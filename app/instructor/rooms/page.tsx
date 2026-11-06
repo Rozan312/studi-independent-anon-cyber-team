@@ -50,7 +50,7 @@ export default async function InstructorRoomsPage() {
   return (
     <AppShell
       title="Room manager"
-      subtitle="Create rooms, write their material, tasks, and quiz, then publish them for members."
+      subtitle="Create rooms, write their material and tasks, add a quiz if you want one, then publish them for members."
       role={profile.role}
       actions={
         <>
@@ -113,7 +113,7 @@ export default async function InstructorRoomsPage() {
               <tbody className="divide-y divide-line">
                 {rooms.map((room) => {
                   const manageable = canManageContent(profile, room.createdById);
-                  const hasContent = room.content.trim().length > 0;
+                  const hasContent = room._count.chapters > 0;
                   const questionCount = room.quiz?._count.questions ?? 0;
                   const availability = getRoomAvailability(room);
 
@@ -139,9 +139,14 @@ export default async function InstructorRoomsPage() {
                         <ScheduleCell isPublished={room.isPublished} availability={availability} />
                       </td>
                       <td className={`${bodyCellClass} figure text-right align-top ${room._count.tasks > 0 ? "text-ink" : "text-amber"}`}>{room._count.tasks}</td>
-                      <td className={`${bodyCellClass} figure whitespace-nowrap text-right align-top ${questionCount > 0 ? "text-ink" : "text-amber"}`}>
-                        {questionCount} {questionCount === 1 ? "question" : "questions"}
-                      </td>
+                      {/* Quiz opsional: tanpa quiz cukup "None" netral; amber hanya untuk quiz tanpa pertanyaan, yang menahan room selesai. */}
+                      {room.quiz ? (
+                        <td className={`${bodyCellClass} figure whitespace-nowrap text-right align-top ${questionCount > 0 ? "text-ink" : "text-amber"}`}>
+                          {questionCount} {questionCount === 1 ? "question" : "questions"}
+                        </td>
+                      ) : (
+                        <td className={`${bodyCellClass} whitespace-nowrap text-right align-top text-ink-3`}>None</td>
+                      )}
                       <td className={`${bodyCellClass} figure text-right align-top font-semibold text-ink`}>{formatNumber(room.points)}</td>
                       <td className={`${bodyCellClass} align-top`}>
                         <div className="flex items-start justify-end gap-2">

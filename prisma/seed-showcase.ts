@@ -163,7 +163,7 @@ async function loadRooms() {
       slug: true,
       points: true,
       tasks: { orderBy: { orderIndex: "asc" }, select: { id: true, points: true, expectedAnswer: true } },
-      quiz: { select: { id: true, passingScore: true, _count: { select: { questions: true } } } }
+      quiz: { select: { id: true, title: true, passingScore: true, _count: { select: { questions: true } } } }
     }
   });
 }
@@ -295,7 +295,17 @@ async function createMember(member: DemoMember, index: number, rooms: Map<string
     } else if (event.room.quiz) {
       const quiz = event.room.quiz;
       await prisma.userQuizAttempt.create({
-        data: { userId: id, quizId: quiz.id, score: event.score, passed: event.passed, startedAt: event.at, completedAt: event.at, createdAt: event.at }
+        data: {
+          userId: id,
+          quizId: quiz.id,
+          roomId: event.room.id,
+          quizTitle: quiz.title,
+          score: event.score,
+          passed: event.passed,
+          startedAt: event.at,
+          completedAt: event.at,
+          createdAt: event.at
+        }
       });
       if (event.passed) {
         state.quizPassed = true;

@@ -1,13 +1,16 @@
 /**
  * Backfill non-destruktif untuk database yang sudah ada:
- * 1. Mengisi materi room seed yang masih kosong (tidak menimpa materi yang sudah ditulis instruktur).
- * 2. Mengisi hint dan jawaban alternatif task seed yang belum punya hint.
- * 3. Menghitung ulang seluruh UserRoomProgress dengan aturan penyelesaian tunggal.
+ * 1. Memberi bab materi seed ke room seed yang belum pernah punya materi sama sekali, dan memecah per bab
+ *    room seed yang babnya masih satu salinan migrasi yang belum disunting (bab yang sudah ditulis, disunting,
+ *    dikosongkan, atau dihapus instruktur tidak disentuh).
+ * 2. Mengganti judul bab pertama room seed yang hanya mengulang judul room menjadi "Introduction".
+ * 3. Mengisi hint dan jawaban alternatif task seed yang belum punya hint.
+ * 4. Menghitung ulang seluruh UserRoomProgress dengan aturan penyelesaian tunggal.
  *
  * Jalankan: npm run prisma:backfill-content
  */
-import { PrismaClient, ProgressStatus } from "@prisma/client";
-import { roomContentBySlug, taskHintsByRoomSlug } from "./seed-content";
+import { ContentFormat, PrismaClient, ProgressStatus } from "@prisma/client";
+import { INTRO_CHAPTER_TITLE, roomContentBySlug, sameTitle, splitSeedMaterialIntoChapters, taskHintsByRoomSlug } from "./seed-content";
 
 const prisma = new PrismaClient();
 
@@ -19,13 +22,78 @@ function computeRoomProgress(input: { taskCount: number; correctTaskCount: numbe
   return { percentage: isComplete ? 100 : Math.min(rawPercentage, 99), isComplete };
 }
 
-async function backfillContent() {
+async function backfillChapters() {
   let filled = 0;
+  let resplit = 0;
   for (const [slug, content] of Object.entries(roomContentBySlug)) {
-    const result = await prisma.room.updateMany({ where: { slug, content: "", contentFormat: "MARKDOWN" }, data: { content, contentFormat: "MARKDOWN" } });
-    filled += result.count;
+    const room = await prisma.room.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        contentFormat: true,
+        chapters: { select: { title: true, content: true, contentFormat: true } }
+      }
+    });
+    if (!room) continue;
+
+    // Satu bab salinan migrasi yang masih sama persis dengan teks seed (judul = judul room, belum disunting)
+    // dipecah ulang per heading. Isinya identik dengan seed dan Room.content, jadi tidak ada tulisan yang hilang.
+    const [only] = room.chapters;
+    const isMigratedSeedCopy =
+      room.chapters.length === 1 && only.title === room.title && only.contentFormat === ContentFormat.MARKDOWN && only.content === content;
+
+    // Room tanpa bab hanya diisi bila memang belum pernah punya materi: Room.content lama kosong dan masih
+    // Markdown bawaan. Room yang dikosongkan di editor visual (content "" berformat HTML) atau yang semua
+    // babnya dihapus instruktur (cadangan Room.content masih berisi) sengaja dibiarkan kosong.
+    const neverHadMaterial = room.chapters.length === 0 && room.content === "" && room.contentFormat === ContentFormat.MARKDOWN;
+    if (!neverHadMaterial && !isMigratedSeedCopy) continue;
+
+    const chapters = splitSeedMaterialIntoChapters(content, room.title);
+    if (chapters.length === 0 || (isMigratedSeedCopy && chapters.length < 2)) continue;
+
+    await prisma.$transaction([
+      prisma.roomChapter.deleteMany({ where: { roomId: room.id } }),
+      prisma.roomChapter.createMany({
+        data: chapters.map((chapter, index) => ({
+          roomId: room.id,
+          title: chapter.title,
+          content: chapter.content,
+          contentFormat: ContentFormat.MARKDOWN,
+          orderIndex: index
+        }))
+      })
+    ]);
+    if (isMigratedSeedCopy) resplit += 1;
+    else filled += 1;
   }
-  console.log(`materi room diisi: ${filled}`);
+  console.log(`room seed diberi bab materi: ${filled}; salinan migrasi dipecah per bab: ${resplit}`);
+}
+
+/**
+ * Bab pertama room seed yang judulnya sama dengan judul room (salinan migrasi atau hasil seed lama) diberi judul
+ * "Introduction", agar judul room tidak tampil dua kali di halaman room. Hanya untuk room dengan lebih dari satu
+ * bab: bila hanya satu bab, bab itu adalah seluruh materi dan halaman room menyembunyikan judulnya. Idempoten.
+ */
+async function renameIntroChapters() {
+  let renamed = 0;
+  for (const slug of Object.keys(roomContentBySlug)) {
+    const room = await prisma.room.findUnique({
+      where: { slug },
+      select: {
+        title: true,
+        chapters: { orderBy: { orderIndex: "asc" }, take: 2, select: { id: true, title: true, orderIndex: true, updatedAt: true } }
+      }
+    });
+    const first = room?.chapters[0];
+    if (!room || !first || room.chapters.length < 2 || first.orderIndex !== 0 || !sameTitle(first.title, room.title)) continue;
+
+    // updatedAt lama dikirim ulang: ganti judul otomatis ini bukan suntingan instruktur.
+    await prisma.roomChapter.update({ where: { id: first.id }, data: { title: INTRO_CHAPTER_TITLE, updatedAt: first.updatedAt } });
+    renamed += 1;
+  }
+  console.log(`bab pembuka diberi judul "${INTRO_CHAPTER_TITLE}": ${renamed}`);
 }
 
 async function backfillHints() {
@@ -72,7 +140,8 @@ async function recalculateAllProgress() {
 }
 
 async function main() {
-  await backfillContent();
+  await backfillChapters();
+  await renameIntroChapters();
   await backfillHints();
   await recalculateAllProgress();
 }

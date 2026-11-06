@@ -7,7 +7,7 @@ import { createInstructorRoomAction, type InstructorActionState } from "@/lib/ac
 import { EmptyState, SectionHeader } from "@/components/card";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { checkboxClass, helpClass, inputClass, labelClass, panelClass } from "@/components/instructor/form-styles";
+import { checkboxClass, checkboxLabelClass, helpClass, inputClass, labelClass, panelClass } from "@/components/instructor/form-styles";
 
 type LearningPathOption = {
   id: string;
@@ -196,7 +196,7 @@ function StarterTaskFields({ position, canRemove, onRemove }: { position: number
             className={`${inputClass} font-mono text-sm`}
           />
           <p id={`${id}-answer-help`} className={helpClass}>
-            Members type this to solve the task. Without it, the task can&apos;t be solved and the tasks after it stay locked.
+            Members type this to solve the task. Without it, the task can&apos;t be solved and the tasks after it in its chapter stay locked.
           </p>
         </div>
       </div>
@@ -343,7 +343,7 @@ export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathO
         <section className={panelClass}>
           <SectionHeader
             title="Starter tasks"
-            description="Add at least one task with a title, instructions (10+ characters), and the expected answer. Empty tasks are skipped. Add hints, other accepted answers, and more tasks later in the room editor."
+            description="Add at least one task with a title, instructions (10+ characters), and the expected answer. Empty tasks are skipped. Starter tasks show under the last chapter; move them to other chapters, add hints and other accepted answers, and add more tasks later in the room editor."
           />
 
           <div className="divide-y divide-line">
@@ -432,8 +432,8 @@ export function RoomBuilderForm({ paths, defaultPathId }: { paths: LearningPathO
 
           <div className="mt-5 space-y-4 border-t border-line pt-5">
             <div>
-              <label className="flex items-start gap-2.5 font-display text-sm font-semibold text-ink">
-                <input name="isPublished" type="checkbox" aria-describedby={`${id}-publish-help`} className={`${checkboxClass} mt-0.5`} />
+              <label className={checkboxLabelClass}>
+                <input name="isPublished" type="checkbox" aria-describedby={`${id}-publish-help`} className={checkboxClass} />
                 Publish immediately
               </label>
               <p id={`${id}-publish-help`} className={`${helpClass} pl-[1.625rem]`}>

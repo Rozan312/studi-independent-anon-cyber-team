@@ -101,6 +101,7 @@ export async function createInstructorRoomAction(_state: InstructorActionState, 
     revalidatePath("/instructor/rooms");
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.slug}`);
+    revalidatePath("/rooms/[slug]", "layout");
     revalidatePath("/learning-paths");
   } catch (error) {
     return actionError(error);
@@ -117,6 +118,7 @@ export async function publishInstructorRoomAction(_state: InstructorActionState,
     revalidatePath("/instructor/rooms");
     revalidatePath("/rooms");
     revalidatePath(`/rooms/${room.slug}`);
+    revalidatePath("/rooms/[slug]", "layout");
 
     return {
       tone: "success",

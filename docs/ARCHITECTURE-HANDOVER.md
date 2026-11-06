@@ -29,7 +29,7 @@ Halaman server dapat membaca service langsung; tidak wajib memanggil HTTP API mi
 2. `prisma/schema.prisma`: model dan constraint sebagai sumber kebenaran data.
 3. `lib/auth/rbac.ts`, `lib/auth/guards.ts`, `middleware.ts`: akses dan identitas.
 4. `lib/auth/local-session-core.ts`, `lib/auth/local-session.ts`, `lib/services/auth-service.ts`: perbedaan local/Supabase.
-5. `app/rooms/[slug]/page.tsx`, `components/rooms/task-submit-form.tsx`, `lib/actions/learning-actions.ts`, `lib/services/task-service.ts`: contoh fitur dari UI sampai DB.
+5. `app/rooms/[slug]/page.tsx` + `room-view.ts`, `components/rooms/chapter-tasks.tsx`, `components/rooms/task-submit-form.tsx`, `lib/actions/learning-actions.ts`, `lib/services/task-service.ts`: contoh fitur dari UI sampai DB (task tampil di bawah bab materi; `/rooms/[slug]/tasks` kini hanya redirect).
 6. `app/rooms/[slug]/quiz/quiz-view.tsx`, `app/api/quizzes/submit/route.ts`, `lib/services/quiz-service.ts`: contoh jalur JSON API.
 7. Service fitur yang akan diubah, schema Zod terkait, dan test relevan.
 8. `components/app-shell.tsx`, `app/globals.css`: shell dan desain bila perubahan menyentuh UI.
@@ -85,12 +85,13 @@ Matcher middleware meliputi halaman auth tertentu, student, instructor, admin. *
 
 ```text
 LearningPath 1 -> banyak Room
-Room         1 -> banyak RoomTask
+Room         1 -> banyak RoomChapter (materi per bab)
+Room         1 -> banyak RoomTask -> 0/1 RoomChapter (chapterId nullable, SET NULL)
 Room         1 -> 0/1 Quiz -> banyak QuizQuestion -> banyak QuizOption
 
 Profile + Room     -> UserRoomProgress (unik userId + roomId)
 Profile + RoomTask -> UserTaskSubmission (riwayat, boleh berkali-kali)
-Profile + Quiz     -> UserQuizAttempt (riwayat, boleh berkali-kali)
+Profile + Room     -> UserQuizAttempt (riwayat; quizId nullable SET NULL, roomId + quizTitle salinan)
 Profile           -> banyak LeaderboardPoint (event poin)
 
 Profile (instructor) -> banyak Class
@@ -99,7 +100,7 @@ Profile (author)     -> banyak Announcement
 Profile + Room      -> banyak LabSession
 ```
 
-`Room.quiz` satu per room karena `Quiz.roomId` unik. Urutan tugas/room/pertanyaan memakai `orderIndex`. `expectedAnswer` dan `QuizOption.isCorrect` adalah data penilaian server; query untuk peserta menghilangkan field tersebut pada jalur pembacaan terkait.
+`Room.quiz` satu per room karena `Quiz.roomId` unik, dan sejak 6 November 2026 opsional (boleh dihapus, lihat bagian 18). Urutan tugas/room/pertanyaan memakai `orderIndex`; `RoomTask.orderIndex` tetap satu deret 1..n per room, dan urutan di dalam bab mengikutinya. `expectedAnswer`, `acceptedAnswers`, dan `QuizOption.isCorrect` adalah data penilaian server; query untuk peserta menghilangkan field tersebut pada jalur pembacaan terkait (task peserta hanya membawa `answerPattern`).
 
 Banyak relasi memakai cascade delete. Penghapusan materi dapat ikut menghapus riwayat terkait; periksa `onDelete` sebelum menambah delete/archive. Author pengumuman memakai `Restrict`. `Room.createdById` dan `LearningPath.createdById` (nullable, `onDelete: SetNull`) mencatat pembuat konten. Aturan di `content-service.ts`: ADMIN bebas; INSTRUCTOR hanya untuk konten miliknya atau konten dengan `createdById` null (data seed/lama). Route API instruktur lama ikut memakai `assertCanManageRoom()`.
 
@@ -107,9 +108,11 @@ Banyak relasi memakai cascade delete. Penghapusan materi dapat ikut menghapus ri
 
 ### Jawaban Tugas
 
-`task-submit-form.tsx` -> `submitTaskAnswerAction()` -> `requireRole(["STUDENT"])` -> `submitTaskAnswer(profile.id, input)`.
+`chapter-tasks.tsx` (di bawah bab, `app/rooms/[slug]/page.tsx`) -> `task-submit-form.tsx` -> `submitTaskAnswerAction()` -> `requireRole(["STUDENT"])` -> `submitTaskAnswer(profile.id, input)`.
 
-Service memvalidasi input, mengambil tugas, lalu membandingkan jawaban yang dinormalisasi (trim, lowercase, spasi ganda diringkas) dengan `expectedAnswer` dan setiap `acceptedAnswers`. Setiap percobaan dicatat. Jawaban benar memicu poin tugas lalu `recalculateRoomProgress()`. Tidak ada expected answer berarti hasil salah. Service mengembalikan jumlah percobaan salah dan status hint: `RoomTask.hint` ditampilkan ke peserta setelah `HINT_UNLOCK_AFTER_WRONG_ATTEMPTS` (2) percobaan salah, dihitung di server pada halaman room. Room yang belum dipublish menolak submit.
+Urutan buka task (per bab, `chapterTaskStatuses()` di `lib/learning/chapters.ts`) hanya aturan tampilan; server tidak menolak jawaban untuk task yang masih terkunci, sama seperti sebelum bab ada.
+
+Service memvalidasi input, mengambil tugas, lalu membandingkan jawaban yang dinormalisasi (trim, lowercase, spasi ganda diringkas) dengan `expectedAnswer` dan setiap `acceptedAnswers`. Setiap percobaan dicatat. Jawaban benar memicu poin tugas lalu `recalculateRoomProgress()`. Tidak ada expected answer berarti hasil salah. Service mengembalikan jumlah percobaan salah dan status hint: `RoomTask.hint` ditampilkan ke peserta setelah `HINT_UNLOCK_AFTER_WRONG_ATTEMPTS` (2) percobaan salah, dihitung di server pada halaman room. `GET /api/rooms?slug=…` (`getRoomForMemberApi()`) tidak pernah mengirim hint (hanya `hasHint`), dan untuk room yang belum dibuka atau sudah ditutup hanya mengirim ringkasan dan jadwal ke student. Room yang belum dipublish menolak submit.
 
 Action mengembalikan `{ tone, message }` dan merevalidasi room, progress, leaderboard bila `roomSlug` tersedia. `roomSlug` bukan bukti hak akses tugas.
 
@@ -117,7 +120,7 @@ Action mengembalikan `{ tone, message }` dan merevalidasi room, progress, leader
 
 `quiz-view.tsx` -> `POST /api/quizzes/submit` -> guard -> `submitQuizAttempt()`.
 
-Input answers berbentuk map `questionId -> optionId`. Service menghitung persentase jawaban benar dan membandingkan `passingScore`, menyimpan attempt, lalu memanggil `recalculateRoomProgress()`. Lulus memberi poin sebesar `max(room.points, 0)` sekali per quiz. Respons menyertakan `review` per pertanyaan (jawaban peserta, jawaban benar, penjelasan) yang ditampilkan `quiz-view.tsx` setelah submit; ini keputusan produk agar peserta belajar dari pembahasan, dengan konsekuensi jawaban benar terlihat setelah attempt.
+Input answers berbentuk map `questionId -> optionId`. Service menghitung persentase jawaban benar dan membandingkan `passingScore`, menyimpan attempt (dengan salinan `roomId` dan `quizTitle`), lalu memanggil `recalculateRoomProgress()`. Lulus memberi poin sebesar `max(room.points, 0)` sekali per peserta per room: event tetap `sourceId` = id quiz (dedup per quiz di `addLeaderboardPoints()`), dan peserta yang punya attempt lulus pada quiz room ini yang sudah dihapus (`quizId` null, `roomId` sama) tidak dibayar lagi oleh quiz penggantinya. Respons menyertakan `review` per pertanyaan (jawaban peserta, jawaban benar, penjelasan) yang ditampilkan `quiz-view.tsx` setelah submit; ini keputusan produk agar peserta belajar dari pembahasan, dengan konsekuensi jawaban benar terlihat setelah attempt.
 
 ### Progress Memakai Satu Aturan
 
@@ -161,7 +164,7 @@ Catatan ini adalah observasi static read, bukan hasil eksploitasi atau audit len
 
 | Area | Kondisi sekarang | Implikasi untuk perubahan |
 | --- | --- | --- |
-| Publikasi materi | List/detail room memfilter published; `getRoomTasks(roomId)` dan submit task/quiz tidak menerapkan filter yang sama | Jangan menganggap ID valid berarti materi boleh diakses |
+| Publikasi materi | List/detail room memfilter published; `getRoomTasks(roomId, role)` (`GET /api/rooms?roomId=`) sejak 6 November 2026 juga (null untuk draft/ID asing, daftar kosong untuk member bila room di luar jadwal); submit task/quiz memakai cek jadwal, bukan filter yang sama | Jangan menganggap ID valid berarti materi boleh diakses |
 | Role vs resource | Konten path/room/task/quiz dicek kepemilikannya di `content-service.ts`; lab session PATCH dan kelas masih berbasis role saja | Gunakan pola `actor` + `requireManaged*` saat menambah mutasi baru |
 | Progress | Satu aturan di `progress-service.ts` (semua task benar + quiz lulus) | Panggil `recalculateRoomProgress()`, jangan tulis `UserRoomProgress` langsung |
 | Poin | Check-then-create tanpa unique constraint gabungan | Test concurrency dan constraint diperlukan bila diperkuat |
@@ -172,7 +175,7 @@ Catatan ini adalah observasi static read, bukan hasil eksploitasi atau audit len
 
 | Permintaan | Mulai dari | Verifikasi relevan |
 | --- | --- | --- |
-| Sidebar/layout | `components/app-shell.tsx` (server), `components/app-shell-frame.tsx` (client), `app/globals.css`, `DESIGN.md` | Desktop/mobile, collapse, localStorage, drawer (fokus, Escape), overlap |
+| Sidebar/layout | `components/app-shell.tsx` (server), `components/app-shell-frame.tsx` (client), `app/globals.css`, `DESIGN.md` | Desktop/mobile, collapse lewat tombol tepi, cookie `act-rail-collapsed` (tanpa animasi saat pindah halaman), tooltip rail diciutkan, drawer (fokus, Escape), overlap |
 | Tampilan/komponen | `DESIGN.md`, token di `app/globals.css` + `tailwind.config.ts`, `components/card.tsx`, `components/paper/*` | Kontras, 390 px tanpa scroll horizontal, satu tombol cyan per tampilan |
 | Login/role | Auth service, guards, middleware, sesi | Kedua auth mode, role cookie/DB, akses API |
 | Tugas/kuis/poin | Service terkait, Zod, schema | Submission ulang, gagal/lulus, progress, poin |
@@ -202,14 +205,17 @@ Prompt awal yang bisa dipakai:
 /instructor/paths            -> LearningPathForm -> createLearningPathAction / updateLearningPathAction
 /instructor/paths/[id]       -> daftar room di path, PublishToggleForm (toggleLearningPathPublishAction)
 /instructor/rooms/new        -> RoomBuilderForm -> createInstructorRoomAction (createdById = actor) -> redirect editor
-/instructor/rooms/[id]       -> RoomMetadataForm | MaterialEditor | TaskEditor | QuizEditor | PublishToggleForm
+/instructor/rooms/[id]       -> layout.tsx (judul, RoomEditorNav di samping) + satu halaman per seksi:
+                                 (akar) RoomMetadataForm | /schedule PublishToggleForm | /material ChapterList
+                                 | /material/[chapterId] MaterialEditor | /tasks TaskEditor | /quiz QuizEditor
                                  -> lib/actions/content-actions.ts -> lib/services/content-service.ts -> Prisma
 ```
 
 - Semua action memanggil `requireRole(["INSTRUCTOR"])` lalu meneruskan profil sebagai `actor`. Service memeriksa `canManageContent(actor, createdById)` sebelum menulis; pelanggaran melempar `ContentAccessError` yang ditampilkan sebagai pesan form.
 - `getRoomForEditor()` mengembalikan `expectedAnswer` dan `QuizOption.isCorrect` karena hanya dipakai halaman instruktur. Jalur student (`getRoomBySlug`, `getQuizByRoomSlug`) tetap menyembunyikan kunci jawaban.
-- Task dan pertanyaan quiz dinomori ulang (`orderIndex` 1..n) setiap kali dipindah atau dihapus. `QuizOption.orderIndex` menjaga urutan opsi; `updateQuizQuestion()` mengganti seluruh opsi dalam satu transaksi.
-- `Room.content` disimpan bersama `Room.contentFormat` (`MARKDOWN` untuk data lama/seed, `HTML` untuk hasil editor visual). Sejak 21 Oktober 2026 editor materi adalah TipTap (lihat bagian 14); rendering ke student memakai `components/content/room-material.tsx`.
+- Task dan pertanyaan quiz dinomori ulang (`orderIndex` 1..n) setiap kali dipindah atau dihapus. Sejak 6 November 2026 `moveRoomTask()` menukar task dengan tetangga terdekat di bab tampil yang sama, jadi task di bab lain tidak bergeser (lihat bagian 18). `QuizOption.orderIndex` menjaga urutan opsi; `updateQuizQuestion()` mengganti seluruh opsi dalam satu transaksi.
+- Materi disimpan per bab di `RoomChapter` (`title`, `content`, `contentFormat`, `orderIndex` 0..n-1; `MARKDOWN` untuk data lama/seed, `HTML` untuk hasil editor visual). Sejak 21 Oktober 2026 editor materi adalah TipTap (lihat bagian 14); rendering ke student memakai `components/content/room-material.tsx`. Sejak 6 November 2026 `Room.content`/`Room.contentFormat` hanya cadangan lama (migration `20261106100000_room_chapters` menyalinnya ke bab 1); aplikasi tidak membaca atau menulisnya lagi.
+- `layout.tsx` dan halaman seksi editor room memuat data lewat `loadRoomEditor()` (`app/instructor/rooms/[id]/editor-data.ts`, dibungkus `cache()`), jadi satu request hanya sekali cek peran dan sekali query room.
 
 ### Media
 
@@ -231,9 +237,9 @@ Prompt awal yang bisa dipakai:
 
 - Sumber kebenaran: `lib/learning/availability.ts` (`getRoomAvailability`) yang menghasilkan state `draft | upcoming | open | closed` dari `isPublished`, `availableFrom`, `availableUntil`. Modul ini bebas `server-only` sehingga dipakai halaman server, komponen client, dan service.
 - Penegakan di server: `submitTaskAnswer()`, `submitQuizAttempt()`, dan `createLabSessionPlaceholder()` melempar `availabilityErrorMessage()` bila room tidak `open`. Halaman room, quiz, dan lab menampilkan notice untuk student; role INSTRUCTOR ke atas tetap dapat melihat isi room sebagai preview (submit dari akun tersebut tetap ditolak server).
-- Form metadata room mengirim `availableFrom`/`availableUntil` sebagai ISO string. Input `datetime-local` dikonversi dengan `dateTimeLocalToIso()` memakai zona waktu tampilan (`NEXT_PUBLIC_TIME_ZONE`, default `Asia/Jakarta`) agar server dan browser sepakat. `roomMetadataSchema` menolak tanggal tutup yang tidak lebih besar dari tanggal buka dan tidak lagi menyertakan `content`, sehingga menyimpan metadata tidak menimpa materi.
+- Jadwal disimpan lewat form tersendiri di halaman editor Schedule & publishing (`components/instructor/room-schedule-form.tsx` -> `updateRoomScheduleAction` -> `updateRoomSchedule()`), yang mengirim `availableFrom`/`availableUntil` sebagai ISO string. Input `datetime-local` dikonversi dengan `dateTimeLocalToIso()` memakai zona waktu tampilan (`NEXT_PUBLIC_TIME_ZONE`, default `Asia/Jakarta`) agar server dan browser sepakat. `roomScheduleSchema` menolak tanggal tutup yang tidak lebih besar dari tanggal buka. `roomMetadataSchema` (form Details) tidak menyertakan jadwal, sampul, maupun `content`, sehingga menyimpan Details tidak menimpa jadwal, sampul lama, atau materi (diperiksa test smoke).
 - Daftar room untuk student (`listPublishedRooms`) tetap mengembalikan room terjadwal agar peserta melihat kapan room dibuka; penyaringan akses terjadi di halaman detail dan service, bukan di query daftar.
-- Cover: `LearningPath.coverImageUrl` dan `Room.coverImageUrl` diisi lewat `ImageUploadField` (upload ke `/api/media`) dan dirender dengan `<img>` biasa karena URL media memerlukan cookie sesi yang tidak dikirim oleh optimizer `next/image`.
+- Cover: `LearningPath.coverImageUrl` diisi lewat `ImageUploadField` (upload ke `/api/media`) dan dirender dengan `<img>` biasa karena URL media memerlukan cookie sesi yang tidak dikirim oleh optimizer `next/image`. `Room.coverImageUrl` tetap ada di skema, tetapi sejak kolom samping halaman room dihapus (6 November 2026) tidak ada tempat member melihatnya, jadi form Details room tidak lagi menawarkannya dan nilainya yang lama dibiarkan.
 
 ## 13. Komposisi Learning Path (ditambahkan 16 September 2026)
 
@@ -245,28 +251,29 @@ Prompt awal yang bisa dipakai:
 ## 14. Editor Materi Visual dan Sanitasi HTML (ditambahkan 21 Oktober 2026)
 
 ```text
-/instructor/rooms/[id]  (server)
-  roomMaterialToEditorHtml(content, contentFormat)   -> HTML bersih (Markdown lama dikonversi unified/remark)
-  -> MaterialEditor (client form) -> RichTextEditor (TipTap) -> hidden input content + contentFormat=HTML
-  -> updateRoomContentAction -> updateRoomContent -> prepareRichHtmlForStorage (sanitize + kosongkan bila hampa)
+/instructor/rooms/[id]/material/[chapterId]  (server)
+  roomMaterialToEditorHtml(chapter.content, chapter.contentFormat)   -> HTML bersih (Markdown lama dikonversi unified/remark)
+  -> MaterialEditor (client form: judul bab + editor) -> RichTextEditor (TipTap) -> hidden input content + contentFormat=HTML
+  -> updateRoomChapterAction -> updateRoomChapter -> prepareRichHtmlForStorage (sanitize + kosongkan bila hampa)
 
-/rooms/[slug]  (server)
-  RoomMaterial -> renderRoomMaterialHtml(content, contentFormat) -> sanitize + bungkus tabel -> dangerouslySetInnerHTML
+/rooms/[slug]?chapter=N  (server)
+  getRoomBySlug (daftar bab tanpa isi) -> getRoomChapterForReader (isi satu bab)
+  -> RoomChapterPanel -> RoomMaterial -> renderRoomMaterialHtml(content, contentFormat) -> sanitize + bungkus tabel -> dangerouslySetInnerHTML
 ```
 
 - `lib/content/rich-text.ts` (server-only) adalah satu-satunya tempat sanitasi. Allowlist tag, atribut, kelas, dan gaya mengikuti output TipTap; gaya inline dibatasi ke `color`/`background-color` (hex, rgb, rgba), `font-size` 8-96 px, `font-family` (huruf, angka, spasi, koma, kutip, tanda hubung), `text-align`, serta `width`/`min-width` px untuk tabel. `img` hanya `/api/media/<uuid>` atau `https://`. Link http(s) diberi `target=_blank` dan `rel=noopener noreferrer nofollow`. Checkbox daftar centang selalu `disabled` di tampilan student.
 - `lib/content/rich-text-config.ts` berisi konstanta bersama client dan server (font, ukuran, palet, validasi URL). Tambah opsi baru di sini, lalu pastikan polanya lolos allowlist di `rich-text.ts` (tes "Rich text material" di smoke test memeriksa format utama tetap utuh).
-- `components/content/room-material.tsx` adalah satu-satunya sink `dangerouslySetInnerHTML` untuk materi. Jangan merender `Room.content` di tempat lain tanpa melewati `renderRoomMaterialHtml`.
+- `components/content/room-material.tsx` adalah satu-satunya sink `dangerouslySetInnerHTML` untuk materi. Jangan merender isi bab (`RoomChapter.content`) di tempat lain tanpa melewati `renderRoomMaterialHtml`.
 - `components/editor/rich-text-editor.tsx` memakai `immediatelyRender: false` untuk SSR Next.js, `useEditorState` untuk status toolbar (TipTap 3 tidak re-render tiap transaksi), dan `handlePaste`/`handleDrop` untuk upload gambar. Item daftar centang di editor dirender lewat node view tanpa atribut `data-type`, sehingga CSS memakai selektor `ul[data-type="taskList"] > li`.
 - Isi editor kosong (`<p></p>`) disimpan sebagai string kosong agar indikator "Materi kosong/ada" tetap akurat.
-- Satu-satunya jalur aplikasi yang menulis `Room.content` adalah `updateRoomContent()` (kolom `content` dihapus dari `roomDraftSchema`, sehingga Room Builder dan `POST/PATCH /api/instructor/rooms` tidak bisa menulis materi). Seed dan backfill menulis Markdown dengan `contentFormat = MARKDOWN` eksplisit.
+- Satu-satunya jalur aplikasi yang menulis isi materi adalah `updateRoomChapter()`; bab dibuat, dipindah, dan dihapus lewat `createRoomChapter()`, `moveRoomChapter()`, `deleteRoomChapter()` (penomoran ulang 0..n-1), semuanya dengan cek kepemilikan room dan ikut memperbarui `Room.updatedAt`. Penomoran ulang hanya menulis bab yang urutannya berubah dan mengirim ulang `updatedAt` lamanya, sehingga label "Edited …" di daftar bab hanya berubah oleh suntingan judul atau isi. Kolom `content` tidak ada di `roomDraftSchema`, sehingga Room Builder dan `POST/PATCH /api/instructor/rooms` tidak bisa menulis materi; `Room.content`/`contentFormat` tidak ikut di query member mana pun (`listPublishedRooms`, `getRoomBySlug`, dan room di `learning-path-service.ts` memakai `omit`). Seed memecah Markdown tiap room menjadi bab di heading `## ` dengan `contentFormat = MARKDOWN` eksplisit (dan masih menulis `Room.content` sebagai cadangan); bab pembuka yang hanya mengulang judul room diberi judul "Introduction". Backfill (`npm run prisma:backfill-content`) menambah bab hanya ke room seed yang belum pernah punya materi (tanpa bab, `Room.content` kosong berformat MARKDOWN; room yang dikosongkan atau semua babnya dihapus instruktur tidak diisi ulang), memecah per bab room seed yang babnya masih satu salinan migrasi yang identik dengan teks seed (bab yang sudah disunting tidak disentuh), dan mengganti judul bab pertama room seed berbab lebih dari satu yang sama dengan judul room menjadi "Introduction".
 - `markdownToHtml()` memakai `remark-rehype` dengan `allowDangerousHtml` lalu plugin `rehypeLegacyMarkdownCompat` yang mengubah node `raw` menjadi teks (perilaku react-markdown lama), mengganti gambar tak diizinkan dengan link, memetakan task list GFM ke markup TipTap, membuka `<p><img></p>`, dan membuang baris baru di akhir blok kode. Sanitizer memetakan `h5/h6` ke `h4`, `align` sel tabel ke `text-align`, dan `font-size` pt ke px; spasi beruntun di luar kode disimpan sebagai `&nbsp;`.
 - `prepareRichHtmlForStorage()` membuang paragraf kosong di akhir dokumen (dari TrailingNode) secara linear; jangan ganti dengan regex bertingkat karena berisiko backtracking kuadratik pada input besar.
 - `renderRoomMaterialHtml()` menambah penyesuaian khusus tampilan: pembungkus `.table-scroll`, penggandaan `<br>` di akhir blok agar baris kosong terlihat seperti di editor, dan label `sr-only` "Done:/Not done:" untuk checkbox.
 - Editor: `transformPastedHTML` memakai `lib/content/paste-normalize.ts`; `handlePaste` hanya mengunggah bila clipboard benar-benar berisi gambar saja (`isPureImagePaste`); `onCreate` mengirim transaksi kosong sebelum mengambil baseline agar paragraf penutup otomatis tidak dianggap perubahan. Setelah simpan, `MaterialEditor` membandingkan struktur dokumen (`generateJSON`) antara yang dikirim dan yang tersimpan, dan hanya menyelaraskan editor bila server benar-benar membuang sesuatu.
 - Review terstruktur 21 Oktober 2026 (keamanan, kesetiaan format, integrasi React/TipTap, data, tampilan) menghasilkan 33 temuan: 32 terkonfirmasi verifikator dan sudah diperbaiki, 1 sudah tertutup oleh perubahan sebelumnya. Fuzzing keamanan tidak menemukan bypass XSS pada sanitizer.
 - Konfigurasi editor yang disengaja: `enableInputRules` hanya untuk ekstensi blok (daftar, judul, kutipan, blok kode, garis) dan `enablePasteRules: ["link"]`, karena aturan inline TipTap memakan `*`, `_`, `==`, `~~` pada perintah/kode. Link `shouldAutoLink` hanya menerima URL `http(s)://`. Gambar memakai `resize` bawaan TipTap; CSS pegangan ada di `globals.css` (`[data-resize-handle]`).
-- `MaterialEditor` melacak status belum-disimpan dengan `editor.state.doc.eq(baseline)` dan membentuk HTML hanya di `onSubmit` (React membentuk FormData setelah `onSubmit`), sehingga mengetik tetap ringan pada materi panjang. Panjang HTML dicek ulang setelah jeda 600 ms.
+- `MaterialEditor` melacak status belum-disimpan dengan `editor.state.doc.eq(baseline)` dan membentuk HTML hanya di `onSubmit` (React membentuk FormData setelah `onSubmit`), sehingga mengetik tetap ringan pada materi panjang. Panjang HTML dicek ulang setelah jeda 600 ms. Bila sesi habis, middleware mengalihkan request action ke `/login` dan Next menyelesaikan action dengan hasil `undefined` tanpa pindah halaman; `MaterialEditor` membungkus action-nya dan mengubah hasil kosong itu menjadi pesan "Your session ended…", sehingga editor tetap terpasang dan suntingan tidak hilang. Bab Markdown lama yang belum disimpan ulang berstatus "Not yet saved in the new format." (bukan "All changes saved."), tanpa peringatan keluar karena member tetap membaca Markdown-nya.
 - `paste-normalize.ts` juga mengubah paragraf daftar Word (`mso-list`) menjadi `ul/ol/li` bersarang dan menerapkan kelas gaya sel Excel (`.xlNN`) ke sel tabel.
 - Perubahan ini bersifat forward-only: kode lama tidak mengenal `contentFormat = HTML`. Lihat catatan rollback di handover utama.
 
@@ -283,7 +290,7 @@ Sumber kebenaran tampilan adalah `DESIGN.md` (token, tipografi, komponen, aturan
 - **Format**: tanggal lewat `lib/format/date.ts` dan `formatScheduleDate` (bulan tiga huruf, zona "WIB/WITA/WIT" dari `NEXT_PUBLIC_TIME_ZONE`); nomor anggota bergaya seri `ACT · XXXX · XXXX` dari `lib/format/member.ts` (turunan id profil). Urutan kesulitan lewat `sortByDifficulty`; poin yang ditampilkan lewat `earnablePoints`; peringkat leaderboard memakai peringkat kompetisi di `lib/services/leaderboard-service.ts`.
 - **Tabel di layar sempit**: `.overflow-x-auto` dan `.table-scroll` diberi `position: relative` di `globals.css` agar label `sr-only` di dalam tabel tidak melebarkan halaman. Grid responsif memakai `grid-cols-1` sebagai dasar agar kolom tidak melebar karena konten.
 - **Tema gelap/terang**: gelap adalah bawaan (`:root`); `:root[data-theme="light"]` di `app/globals.css` mendefinisikan ulang semua token warna, sehingga komponen yang memakai token ikut berubah tanpa kode tambahan. Materi room (`.prose-cyber`, dipakai student view dan editor) ikut tema; di tema gelap (`:root:not([data-theme="light"])`) elemen ber-`style` warna di dalamnya diberi `filter: invert(1) hue-rotate(180deg)` (kecuali `mark` dan `color:inherit`, dan tidak dua kali untuk elemen bertingkat) agar warna pilihan instruktur (dikalibrasi untuk latar terang) tetap terbaca. Warna di database tidak berubah. Contoh warna teks di toolbar editor (huruf "A" di palet dan garis warna di ikon tombol warna teks) memakai kelas `.swatch-ink`, sehingga ikut dibalik di tema gelap dan menampilkan warna yang benar-benar tampil di materi; swatch stabilo tidak dibalik. Status tema dikelola `useLightMode`/`ThemeToggle` (`components/theme/theme-toggle.tsx`): menulis `localStorage` `act-theme` (`"light"` atau `"dark"`; kunci belum ada sampai tombol pertama kali ditekan, dan nilai selain `"light"` dibaca sebagai gelap), memasang/melepas `data-theme` di `<html>`, dan menyiarkan event `act-theme-change` agar semua tombol tersinkron. `app/layout.tsx` memuat skrip `beforeInteractive` berisi konstanta (bukan input pengguna) yang membaca preferensi sebelum paint; `<html>` diberi `suppressHydrationWarning` karena atributnya berubah sebelum hydrate. Jangan menulis warna hex langsung di komponen baru; pakai token agar kedua tema tetap benar.
-- **Animasi**: `page-enter` dipasang di kontainer konten `AppShellFrame` (frame dipasang ulang setiap halaman, jadi animasi berjalan per navigasi). Drawer mobile selalu terpasang; status buka/tutup diatur dengan `visibility` + `transform`, dan `inert` disinkronkan lewat ref agar elemen tersembunyi tidak bisa difokus. `.btn-primary` memakai token `--on-cyan` untuk teks di atas cyan (sama di tema gelap dan terang).
+- **Animasi**: `page-enter` dipasang di kontainer konten `AppShellFrame` (frame dipasang ulang setiap halaman, jadi animasi berjalan per navigasi). Rail desktop tidak ikut beranimasi saat pindah halaman: status ciutnya dari cookie (bagian 18), dan transisi lebar/padding baru dipasang setelah pengguna menekan tombol tepi. Drawer mobile selalu terpasang; status buka/tutup diatur dengan `visibility` + `transform`, dan `inert` disinkronkan lewat ref agar elemen tersembunyi tidak bisa difokus. `.btn-primary` memakai token `--on-cyan` untuk teks di atas cyan (sama di tema gelap dan terang).
 
 ## 16. Aktivitas Harian dan Data Showcase (ditambahkan 21 Oktober 2026)
 
@@ -302,4 +309,29 @@ Sumber kebenaran tampilan adalah `DESIGN.md` (token, tipografi, komponen, aturan
 - `components/paper/fallback-image.tsx` (client): menampilkan `fallback` bila gambar gagal, termasuk gagal sebelum hydrate (`complete && naturalWidth === 0`, dikonfirmasi `decode()`).
 - Target sentuh: varian `coarse:` di `tailwind.config.ts` dan blok `@media (pointer: coarse)` tanpa layer di `app/globals.css` (setelah utilities, jadi mengalahkan kelas komponen `.btn-*`, `.input`, `select`). Kelas `.tap-target` memberi area sentuh 44 px lewat `::after` tanpa mengubah tampilan.
 - Token baru `--line-input` (tepi field dan titik hari kosong heatmap) didefinisikan untuk tema gelap dan terang, dipetakan ke `border-line-input` / `ring-line-input`.
+
+## 18. Task per Bab, Quiz Opsional, Pola Jawaban, dan Rail (ditambahkan 6 November 2026)
+
+Migration `20261106120000_chapter_tasks_quiz_history` (forward-only; DDL sama dengan diff Prisma ditambah dua UPDATE data):
+
+- **`RoomTask.chapterId`** (UUID nullable, FK ke `RoomChapter`, `ON DELETE SET NULL`, indeks `[chapterId, orderIndex]`). Task lama dipindah ke bab terakhir room-nya (`orderIndex` terbesar, lalu `createdAt` terbaru); room tanpa bab tetap `NULL`. Bab tampil sebuah task dihitung `taskChapterId(chapterId, chapters)` di `lib/learning/chapters.ts`: bab pilihannya bila masih ada, selain itu bab terakhir; `null` hanya untuk room tanpa bab. `chapters` harus berurutan `orderIndex` lalu `createdAt`, sama dengan `getRoomBySlug()`.
+- **`UserQuizAttempt.quizId`** kini nullable dengan `ON DELETE SET NULL`; kolom baru **`roomId`** (FK ke `Room`, `ON DELETE CASCADE`, indeks `[userId, roomId]`) dan **`quizTitle`** (`TEXT NOT NULL DEFAULT ''`) diisi dari quiz untuk semua attempt lama. `submitQuizAttempt()` menulis keduanya pada setiap attempt baru. Dashboard, Progress, dan Profile membaca room lewat `attempt.roomId` (bukan `attempt.quiz.room`), memakai `quizTitle` bila quiz sudah tidak ada, dan menghitung "Quizzes passed" sebagai jumlah room berbeda dengan attempt lulus (`groupBy roomId`). Jangan menulis query riwayat baru yang mengandalkan `attempt.quiz` tidak null.
+
+Aturan dan fungsi:
+
+- **Urutan buka per bab**: `chapterTaskStatuses(tasks, chapters, solvedTaskIds)` (`completed | active | locked`); di dalam satu bab task terbuka berurutan, bab lain tidak ikut terkunci. `loadMemberRoom()` (`app/rooms/[slug]/room-view.ts`) mengelompokkan task per bab (`chapterTasks`) dan menghitung `openTasksHref` (bab paling awal yang masih punya task belum benar, `?chapter=N#tasks`) serta `tasksHref` (selalu ada). `taskChapterHref(slug, chapterId, chapters)` membentuk tautan bab sebuah task dan dipakai Profile (riwayat jawaban) dan dashboard (tombol Resume room serta "Next task" yang kini mengikuti urutan baca). `/rooms/[slug]/tasks` hanya redirect ke `tasksHref` (atau ke halaman room bila room di luar jadwal untuk member).
+- **Task authoring**: `addRoomTaskAction` / `updateRoomTaskAction` membaca field `chapterId` (kosong = tanpa bab); bab dari room lain ditolak (`requireChapterInRoom`). Task baru masuk ke akhir room (jadi terakhir di babnya). `updateRoomTask()` memindah task ke akhir hanya bila bab tampilnya berubah ("tanpa bab" dan "bab terakhir" dianggap tempat yang sama). `deleteRoomChapter()` membiarkan task-nya; FK membuat `chapterId` null sehingga task tampil di bab terakhir.
+- **Hapus quiz**: `deleteRoomQuiz(actor, { quizId })` (`content-service.ts`, cek kepemilikan room; admin boleh) dalam satu transaksi menyalin `roomId` + judul quiz terkini ke semua attempt lalu menghapus quiz (pertanyaan dan opsinya ikut cascade). Sesudahnya `recalculateRoomProgress()` dijalankan untuk setiap `UserRoomProgress` room itu yang bukan `NOT_STARTED` (`recalculateRoomLearners()`); tanpa quiz, semua task benar berarti room `COMPLETED`. Room tanpa task menolak penghapusan (`UserFacingError` "Add at least one task before removing the quiz…") karena tanpa unit room tidak bisa selesai dan progress `COMPLETED` akan menjadi 0% tanpa `completedAt`; tombol di UI nonaktif dengan alasan tertulis. Poin yang sudah diberikan tidak disentuh. UI: tombol "Remove quiz" di `/instructor/rooms/[id]/quiz` -> `deleteRoomQuizAction` (revalidasi room, `/progress`, `/profile`).
+- **Buat quiz**: `upsertRoomQuiz()` mengembalikan `created` dan `recalculatedProgress`; saat quiz baru dibuat (jalur create upsert) progress peserta yang sudah mulai dihitung ulang dengan aturan tunggal yang sama, jadi yang `COMPLETED` kembali `IN_PROGRESS` sampai lulus quiz baru. `upsertQuizAction` lalu ikut merevalidasi `/progress` dan `/profile`.
+- **Poin quiz per room**: `submitQuizAttempt()` tidak membayar poin room bila peserta punya attempt lulus pada quiz room ini yang sudah dihapus; dedup per id quiz tetap di `addLeaderboardPoints()`. Akibatnya peserta yang lulus quiz lama saat poin room masih 0 juga tidak dibayar oleh quiz pengganti.
+- **Pola jawaban**: `answerPattern(expected)` (`lib/learning/answer-pattern.ts`, bebas `server-only`) mengubah setiap huruf/angka (beserta tanda diakritik gabungannya, setelah normalisasi NFC) menjadi `*`; spasi dan tanda baca tetap; spasi di tepi dibuang dan spasi ganda diringkas. `getRoomBySlug()` memilih `expectedAnswer` hanya untuk menghitung pola lalu membuangnya; task peserta (halaman room dan `GET /api/rooms?slug=`) membawa `answerPattern`, tidak pernah `expectedAnswer`/`acceptedAnswers` (diperiksa test smoke). `TaskSubmitForm` menampilkan pola (deretan bintang `aria-hidden`, bintang diturunkan 0,2em, tanda baca semibold) dan kalimat pembaca layar; `aria-describedby` field menunjuk kalimat itu saja. Pola dan bantuan format ada di kolom field, sehingga di ponsel tetap di atas tombol Submit.
+- **Hapus task/pertanyaan dan quiz di editor**: hasil `deleteRoomTaskAction` dipegang `TaskEditor` dan hasil `deleteQuizQuestionAction`/`deleteRoomQuizAction` dipegang `QuizEditor` (baris pemicunya ikut hilang). Pesan sukses dirender di wilayah `role="status"` yang selalu terpasang (`ActionMessage` dengan `inLiveRegion`), fokus pindah ke judul task/pertanyaan terdekat (judul punya `tabIndex={-1}`), ke "Tasks (n)" (`SectionHeader focusable`) atau "Add a question", dan setelah quiz dihapus ke judul "Create a quiz".
+- **Rail desktop**: status ciut disimpan di cookie `act-rail-collapsed` (`1`/`0`, path `/`, satu tahun, `SameSite=Lax`) yang ditulis client saat tombol tepi ditekan dan dibaca `components/app-shell.tsx` lewat `cookies()` sebagai `initialCollapsed`, sehingga HTML server sudah selebar akhirnya. Nama cookie ditulis di kedua file (server component tidak bisa mengimpor konstanta dari modul `"use client"`). Setelah hydrate pertama, frame yang dipasang ulang membaca `document.cookie` langsung karena payload dari router cache bisa membawa nilai lama. Kunci lama `localStorage` `si-act-sidebar-collapsed` hanya dibaca sekali bila cookie belum ada, dipindah ke cookie, lalu dihapus. Tooltip rail diciutkan memakai atribut `data-rail-tip` (dan `data-rail-tip-group`) pada item; satu elemen `position: fixed` yang `aria-hidden` dirender di luar rail.
+
+Verifikasi saat perubahan: `npx prisma migrate status` (up to date), `npm run typecheck`, `npm run lint`, dan `npm test` lolos. Test smoke menambah kasus `answerPattern`, `taskChapterId`/`chapterTaskStatuses`/`taskChapterHref`, task dengan bab (room sama/lain, UUID salah, instruktur lain, string kosong), pindah task di dalam bab, hapus bab, pembaca tanpa jawaban, dan `deleteRoomQuiz` (kepemilikan, attempt bertahan, progress dihitung ulang, poin tetap, quiz baru bisa dibuat lagi). Perbaikan review menambah: quiz baru menghitung ulang progress (COMPLETED kembali IN_PROGRESS, simpan pengaturan tidak), poin quiz tidak dibayar dua kali per room, room tanpa task menolak hapus quiz (quiz, status, dan `completedAt` tetap), serta `getRoomTasks()` (room terjadwal kosong untuk member, preview instruktur, draft/ID asing null, tanpa jawaban/hint).
+
+Risiko terbuka:
+
+- Dua risiko sebelumnya sudah ditutup: poin quiz kini sekali per peserta per room, dan membuat quiz menghitung ulang progress peserta (lihat di atas; keduanya diuji test smoke).
+- Dedup poin per room bergantung pada attempt yang tersimpan; dedup ini tetap check-then-create tanpa unique constraint, jadi request bersamaan masih bisa lolos.
 

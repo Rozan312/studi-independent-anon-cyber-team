@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { useFormState } from "react-dom";
 import {
   addQuizQuestionAction,
   deleteQuizQuestionAction,
+  deleteRoomQuizAction,
   moveQuizQuestionAction,
   updateQuizQuestionAction,
   upsertQuizAction
 } from "@/lib/actions/content-actions";
 import { EmptyState } from "@/components/card";
-import { ActionMessage } from "@/components/ui/action-message";
+import { ActionMessage, type ActionMessageState } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { MoveButton } from "@/components/instructor/move-button";
 import { dangerButtonClass, helpClass, idleActionState, inputClass, labelClass, secondaryButtonClass } from "@/components/instructor/form-styles";
@@ -187,68 +188,149 @@ function QuestionFields({ question, disabled }: { question?: EditorQuestion; dis
   );
 }
 
-function QuizSettingsForm({ roomId, quiz, disabled }: { roomId: string; quiz: EditorQuiz | null; disabled: boolean }) {
-  const [state, formAction] = useFormState(upsertQuizAction, idleActionState);
-  const id = useId();
+/**
+ * Hapus quiz: konfirmasi menyebut apa yang hilang (pertanyaan) dan apa yang tetap (riwayat attempt, poin).
+ * Room tanpa task tidak boleh kehilangan quiz-nya (server menolak, lihat deleteRoomQuiz), jadi tombolnya nonaktif
+ * dengan alasan tertulis di bawah baris judul.
+ */
+function RemoveQuizForm({
+  quiz,
+  action,
+  disabled,
+  describedBy
+}: {
+  quiz: EditorQuiz;
+  action: (formData: FormData) => void;
+  disabled: boolean;
+  describedBy?: string;
+}) {
+  const count = quiz.questions.length;
+  const questionText = count === 0 ? "" : count === 1 ? " Its question is deleted for good." : ` Its ${count} questions are deleted for good.`;
 
   return (
-    <form action={formAction} aria-labelledby={`${id}-heading`} className="space-y-4">
-      <h3 id={`${id}-heading`} className="text-base font-bold text-ink">
-        Quiz settings
-      </h3>
-      <input type="hidden" name="roomId" value={roomId} />
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+    <form
+      action={action}
+      onSubmit={(event) => {
+        const message =
+          `Remove the quiz "${quiz.title}"?${questionText} Members' past attempts stay in their history and the points they earned are kept. ` +
+          "Without a quiz, the room is complete once every task is solved.";
+        if (!window.confirm(message)) event.preventDefault();
+      }}
+    >
+      <input type="hidden" name="quizId" value={quiz.id} />
+      <SubmitButton
+        label="Remove quiz"
+        pendingLabel="Removing…"
+        className={dangerButtonClass}
+        disabled={disabled}
+        describedBy={describedBy}
+      />
+    </form>
+  );
+}
+
+function QuizSettingsForm({
+  roomId,
+  quiz,
+  taskCount,
+  disabled,
+  removeAction,
+  headingRef
+}: {
+  roomId: string;
+  quiz: EditorQuiz | null;
+  taskCount: number;
+  disabled: boolean;
+  removeAction: (formData: FormData) => void;
+  /** Judul form (tabIndex -1): tujuan fokus setelah quiz dihapus, karena tombol Remove quiz ikut hilang. */
+  headingRef: RefObject<HTMLHeadingElement>;
+}) {
+  const [state, formAction] = useFormState(upsertQuizAction, idleActionState);
+  const id = useId();
+  const removeBlocked = Boolean(quiz) && taskCount === 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Form hapus berdiri sendiri di baris judul (form tidak boleh bersarang di form pengaturan). */}
+      <div>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h3 ref={headingRef} id={`${id}-heading`} tabIndex={-1} className="text-base font-bold text-ink">
+            {quiz ? "Quiz settings" : "Create a quiz"}
+          </h3>
+          {quiz ? (
+            <RemoveQuizForm
+              quiz={quiz}
+              action={removeAction}
+              disabled={disabled || removeBlocked}
+              describedBy={removeBlocked ? `${id}-remove-help` : undefined}
+            />
+          ) : null}
+        </div>
+        {removeBlocked ? (
+          <p id={`${id}-remove-help`} className={helpClass}>
+            The quiz can&apos;t be removed while the room has no tasks: without tasks or a quiz, members can&apos;t complete it.
+          </p>
+        ) : null}
+      </div>
+      <form action={formAction} aria-labelledby={`${id}-heading`} className="space-y-4">
+        <input type="hidden" name="roomId" value={roomId} />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+          <div>
+            <label htmlFor={`${id}-title`} className={labelClass}>
+              Quiz title
+            </label>
+            <input
+              id={`${id}-title`}
+              name="title"
+              defaultValue={quiz?.title ?? ""}
+              placeholder="Concept check"
+              className={inputClass}
+              disabled={disabled}
+            />
+          </div>
+          <div>
+            <label htmlFor={`${id}-passing`} className={labelClass}>
+              Passing score (%)
+            </label>
+            <input
+              id={`${id}-passing`}
+              name="passingScore"
+              type="number"
+              min={0}
+              max={100}
+              defaultValue={quiz?.passingScore ?? 70}
+              className={`${inputClass} figure`}
+              disabled={disabled}
+            />
+          </div>
+        </div>
         <div>
-          <label htmlFor={`${id}-title`} className={labelClass}>
-            Quiz title
+          <label htmlFor={`${id}-description`} className={labelClass}>
+            Quiz description
           </label>
-          <input
-            id={`${id}-title`}
-            name="title"
-            defaultValue={quiz?.title ?? ""}
-            placeholder="Concept check"
+          <textarea
+            id={`${id}-description`}
+            name="description"
+            rows={2}
+            defaultValue={quiz?.description ?? ""}
+            placeholder="Describe what this quiz covers (at least 10 characters)."
             className={inputClass}
             disabled={disabled}
           />
         </div>
-        <div>
-          <label htmlFor={`${id}-passing`} className={labelClass}>
-            Passing score (%)
-          </label>
-          <input
-            id={`${id}-passing`}
-            name="passingScore"
-            type="number"
-            min={0}
-            max={100}
-            defaultValue={quiz?.passingScore ?? 70}
-            className={`${inputClass} figure`}
-            disabled={disabled}
-          />
+        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <ActionMessage state={state} />
+          </div>
+          <SubmitButton label={quiz ? "Save quiz settings" : "Create quiz"} pendingLabel={quiz ? "Saving…" : "Creating…"} disabled={disabled} />
         </div>
-      </div>
-      <div>
-        <label htmlFor={`${id}-description`} className={labelClass}>
-          Quiz description
-        </label>
-        <textarea
-          id={`${id}-description`}
-          name="description"
-          rows={2}
-          defaultValue={quiz?.description ?? ""}
-          placeholder="Describe what this quiz covers (at least 10 characters)."
-          className={inputClass}
-          disabled={disabled}
-        />
-      </div>
-      <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <ActionMessage state={state} />
-        </div>
-        <SubmitButton label={quiz ? "Save quiz settings" : "Create quiz"} pendingLabel={quiz ? "Saving…" : "Creating…"} disabled={disabled} />
-      </div>
-    </form>
+      </form>
+    </div>
   );
+}
+
+function questionHeadingId(questionId: string) {
+  return `question-${questionId}-heading`;
 }
 
 function QuestionRow({
@@ -256,23 +338,30 @@ function QuestionRow({
   position,
   isFirst,
   isLast,
-  disabled
+  disabled,
+  deleteAction,
+  deleteError,
+  onDeleteRequest
 }: {
   question: EditorQuestion;
   position: number;
   isFirst: boolean;
   isLast: boolean;
   disabled: boolean;
+  /** Hasil hapus dipegang QuizEditor karena baris ini ikut hilang setelah berhasil; gagal tetap tampil di baris. */
+  deleteAction: (formData: FormData) => void;
+  deleteError: ActionMessageState;
+  /** Dipanggil setelah konfirmasi hapus, sebelum form dikirim. */
+  onDeleteRequest: () => void;
 }) {
   const [state, formAction] = useFormState(updateQuizQuestionAction, idleActionState);
-  const [deleteState, deleteAction] = useFormState(deleteQuizQuestionAction, idleActionState);
   const [moveState, moveAction] = useFormState(moveQuizQuestionAction, idleActionState);
-  const headingId = `question-${question.id}-heading`;
+  const headingId = questionHeadingId(question.id);
 
   return (
     <article aria-labelledby={headingId} className="py-6 first:pt-1">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
-        <h3 id={headingId} className="text-base font-bold text-ink">
+        <h3 id={headingId} tabIndex={-1} className="text-base font-bold text-ink">
           Question <span className="figure">{position}</span>
         </h3>
         <div className="flex flex-wrap items-center gap-1.5">
@@ -289,7 +378,11 @@ function QuestionRow({
           <form
             action={deleteAction}
             onSubmit={(event) => {
-              if (!window.confirm("Delete this question from the quiz?")) event.preventDefault();
+              if (!window.confirm("Delete this question from the quiz?")) {
+                event.preventDefault();
+                return;
+              }
+              onDeleteRequest();
             }}
           >
             <input type="hidden" name="questionId" value={question.id} />
@@ -304,7 +397,7 @@ function QuestionRow({
         <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-2">
             <ActionMessage state={state} />
-            <ActionMessage state={deleteState} />
+            <ActionMessage state={deleteError} />
             <ActionMessage state={moveState} />
           </div>
           <SubmitButton label="Save question" className={secondaryButtonClass} disabled={disabled} />
@@ -314,10 +407,20 @@ function QuestionRow({
   );
 }
 
-function AddQuestionForm({ quizId, roomId, disabled }: { quizId: string; roomId: string; disabled: boolean }) {
+function AddQuestionForm({
+  quizId,
+  roomId,
+  headingId,
+  disabled
+}: {
+  quizId: string;
+  roomId: string;
+  /** Id judul (tabIndex -1): tujuan fokus setelah pertanyaan terakhir dihapus. */
+  headingId: string;
+  disabled: boolean;
+}) {
   const [state, formAction] = useFormState(addQuizQuestionAction, idleActionState);
   const [resetKey, setResetKey] = useState(0);
-  const headingId = useId();
 
   useEffect(() => {
     if (state.tone === "success") setResetKey((value) => value + 1);
@@ -330,7 +433,7 @@ function AddQuestionForm({ quizId, roomId, disabled }: { quizId: string; roomId:
       aria-labelledby={headingId}
       className="space-y-4 border-t border-dashed border-line-strong pt-6"
     >
-      <h3 id={headingId} className="text-base font-bold text-ink">
+      <h3 id={headingId} tabIndex={-1} className="text-base font-bold text-ink">
         Add a question
       </h3>
       <input type="hidden" name="quizId" value={quizId} />
@@ -346,14 +449,105 @@ function AddQuestionForm({ quizId, roomId, disabled }: { quizId: string; roomId:
   );
 }
 
-/** Pengaturan quiz lalu daftar pertanyaan bergaris di dalam panel seksi (bukan kartu di dalam kartu). */
-export function QuizEditor({ roomId, quiz, disabled = false }: { roomId: string; quiz: EditorQuiz | null; disabled?: boolean }) {
+/**
+ * Pengaturan quiz lalu daftar pertanyaan bergaris di dalam panel seksi (bukan kartu di dalam kartu). Quiz opsional:
+ * hasil "Remove quiz" dipegang di sini karena form hapusnya ikut hilang begitu room tidak lagi punya quiz. Hasil hapus
+ * pertanyaan juga dipegang di sini karena barisnya ikut hilang. Pesan suksesnya tampil di wilayah status yang selalu
+ * terpasang (wilayah yang dipasang sudah berisi sering tidak dibacakan), dan fokus dipindah ke judul terdekat.
+ */
+export function QuizEditor({
+  roomId,
+  quiz,
+  taskCount,
+  disabled = false
+}: {
+  roomId: string;
+  quiz: EditorQuiz | null;
+  /** Jumlah task room; tanpa task quiz tidak bisa dihapus (lihat deleteRoomQuiz). */
+  taskCount: number;
+  disabled?: boolean;
+}) {
+  const [removeState, removeAction] = useFormState(deleteRoomQuizAction, idleActionState);
+  const [settingsKey, setSettingsKey] = useState(0);
+  const settingsHeadingRef = useRef<HTMLHeadingElement>(null);
+  const focusSettingsHeading = useRef(false);
+
+  const [questionDeleteState, questionDeleteAction] = useFormState(deleteQuizQuestionAction, idleActionState);
+  const [deletingQuestionId, setDeletingQuestionId] = useState<string | null>(null);
+  const focusAfterQuestionDelete = useRef<string | null>(null);
+  const addQuestionHeadingId = useId();
+
+  // Setelah quiz dihapus, form pengaturan dipasang ulang agar kosong lagi untuk quiz baru, bukan berisi judul quiz lama.
+  useEffect(() => {
+    if (removeState.tone !== "success") return;
+    focusSettingsHeading.current = true;
+    setSettingsKey((value) => value + 1);
+  }, [removeState]);
+
+  // Tombol "Remove quiz" yang difokus ikut hilang; fokus pindah ke judul "Create a quiz" pada form yang baru dipasang,
+  // sehingga Tab berikutnya menuju field quiz baru.
+  useEffect(() => {
+    if (!focusSettingsHeading.current) return;
+    focusSettingsHeading.current = false;
+    settingsHeadingRef.current?.focus();
+  }, [settingsKey]);
+
+  useEffect(() => {
+    if (questionDeleteState.tone !== "success") return;
+    const targetId = focusAfterQuestionDelete.current;
+    focusAfterQuestionDelete.current = null;
+    const target = targetId ? document.getElementById(targetId) : null;
+    if (!target) return;
+
+    target.focus({ preventScroll: true });
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "center" });
+  }, [questionDeleteState]);
+
+  // Tujuan fokus setelah pertanyaan dihapus: pertanyaan berikutnya, lalu sebelumnya, lalu judul "Add a question".
+  function focusTargetAfterDeleting(questionId: string) {
+    const questions = quiz?.questions ?? [];
+    const index = questions.findIndex((question) => question.id === questionId);
+    const nearest = questions[index + 1] ?? (index > 0 ? questions[index - 1] : undefined);
+    return nearest ? questionHeadingId(nearest.id) : addQuestionHeadingId;
+  }
+
   return (
     <div>
-      <QuizSettingsForm roomId={roomId} quiz={quiz} disabled={disabled} />
+      {/* Pesan sukses hanya relevan selama room belum punya quiz lagi; pesan gagal tampil di dekat quiz yang masih ada. */}
+      <div role="status" aria-live="polite" aria-atomic="true">
+        {removeState.tone === "success" && !quiz ? (
+          <div className="mb-5">
+            <ActionMessage state={removeState} inLiveRegion />
+          </div>
+        ) : null}
+      </div>
+      {removeState.tone === "error" ? (
+        <div className="mb-5">
+          <ActionMessage state={removeState} />
+        </div>
+      ) : null}
+
+      <QuizSettingsForm
+        key={settingsKey}
+        roomId={roomId}
+        quiz={quiz}
+        taskCount={taskCount}
+        disabled={disabled}
+        removeAction={removeAction}
+        headingRef={settingsHeadingRef}
+      />
 
       {quiz ? (
         <div className="mt-6 border-t border-line pt-6">
+          {/* key per pertanyaan yang dihapus: isi dipasang ulang, sehingga hapus berikutnya tetap diumumkan. */}
+          <div role="status" aria-live="polite" aria-atomic="true">
+            {questionDeleteState.tone === "success" ? (
+              <div key={deletingQuestionId} className="mb-5">
+                <ActionMessage state={questionDeleteState} inLiveRegion />
+              </div>
+            ) : null}
+          </div>
           {quiz.attemptsCount > 0 ? (
             <p className="mb-5 flex items-start gap-2 rounded-lg border border-amber/30 bg-amber-soft px-3 py-2 text-sm leading-snug text-ink">
               <svg viewBox="0 0 16 16" className="mt-0.5 h-4 w-4 shrink-0 text-amber" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
@@ -368,7 +562,12 @@ export function QuizEditor({ roomId, quiz, disabled = false }: { roomId: string;
           ) : null}
           {quiz.questions.length === 0 ? (
             <div className="mb-6">
-              <EmptyState title="No questions yet" message="Members can take this quiz once it has at least one question." />
+              <EmptyState
+                title="No questions yet"
+                message={`Members can take this quiz once it has at least one question. Until then no one can complete the room, so ${
+                  taskCount > 0 ? "add questions or remove the quiz" : "add questions"
+                }.`}
+              />
             </div>
           ) : (
             <div className="divide-y divide-line">
@@ -380,15 +579,26 @@ export function QuizEditor({ roomId, quiz, disabled = false }: { roomId: string;
                   isFirst={index === 0}
                   isLast={index === quiz.questions.length - 1}
                   disabled={disabled}
+                  deleteAction={questionDeleteAction}
+                  deleteError={
+                    questionDeleteState.tone === "error" && deletingQuestionId === question.id ? questionDeleteState : idleActionState
+                  }
+                  onDeleteRequest={() => {
+                    focusAfterQuestionDelete.current = focusTargetAfterDeleting(question.id);
+                    setDeletingQuestionId(question.id);
+                  }}
                 />
               ))}
             </div>
           )}
-          <AddQuestionForm quizId={quiz.id} roomId={roomId} disabled={disabled} />
+          <AddQuestionForm quizId={quiz.id} roomId={roomId} headingId={addQuestionHeadingId} disabled={disabled} />
         </div>
       ) : (
         <div className="mt-6">
-          <EmptyState title="No quiz yet" message="Create the quiz with the settings above, then add its questions." />
+          <EmptyState
+            title="No quiz yet"
+            message="Without a quiz, members complete this room by solving every task. To add one, create it with the settings above, then add its questions."
+          />
         </div>
       )}
     </div>

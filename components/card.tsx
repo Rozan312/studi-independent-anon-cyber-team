@@ -18,6 +18,7 @@ export function SectionHeader({
   action,
   as: Heading = "h2",
   id,
+  focusable = false,
   className = ""
 }: {
   title: string;
@@ -26,12 +27,14 @@ export function SectionHeader({
   as?: "h2" | "h3";
   /** Id judul, untuk aria-labelledby pada seksi pembungkus. */
   id?: string;
+  /** tabIndex -1: judul bisa menerima fokus dari skrip (misalnya setelah baris terakhir daftar dihapus). */
+  focusable?: boolean;
   className?: string;
 }) {
   return (
     <div className={`mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2 ${className}`}>
       <div className="min-w-0">
-        <Heading id={id} className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink">
+        <Heading id={id} tabIndex={focusable ? -1 : undefined} className="text-lg font-bold leading-snug tracking-[-0.01em] text-ink">
           {title}
         </Heading>
         {description ? <p className="mt-1 max-w-2xl text-sm text-ink-2">{description}</p> : null}

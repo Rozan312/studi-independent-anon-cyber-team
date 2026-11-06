@@ -1,15 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { StateTag } from "@/components/paper/state-tag";
 import { PageNotice } from "@/components/ui/page-notice";
-import { requireRole } from "@/lib/auth/guards";
-import { hasRoleAccess } from "@/lib/auth/rbac";
-import { getRoomAvailability } from "@/lib/learning/availability";
 import { RESPONSIBLE_LAB_USE_TEXT, getLatestLabSessionForRoom } from "@/lib/services/lab-session-service";
-import { getRoomBySlug } from "@/lib/services/room-service";
 import { publishedRoomTitle } from "@/lib/services/page-title-service";
+import { loadMemberRoom } from "../room-view";
 
 export const dynamic = "force-dynamic";
 
@@ -25,15 +22,12 @@ function humanize(value: string) {
 }
 
 export default async function RoomLabPage({ params }: { params: { slug: string } }) {
-  const profile = await requireRole(["STUDENT"]);
-  const room = await getRoomBySlug(params.slug);
-  if (!room) notFound();
+  const view = await loadMemberRoom(params.slug);
 
   // Room yang belum dibuka atau sudah ditutup hanya bisa dipreview instruktur/admin.
-  if (!getRoomAvailability(room).isOpen && !hasRoleAccess(profile.role, ["INSTRUCTOR"])) {
-    redirect(`/rooms/${room.slug}`);
-  }
+  if (view.access === "schedule") redirect(`/rooms/${view.room.slug}`);
 
+  const { profile, room } = view;
   const session = await getLatestLabSessionForRoom(profile.id, room.id);
 
   // Lab belum terhubung ke VM/VPN: semua nilai sesi di bawah adalah catatan placeholder, bukan status langsung.
@@ -44,7 +38,9 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
     { label: "Target IP", value: session?.targetIp ?? "Not assigned", mono: Boolean(session?.targetIp) }
   ];
 
-  const previewTasks = room.tasks.slice(0, 3);
+  // Pratinjau mengikuti urutan baca: task bab pertama dulu (task tanpa bab tampil di bab terakhir).
+  const readingOrder = room.chapters.length > 0 ? room.chapters.flatMap((chapter) => view.chapterTasks.get(chapter.id) ?? []) : room.tasks;
+  const previewTasks = readingOrder.slice(0, 3);
   const remainingTasks = room.tasks.length - previewTasks.length;
 
   return (
@@ -123,12 +119,12 @@ export default async function RoomLabPage({ params }: { params: { slug: string }
               <p className="px-5 py-4 text-sm text-ink-3 sm:px-6">This room has no tasks yet.</p>
             )}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line px-5 py-4 sm:px-6">
-              <Link href={`/rooms/${room.slug}#tasks`} className="btn-primary">
+              <Link href={view.tasksHref} className="btn-primary">
                 Answer tasks in the room
               </Link>
               {remainingTasks > 0 ? (
                 <p className="text-sm text-ink-3">
-                  {remainingTasks} more {remainingTasks === 1 ? "task" : "tasks"} on the room page.
+                  {remainingTasks} more {remainingTasks === 1 ? "task" : "tasks"} in the room&apos;s chapters.
                 </p>
               ) : null}
             </div>

@@ -1,7 +1,11 @@
+import { cookies } from "next/headers";
 import { getCurrentProfile } from "@/lib/auth/guards";
 import { AppShellFrame, type ShellMember, type ShellStats } from "@/components/app-shell-frame";
 import { memberSerial } from "@/lib/format/member";
 import { getUserLeaderboardStanding } from "@/lib/services/leaderboard-service";
+
+/** Ditulis AppShellFrame saat rail desktop diciutkan/dibuka (nama sama dengan RAIL_COOKIE di app-shell-frame.tsx). */
+const RAIL_COOKIE = "act-rail-collapsed";
 
 /**
  * Kerangka halaman yang sudah login: rail navigasi, kartu anggota, dan judul halaman.
@@ -29,9 +33,19 @@ export async function AppShell({
   // Pil poin di bar atas hanya untuk member; instruktur dan admin tidak mengumpulkan poin.
   const standing = profile?.role === "STUDENT" ? await getUserLeaderboardStanding(profile.id) : null;
   const stats: ShellStats | null = standing ? { points: standing.points, rank: standing.rank } : null;
+  // Rail dirender di server dalam keadaan akhirnya (diciutkan atau terbuka), jadi tidak berganti setelah hydrate.
+  const initialCollapsed = cookies().get(RAIL_COOKIE)?.value === "1";
 
   return (
-    <AppShellFrame title={title} subtitle={subtitle} actions={actions} role={role ?? profile?.role ?? null} member={member} stats={stats}>
+    <AppShellFrame
+      title={title}
+      subtitle={subtitle}
+      actions={actions}
+      role={role ?? profile?.role ?? null}
+      member={member}
+      stats={stats}
+      initialCollapsed={initialCollapsed}
+    >
       {children}
     </AppShellFrame>
   );

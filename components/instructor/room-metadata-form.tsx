@@ -1,14 +1,14 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId } from "react";
 import { useFormState } from "react-dom";
 import { updateRoomMetadataAction } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { ImageUploadField } from "@/components/instructor/image-upload-field";
-import { checkboxClass, helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
-import { DISPLAY_TIME_ZONE, dateTimeLocalToIso, toDateTimeLocalValue } from "@/lib/learning/availability";
+import { helpClass, idleActionState, inputClass, labelClass } from "@/components/instructor/form-styles";
 
+/** Isi form Details. Jadwal buka/tutup ada di form terpisah (RoomScheduleForm, halaman Schedule & publishing). */
 export type RoomMetadataValues = {
   id: string;
   learningPathId: string;
@@ -20,15 +20,11 @@ export type RoomMetadataValues = {
   estimatedMinutes: number;
   points: number;
   orderIndex: number;
-  coverImageUrl: string | null;
   logoUrl: string | null;
-  /** ISO string atau null; dikonversi ke zona waktu tampilan di form. */
-  availableFrom: string | null;
-  availableUntil: string | null;
 };
 
 /** Label di atas input, teks bantuan opsional di bawahnya (terhubung lewat aria-describedby di input). */
-function Field({ id, label, help, className = "", children }: { id: string; label: string; help?: React.ReactNode; className?: string; children: React.ReactNode }) {
+export function Field({ id, label, help, className = "", children }: { id: string; label: string; help?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
     <div className={className}>
       <label htmlFor={id} className={labelClass}>
@@ -54,15 +50,8 @@ export function RoomMetadataForm({
   disabled?: boolean;
 }) {
   const [state, formAction] = useFormState(updateRoomMetadataAction, idleActionState);
-  const [scheduleEnabled, setScheduleEnabled] = useState(Boolean(room.availableFrom || room.availableUntil));
-  const [fromLocal, setFromLocal] = useState(toDateTimeLocalValue(room.availableFrom));
-  const [untilLocal, setUntilLocal] = useState(toDateTimeLocalValue(room.availableUntil));
   const uid = useId();
   const fieldId = (key: string) => `${uid}-${key}`;
-
-  const fromIso = scheduleEnabled ? dateTimeLocalToIso(fromLocal) : "";
-  const untilIso = scheduleEnabled ? dateTimeLocalToIso(untilLocal) : "";
-  const rangeInvalid = Boolean(fromIso && untilIso && new Date(untilIso) <= new Date(fromIso));
 
   return (
     <form action={formAction} className="space-y-5">
@@ -126,7 +115,7 @@ export function RoomMetadataForm({
             disabled={disabled}
           />
         </Field>
-        <Field id={fieldId("points")} label="Points" help="Awarded when a member passes the room's quiz.">
+        <Field id={fieldId("points")} label="Points" help="Awarded when a member passes the room's quiz. A room without a quiz awards task points only.">
           <input
             id={fieldId("points")}
             name="points"
@@ -145,66 +134,21 @@ export function RoomMetadataForm({
         <textarea id={fieldId("description")} name="description" rows={3} defaultValue={room.description} className={inputClass} disabled={disabled} />
       </Field>
 
+      {/* Sampul room tidak ditawarkan: sejak kolom samping room dihapus, tidak ada tempat member melihatnya.
+          Kolom coverImageUrl tetap ada dan tidak disentuh saat Details disimpan. */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <ImageUploadField name="logoUrl" label="Logo" previewClassName="h-24 w-24 rounded-lg" initialValue={room.logoUrl} help="Optional. A square image shown next to the room name. Without one, the initials of the name are used." disabled={disabled} />
-        <ImageUploadField initialValue={room.coverImageUrl} help="Optional. A wide banner shown at the top of the room's side column." disabled={disabled} />
+        <ImageUploadField
+          name="logoUrl"
+          label="Logo"
+          previewClassName="h-24 w-24 rounded-lg"
+          initialValue={room.logoUrl}
+          help="Optional. A square image shown next to the room name. Without one, the initials of the name are used."
+          disabled={disabled}
+        />
       </div>
 
-      <fieldset className="rounded-lg border border-line p-4">
-        <legend className="px-1 font-display text-sm font-semibold text-ink">Schedule</legend>
-        <label className="flex items-center gap-2.5 text-sm text-ink">
-          <input
-            type="checkbox"
-            className={checkboxClass}
-            checked={scheduleEnabled}
-            onChange={(event) => setScheduleEnabled(event.target.checked)}
-            disabled={disabled}
-          />
-          Set opening and closing times
-        </label>
-        <p className={helpClass}>
-          Without a schedule, the room stays available while it&apos;s published. Times are in {DISPLAY_TIME_ZONE}.
-        </p>
-
-        {scheduleEnabled ? (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <Field id={fieldId("from")} label="Opens" help="Leave empty to open immediately.">
-              <input
-                id={fieldId("from")}
-                type="datetime-local"
-                value={fromLocal}
-                onChange={(event) => setFromLocal(event.target.value)}
-                className={inputClass}
-                disabled={disabled}
-                aria-describedby={`${fieldId("from")}-help`}
-              />
-            </Field>
-            <Field id={fieldId("until")} label="Closes" help="Leave empty to keep it open.">
-              <input
-                id={fieldId("until")}
-                type="datetime-local"
-                value={untilLocal}
-                onChange={(event) => setUntilLocal(event.target.value)}
-                className={inputClass}
-                disabled={disabled}
-                aria-invalid={rangeInvalid || undefined}
-                aria-describedby={`${fieldId("until")}-help`}
-              />
-            </Field>
-            {rangeInvalid ? (
-              <div className="md:col-span-2">
-                <ActionMessage state={{ tone: "error", message: "The closing time must be after the opening time." }} />
-              </div>
-            ) : null}
-          </div>
-        ) : null}
-
-        <input type="hidden" name="availableFrom" value={fromIso} />
-        <input type="hidden" name="availableUntil" value={untilIso} />
-      </fieldset>
-
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-line pt-4">
-        <SubmitButton label="Save room details" disabled={disabled || rangeInvalid} />
+        <SubmitButton label="Save room details" disabled={disabled} />
         <ActionMessage state={state} />
       </div>
     </form>

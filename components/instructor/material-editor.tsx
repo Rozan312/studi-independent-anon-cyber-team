@@ -1,19 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { useFormState } from "react-dom";
 import { generateJSON, type Editor, type JSONContent } from "@tiptap/core";
 import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
-import { updateRoomContentAction, type MaterialActionState } from "@/lib/actions/content-actions";
+import { updateRoomChapterAction, type MaterialActionState } from "@/lib/actions/content-actions";
 import { ActionMessage } from "@/components/ui/action-message";
 import { SubmitButton } from "@/components/ui/submit-button";
-import { primaryButtonClass } from "@/components/instructor/form-styles";
+import { inputClass, labelClass, primaryButtonClass } from "@/components/instructor/form-styles";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
-import { MAX_RICH_CONTENT_LENGTH } from "@/lib/content/rich-text-config";
+import { CHAPTER_TITLE_MAX, MAX_RICH_CONTENT_LENGTH } from "@/lib/content/rich-text-config";
 
 const initialState: MaterialActionState = { tone: "idle", message: "" };
 
-const LEAVE_MESSAGE = "You have unsaved material changes. Leave this page and discard them?";
+const SESSION_ENDED_STATE: MaterialActionState = {
+  tone: "error",
+  message: "Your session ended. Sign in again in another tab, then save here. Your edits are still on this page."
+};
+
+/**
+ * Simpan bab. Bila sesi habis, middleware mengalihkan request action ke /login dan Next menyelesaikan action
+ * tanpa hasil (undefined), tanpa pindah halaman. Hasil kosong itu dijadikan pesan error agar editor tetap
+ * terpasang dan suntingan yang belum tersimpan tidak hilang.
+ */
+async function saveChapter(state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+  return (await updateRoomChapterAction(state, formData)) ?? SESSION_ENDED_STATE;
+}
+
+const LEAVE_MESSAGE = "You have unsaved changes in this chapter. Leave this page and discard them?";
 
 /** Panjang HTML dihitung ulang setelah jeda mengetik, bukan di setiap ketikan (mahal untuk dokumen panjang). */
 const LENGTH_CHECK_DELAY_MS = 600;
@@ -31,27 +45,31 @@ function documentSignature(html: string, editor: Editor) {
 }
 
 /**
- * Form materi room dengan editor visual seperti pengolah kata. Isi dikirim sebagai HTML
+ * Form satu bab materi: judul bab dan editor visual seperti pengolah kata. Isi dikirim sebagai HTML
  * (contentFormat=HTML) dan disanitasi ulang di server sebelum disimpan.
  *
- * Status "belum disimpan" dibandingkan lewat struktur dokumen ProseMirror (murah), dan HTML
- * hanya dibentuk saat menyimpan, agar mengetik tetap ringan pada materi panjang.
+ * Status "belum disimpan" dibandingkan lewat struktur dokumen ProseMirror (murah) ditambah judul, dan HTML
+ * hanya dibentuk saat menyimpan, agar mengetik tetap ringan pada bab panjang.
  */
 export function MaterialEditor({
-  roomId,
+  chapterId,
+  initialTitle,
   initialHtml,
   legacyMarkdown = false,
   disabled = false
 }: {
-  roomId: string;
+  chapterId: string;
+  initialTitle: string;
   /** HTML awal yang sudah disanitasi server (materi Markdown lama sudah dikonversi). */
   initialHtml: string;
-  /** True bila materi di database masih berformat Markdown. */
+  /** True bila bab ini di database masih berformat Markdown. */
   legacyMarkdown?: boolean;
   disabled?: boolean;
 }) {
-  const [state, formAction] = useFormState(updateRoomContentAction, initialState);
-  const [isDirty, setIsDirty] = useState(false);
+  const [state, formAction] = useFormState(saveChapter, initialState);
+  const [contentDirty, setContentDirty] = useState(false);
+  const [title, setTitle] = useState(initialTitle);
+  const [savedTitle, setSavedTitle] = useState(initialTitle);
   const [htmlLength, setHtmlLength] = useState(initialHtml.length);
   const [needsFormatUpgrade, setNeedsFormatUpgrade] = useState(legacyMarkdown);
   const [adjustedNotice, setAdjustedNotice] = useState(false);
@@ -59,16 +77,27 @@ export function MaterialEditor({
   const baselineDocRef = useRef<ProseMirrorNode | null>(null);
   const submittedDocRef = useRef<ProseMirrorNode | null>(null);
   const submittedHtmlRef = useRef(initialHtml);
+  const submittedTitleRef = useRef(initialTitle);
   const contentInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const lengthTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const titleId = useId();
 
   const tooLong = htmlLength > MAX_RICH_CONTENT_LENGTH;
+  // Spasi di tepi judul dibuang server, jadi tidak dihitung sebagai perubahan.
+  const isDirty = contentDirty || title.trim() !== savedTitle;
+  // Bab Markdown lama yang belum disunting tidak hilang bila ditinggal (member tetap membaca Markdown-nya),
+  // jadi tidak memicu peringatan keluar; statusnya hanya tidak boleh berbunyi "tersimpan".
+  const saveStatus = isDirty
+    ? { text: "Unsaved changes.", attention: true }
+    : needsFormatUpgrade
+      ? { text: "Not yet saved in the new format.", attention: true }
+      : { text: "All changes saved.", attention: false };
 
   const refreshDirty = useCallback(() => {
     const editor = editorRef.current;
     if (!editor || !baselineDocRef.current) return;
-    setIsDirty(!editor.state.doc.eq(baselineDocRef.current));
+    setContentDirty(!editor.state.doc.eq(baselineDocRef.current));
   }, []);
 
   useEffect(() => {
@@ -77,10 +106,16 @@ export function MaterialEditor({
     };
   }, []);
 
-  // Setelah simpan berhasil: dokumen saat dikirim menjadi baseline baru. Bila server membuang format
-  // yang tidak didukung, editor diselaraskan agar instruktur melihat persis apa yang dilihat student.
+  // Setelah simpan berhasil: judul dan dokumen saat dikirim menjadi baseline baru. Bila server membuang format
+  // yang tidak didukung, editor diselaraskan agar instruktur melihat persis apa yang dilihat member.
   useEffect(() => {
-    if (state.tone !== "success") return;
+    if (state?.tone !== "success") return;
+
+    if (typeof state.savedTitle === "string") {
+      const stored = state.savedTitle;
+      setSavedTitle(stored);
+      setTitle((current) => (current === submittedTitleRef.current ? stored : current));
+    }
 
     const editor = editorRef.current;
     if (!editor || editor.isDestroyed) return;
@@ -106,7 +141,7 @@ export function MaterialEditor({
     refreshDirty();
   }, [state, refreshDirty]);
 
-  // Peringatkan sebelum meninggalkan halaman (reload, tutup tab, atau link di dalam aplikasi).
+  // Peringatkan sebelum meninggalkan halaman (reload, tutup tab, atau link di dalam aplikasi seperti bab lain).
   useEffect(() => {
     if (!isDirty) return;
 
@@ -148,7 +183,7 @@ export function MaterialEditor({
     baselineDocRef.current = editor.state.doc;
     submittedHtmlRef.current = normalized;
     setHtmlLength(normalized.length);
-    setIsDirty(false);
+    setContentDirty(false);
   }, []);
 
   const handleChange = useCallback(() => {
@@ -180,6 +215,7 @@ export function MaterialEditor({
     if (contentInputRef.current) contentInputRef.current.value = html;
     submittedHtmlRef.current = html;
     submittedDocRef.current = editor.state.doc;
+    submittedTitleRef.current = title;
   }
 
   // Ctrl/⌘+S menyimpan seperti di pengolah kata. Kombinasi dengan Shift/Alt dibiarkan untuk pintasan lain
@@ -193,23 +229,39 @@ export function MaterialEditor({
 
   return (
     <form ref={formRef} action={formAction} onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-4">
-      <input type="hidden" name="roomId" value={roomId} />
+      <input type="hidden" name="chapterId" value={chapterId} />
       <input type="hidden" name="contentFormat" value="HTML" />
       <input ref={contentInputRef} type="hidden" name="content" defaultValue="" />
 
+      <div>
+        <label htmlFor={titleId} className={labelClass}>
+          Chapter title
+        </label>
+        <input
+          id={titleId}
+          name="title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
+          maxLength={CHAPTER_TITLE_MAX}
+          className={inputClass}
+          disabled={disabled}
+        />
+      </div>
+
       {needsFormatUpgrade ? (
         <p className="rounded-lg border border-amber/30 bg-amber-soft px-3 py-2 text-sm leading-relaxed text-ink">
-          This material is still stored in the old Markdown format and was converted automatically for editing. Check the result, then select
-          Save material to store it in the new editor format.
+          This chapter is still stored in the old Markdown format and was converted automatically for editing. Check the result, then select
+          Save chapter to store it in the new editor format.
         </p>
       ) : null}
 
-      <RichTextEditor initialHtml={initialHtml} onChange={handleChange} onReady={handleReady} disabled={disabled} />
+      <RichTextEditor initialHtml={initialHtml} onChange={handleChange} onReady={handleReady} disabled={disabled} ariaLabel="Chapter material" />
 
       {tooLong ? (
         <p className="text-sm text-red" role="alert">
-          This material is too long ({htmlLength.toLocaleString("en-US")} of {MAX_RICH_CONTENT_LENGTH.toLocaleString("en-US")} HTML characters
-          allowed). Split it across several rooms or shorten large tables.
+          This chapter is too long ({htmlLength.toLocaleString("en-US")} of {MAX_RICH_CONTENT_LENGTH.toLocaleString("en-US")} HTML characters
+          allowed). Split it into more chapters or shorten large tables.
         </p>
       ) : null}
 
@@ -222,13 +274,12 @@ export function MaterialEditor({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="space-y-1">
-          <ActionMessage state={state} />
+          <ActionMessage state={state ?? SESSION_ENDED_STATE} />
           <p className="text-xs text-ink-3" aria-live="polite">
-            <span className={isDirty ? "font-semibold text-amber" : undefined}>{isDirty ? "Unsaved changes." : "All changes saved."}</span> Press
-            Ctrl/⌘+S to save.
+            <span className={saveStatus.attention ? "font-semibold text-amber" : undefined}>{saveStatus.text}</span> Press Ctrl/⌘+S to save.
           </p>
         </div>
-        <SubmitButton label="Save material" pendingLabel="Saving…" className={primaryButtonClass} disabled={disabled || tooLong} />
+        <SubmitButton label="Save chapter" pendingLabel="Saving…" className={primaryButtonClass} disabled={disabled || tooLong} />
       </div>
     </form>
   );

@@ -47,7 +47,9 @@ export async function submitTaskAnswerAction(
     const result = await submitTaskAnswer(profile.id, { taskId, answer });
 
     if (roomSlug) {
-      revalidatePath(`/rooms/${roomSlug}`);
+      // Seluruh subtree room (Material, Quiz, Lab): strip progres, status task, dan tautan task terbuka ikut berubah. Next 14 mencocokkan
+      // revalidasi "layout" dengan pola rute, bukan alamat nyata, jadi pola [slug] dipakai di sini.
+      revalidatePath("/rooms/[slug]", "layout");
       revalidatePath("/progress");
       revalidatePath("/leaderboard");
       revalidatePath("/profile");

@@ -515,8 +515,8 @@ function stripTrailingEmptyParagraphs(html: string) {
 
 /**
  * Materi instruktur boleh memakai Heading 1–4, padahal halaman room sudah punya h1 (judul halaman dari
- * AppShell) dan h2 per seksi (Material, Tasks, Your progress). Supaya kerangka heading untuk pembaca
- * layar tetap benar, level heading materi digeser di bawah seksi "Material" lewat aria-level
+ * AppShell) dan h2 untuk judul bab, dengan "Tasks" bab sebagai h3 sesudah materi. Supaya kerangka heading untuk pembaca
+ * layar tetap benar, level heading materi digeser di bawah judul bab lewat aria-level
  * (Heading 1 → level 3, Heading 2 → level 4, …, maksimal 6).
  *
  * Tag aslinya dipertahankan: .prose-cyber menata h1–h4 per tag, jadi tampilan tetap sama persis dengan

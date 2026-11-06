@@ -6,6 +6,9 @@
 /** Batas ukuran HTML materi yang disimpan (karakter). */
 export const MAX_RICH_CONTENT_LENGTH = 200_000;
 
+/** Panjang maksimum judul bab, sama dengan judul room: bab pertama hasil migrasi memakai judul room. */
+export const CHAPTER_TITLE_MAX = 160;
+
 export type FontOption = { label: string; value: string };
 
 /** Font web-safe yang tersedia di Windows, macOS, dan sebagian besar Linux. Nilai kosong = font bawaan tema. */

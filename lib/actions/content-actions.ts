@@ -13,17 +13,22 @@ import {
   addRoomTask,
   addRoomToLearningPath,
   createLearningPath,
+  createRoomChapter,
   deleteQuizQuestion,
+  deleteRoomChapter,
+  deleteRoomQuiz,
   deleteRoomTask,
   moveQuizQuestion,
+  moveRoomChapter,
   moveRoomInPath,
   moveRoomTask,
   setLearningPathPublished,
   setRoomPublished,
   updateLearningPath,
   updateQuizQuestion,
-  updateRoomContent,
+  updateRoomChapter,
   updateRoomMetadata,
+  updateRoomSchedule,
   updateRoomTask,
   upsertRoomQuiz
 } from "@/lib/services/content-service";
@@ -99,17 +104,17 @@ const ROOM_FIELDS: FieldLabels = {
     estimatedMinutes: "Estimated minutes",
     points: "Points",
     orderIndex: "Position in path",
-    coverImageUrl: "Cover image",
-    logoUrl: "Logo",
-    availableFrom: "Opening time",
-    availableUntil: "Closing time"
+    logoUrl: "Logo"
   }
 };
 
-const MATERIAL_FIELDS: FieldLabels = { fields: { content: "Material" } };
+const SCHEDULE_FIELDS: FieldLabels = { fields: { availableFrom: "Opening time", availableUntil: "Closing time" } };
+
+const CHAPTER_FIELDS: FieldLabels = { fields: { title: "Chapter title", content: "Material" } };
 
 const TASK_FIELDS: FieldLabels = {
   fields: {
+    chapterId: "Chapter",
     title: "Task title",
     description: "Instructions for members",
     expectedAnswer: "Expected answer",
@@ -148,10 +153,18 @@ function fail(error: unknown, fallback: string, labels: FieldLabels = NO_FIELDS)
   return { tone: "error", message: userMessage(error, fallback) };
 }
 
+/**
+ * Editor room dan halaman room member kini terdiri dari beberapa halaman; type "layout" ikut menyegarkan semua
+ * sub-halamannya. Next 14 mencocokkan revalidasi "layout" dengan pola rute ([id], [slug]), bukan alamat nyata.
+ */
 function revalidateRoomPaths(room: { id?: string; slug: string; learningPath?: { slug: string } | null }, roomId?: string) {
+  const editorId = roomId ?? room.id;
+
   revalidatePath("/instructor/rooms");
-  revalidatePath(`/instructor/rooms/${roomId ?? room.id}`);
+  revalidatePath(`/instructor/rooms/${editorId}`);
+  revalidatePath("/instructor/rooms/[id]", "layout");
   revalidatePath("/rooms");
+  revalidatePath("/rooms/[slug]", "layout");
   revalidatePath(`/rooms/${room.slug}`);
   revalidatePath(`/rooms/${room.slug}/quiz`);
   revalidatePath(`/rooms/${room.slug}/lab`);
@@ -285,10 +298,7 @@ export async function updateRoomMetadataAction(_state: ContentActionState, formD
       estimatedMinutes: integer(formData, "estimatedMinutes"),
       points: integer(formData, "points"),
       orderIndex: integer(formData, "orderIndex"),
-      coverImageUrl: text(formData, "coverImageUrl"),
-      logoUrl: text(formData, "logoUrl"),
-      availableFrom: text(formData, "availableFrom"),
-      availableUntil: text(formData, "availableUntil")
+      logoUrl: text(formData, "logoUrl")
     });
 
     revalidateRoomPaths({ id: room.id, slug: room.slug });
@@ -298,23 +308,86 @@ export async function updateRoomMetadataAction(_state: ContentActionState, formD
   }
 }
 
-/** Hasil simpan materi: menyertakan HTML yang benar-benar tersimpan agar editor bisa menyelaraskan diri. */
-export type MaterialActionState = ContentActionState & { savedContent?: string; saveId?: number };
+export async function updateRoomScheduleAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
+  try {
+    const actor = await requireRole(["INSTRUCTOR"]);
+    const room = await updateRoomSchedule(actor, {
+      roomId: text(formData, "roomId"),
+      availableFrom: text(formData, "availableFrom"),
+      availableUntil: text(formData, "availableUntil")
+    });
 
-export async function updateRoomContentAction(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
+    revalidateRoomPaths(room);
+    return { tone: "success", message: "Schedule saved." };
+  } catch (error) {
+    return fail(error, "Couldn't save the schedule.", SCHEDULE_FIELDS);
+  }
+}
+
+export async function createRoomChapterAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
+  let target: string;
+
+  try {
+    const actor = await requireRole(["INSTRUCTOR"]);
+    const chapter = await createRoomChapter(actor, {
+      roomId: text(formData, "roomId"),
+      title: text(formData, "title")
+    });
+
+    revalidateRoomPaths(chapter.room);
+    target = `/instructor/rooms/${chapter.roomId}/material/${chapter.id}`;
+  } catch (error) {
+    return fail(error, "Couldn't add the chapter.", CHAPTER_FIELDS);
+  }
+
+  redirect(target);
+}
+
+/** Hasil simpan bab: menyertakan judul dan HTML yang benar-benar tersimpan agar editor bisa menyelaraskan diri. */
+export type MaterialActionState = ContentActionState & { savedContent?: string; savedTitle?: string; saveId?: number };
+
+export async function updateRoomChapterAction(_state: MaterialActionState, formData: FormData): Promise<MaterialActionState> {
   try {
     const actor = await requireRole(["INSTRUCTOR"]);
     const rawContent = formData.get("content");
-    const room = await updateRoomContent(actor, {
-      roomId: text(formData, "roomId"),
+    const chapter = await updateRoomChapter(actor, {
+      chapterId: text(formData, "chapterId"),
+      title: text(formData, "title"),
       content: typeof rawContent === "string" ? rawContent.replace(/\r\n/g, "\n") : "",
-      contentFormat: text(formData, "contentFormat") === "HTML" ? "HTML" : "MARKDOWN"
+      contentFormat: text(formData, "contentFormat") === "MARKDOWN" ? "MARKDOWN" : "HTML"
     });
 
-    revalidateRoomPaths({ id: room.id, slug: room.slug });
-    return { tone: "success", message: "Room material saved.", savedContent: room.content, saveId: Date.now() };
+    revalidateRoomPaths(chapter.room);
+    return { tone: "success", message: "Chapter saved.", savedContent: chapter.content, savedTitle: chapter.title, saveId: Date.now() };
   } catch (error) {
-    return fail(error, "Couldn't save the material.", MATERIAL_FIELDS);
+    return fail(error, "Couldn't save the chapter.", CHAPTER_FIELDS);
+  }
+}
+
+export async function moveRoomChapterAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
+  try {
+    const actor = await requireRole(["INSTRUCTOR"]);
+    const chapter = await moveRoomChapter(actor, {
+      chapterId: text(formData, "chapterId"),
+      direction: text(formData, "direction")
+    });
+
+    revalidateRoomPaths(chapter.room);
+    return { tone: "idle", message: "" };
+  } catch (error) {
+    return fail(error, "Couldn't reorder the chapter.");
+  }
+}
+
+export async function deleteRoomChapterAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
+  try {
+    const actor = await requireRole(["INSTRUCTOR"]);
+    const chapter = await deleteRoomChapter(actor, { chapterId: text(formData, "chapterId") });
+
+    revalidateRoomPaths(chapter.room);
+    return { tone: "success", message: "Chapter deleted." };
+  } catch (error) {
+    return fail(error, "Couldn't delete the chapter.");
   }
 }
 
@@ -326,7 +399,7 @@ function publishedRoomMessage(room: { isPublished: boolean; availableFrom: Date 
     return `Room published. It opens to members on ${formatScheduleDate(availability.opensAt)}.`;
   }
   if (availability.state === "closed") {
-    return "Room published, but its closing time has passed, so members can't open it. Change its schedule in the room details.";
+    return "Room published, but its closing time has passed, so members can't open it. Change its schedule under Schedule & publishing.";
   }
   return "Room published. Members can open it now.";
 }
@@ -351,6 +424,7 @@ export async function addRoomTaskAction(_state: ContentActionState, formData: Fo
     const actor = await requireRole(["INSTRUCTOR"]);
     const { room } = await addRoomTask(actor, {
       roomId: text(formData, "roomId"),
+      chapterId: text(formData, "chapterId"),
       title: text(formData, "title"),
       description: text(formData, "description"),
       expectedAnswer: optionalText(formData, "expectedAnswer"),
@@ -371,6 +445,7 @@ export async function updateRoomTaskAction(_state: ContentActionState, formData:
     const actor = await requireRole(["INSTRUCTOR"]);
     const { room, task } = await updateRoomTask(actor, {
       taskId: text(formData, "taskId"),
+      chapterId: text(formData, "chapterId"),
       title: text(formData, "title"),
       description: text(formData, "description"),
       expectedAnswer: optionalText(formData, "expectedAnswer"),
@@ -416,7 +491,7 @@ export async function moveRoomTaskAction(_state: ContentActionState, formData: F
 export async function upsertQuizAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
   try {
     const actor = await requireRole(["INSTRUCTOR"]);
-    const { room } = await upsertRoomQuiz(actor, {
+    const { room, created } = await upsertRoomQuiz(actor, {
       roomId: text(formData, "roomId"),
       title: text(formData, "title"),
       description: text(formData, "description"),
@@ -424,9 +499,29 @@ export async function upsertQuizAction(_state: ContentActionState, formData: For
     });
 
     revalidateRoomPaths(room);
-    return { tone: "success", message: "Quiz settings saved." };
+    if (!created) return { tone: "success", message: "Quiz settings saved." };
+
+    // Quiz baru mengubah progress room peserta (lihat upsertRoomQuiz), jadi halaman progress ikut disegarkan.
+    revalidatePath("/progress");
+    revalidatePath("/profile");
+    return { tone: "success", message: "Quiz created. Add its questions next: members need to pass it to complete the room." };
   } catch (error) {
     return fail(error, "Couldn't save the quiz settings.", QUIZ_FIELDS);
+  }
+}
+
+/** Menghapus quiz room; riwayat attempt member tetap ada dan progress room dihitung ulang (lihat deleteRoomQuiz). */
+export async function deleteRoomQuizAction(_state: ContentActionState, formData: FormData): Promise<ContentActionState> {
+  try {
+    const actor = await requireRole(["INSTRUCTOR"]);
+    const removed = await deleteRoomQuiz(actor, { quizId: text(formData, "quizId") });
+
+    revalidateRoomPaths(removed.room, removed.roomId);
+    revalidatePath("/progress");
+    revalidatePath("/profile");
+    return { tone: "success", message: "Quiz removed. Members keep their past attempts, and room progress now counts tasks only." };
+  } catch (error) {
+    return fail(error, "Couldn't remove the quiz.");
   }
 }
 

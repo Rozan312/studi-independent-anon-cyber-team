@@ -226,8 +226,10 @@ input[type="file"],
   .tap-target {
     position: relative;
   }
+  /* Tombol tepi rail berposisi absolute, jadi hanya memakai area sentuhnya (tanpa position: relative dari .tap-target). */
   .text-link::after,
-  .tap-target::after {
+  .tap-target::after,
+  .rail-edge-toggle::after {
     content: "";
     position: absolute;
     left: 50%;
@@ -411,11 +413,25 @@ textarea::placeholder {
   animation: page-enter 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Tooltip rail yang diciutkan muncul cepat dari arah rail. Properti translate terpisah dari transform
+   -translate-y-1/2 yang memusatkannya pada item. */
+@keyframes rail-tip-in {
+  from {
+    opacity: 0;
+    translate: -4px 0;
+  }
+}
+
+.rail-tip-enter {
+  animation: rail-tip-in 110ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 @media (prefers-reduced-motion: reduce) {
   body {
     transition: none;
   }
-  .page-enter {
+  .page-enter,
+  .rail-tip-enter {
     animation: none;
   }
   .check-draw path {
@@ -444,11 +460,34 @@ textarea::placeholder {
   line-height: 1.25;
   text-wrap: balance;
 }
-.prose-cyber h1 { font-size: 1.75rem; margin-top: 1.5em; }
-.prose-cyber h2 { font-size: 1.4rem; margin-top: 1.6em; }
-.prose-cyber h3 { font-size: 1.15rem; margin-top: 1.4em; }
-.prose-cyber h4 { font-size: 1.0625rem; margin-top: 1.2em; }
+/* Semua heading materi di bawah judul bab (1.5rem, components/rooms/room-chapter-panel.tsx), agar Heading 1 instruktur
+   tidak tampil lebih besar dari judul bab di atasnya. h3 seukuran teks baca dan h4 sedikit lebih kecil dalam ink 2,
+   jadi keduanya tetap berbeda dari paragraf lewat tebal huruf. */
+.prose-cyber h1 { font-size: 1.3rem; margin-top: 1.5em; }
+.prose-cyber h2 { font-size: 1.15rem; margin-top: 1.6em; }
+.prose-cyber h3 { font-size: 1.0625rem; margin-top: 1.4em; }
+.prose-cyber h4 { font-size: 1rem; margin-top: 1.2em; color: rgb(var(--ink-2)); }
 .prose-cyber > :first-child { margin-top: 0; }
+
+/* Lebar baca: panel materi selebar kolom konten, tetapi teks berjalan (paragraf, daftar, heading, kutipan, garis)
+   dibatasi sekitar 90 karakter per baris; tabel, blok kode, dan gambar boleh memakai seluruh lebar panel. Editor
+   memakai aturan yang sama karena area tulisnya juga .prose-cyber.
+   Satuannya rem, bukan ch: "0" Red Hat Text lebar (1ch = 0,66em), sehingga 90ch menjadi sekitar 130 huruf teks
+   biasa. 43.5rem pada ukuran baca 1.0625rem memuat sekitar 90 huruf, dan heading yang hurufnya lebih besar tetap
+   sejajar dengan paragraf. */
+.prose-cyber {
+  --prose-measure: 43.5rem;
+}
+.prose-cyber > :is(p, ul, ol, h1, h2, h3, h4, blockquote, hr) {
+  max-width: var(--prose-measure);
+}
+/* Paragraf dan heading rata tengah/kanan diratakan terhadap panel, sejajar dengan gambar yang berada di tengah panel. */
+.prose-cyber > :is(p, h1, h2, h3, h4):is([style*="text-align:center"], [style*="text-align: center"]) {
+  margin-inline: auto;
+}
+.prose-cyber > :is(p, h1, h2, h3, h4):is([style*="text-align:right"], [style*="text-align: right"]) {
+  margin-left: auto;
+}
 .prose-cyber h1 + *,
 .prose-cyber h2 + *,
 .prose-cyber h3 + *,
@@ -724,16 +763,6 @@ textarea::placeholder {
 }
 .rich-editor .ProseMirror ul[data-type="taskList"] > li > label input {
   cursor: pointer;
-}
-
-/* Lebar area tulis editor disamakan dengan kolom materi di halaman student (lg: 8 dari 12 kolom). */
-@media (min-width: 1024px) {
-  .rich-editor .ProseMirror {
-    /* Lebar konten = lebar kolom materi student (8 dari 12 kolom, gap-6, sheet p-6 + border 1px)
-       dengan padding horizontal editor 1.4rem. Lihat komentar grid di app/rooms/[slug]/page.tsx. */
-    max-width: calc(66.6667% + 21.5px);
-    margin-inline: auto;
-  }
 }
 /* Blok kode tampil sama seperti di halaman student: tidak dilipat, bisa digulir. */
 .rich-editor .ProseMirror pre {

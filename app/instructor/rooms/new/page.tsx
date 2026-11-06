@@ -16,7 +16,7 @@ export default async function NewInstructorRoomPage({ searchParams = {} }: { sea
   return (
     <AppShell
       title="New room"
-      subtitle="Create a room with its first tasks. After you save it, the room editor opens so you can write the material and the quiz."
+      subtitle="Create a room with its first tasks. After you save it, the room editor opens so you can write the material and add an optional quiz."
       role={profile.role}
       actions={
         <Link href="/instructor/rooms" className="btn-secondary">

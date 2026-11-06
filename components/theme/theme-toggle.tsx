@@ -80,7 +80,8 @@ export function ThemeToggle({ variant, collapsed = false }: { variant: "rail" | 
       onClick={toggle}
       aria-pressed={light}
       aria-label={collapsed ? "Light mode" : undefined}
-      title={collapsed ? "Light mode" : undefined}
+      // Nama di rail yang diciutkan muncul sebagai tooltip rail (components/app-shell-frame.tsx), bukan title bawaan browser.
+      data-rail-tip={collapsed ? "Light mode" : undefined}
       className={`mx-3 mb-1 flex min-h-9 items-center gap-3 overflow-hidden whitespace-nowrap rounded-lg text-sm text-ink-2 transition-[padding,background-color,color] duration-300 ease-out hover:bg-well/70 hover:text-ink motion-reduce:transition-none coarse:min-h-11 ${
         collapsed ? "px-[17px]" : "px-3"
       }`}

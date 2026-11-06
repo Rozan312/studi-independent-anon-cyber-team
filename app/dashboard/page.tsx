@@ -9,6 +9,7 @@ import { PageNotice } from "@/components/ui/page-notice";
 import { requireRole } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
 import { DISPLAY_TIME_ZONE, getRoomAvailability } from "@/lib/learning/availability";
+import { taskChapterHref, taskChapterId } from "@/lib/learning/chapters";
 import { formatDayMonth, formatNumber, formatRelativeTime, formatShortDate } from "@/lib/format/date";
 import { getLearningPathProgressForCurrentUser } from "@/lib/services/learning-path-service";
 import { getGlobalLeaderboard } from "@/lib/services/leaderboard-service";
@@ -80,7 +81,8 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
       }),
       prisma.userQuizAttempt.findMany({
         where: { userId: profile.id, completedAt: { not: null } },
-        select: { id: true, score: true, passed: true, completedAt: true, quiz: { select: { room: { select: { title: true } } } } },
+        // Lewat roomId attempt, bukan lewat quiz: attempt dari quiz yang sudah dihapus tetap tampil.
+        select: { id: true, score: true, passed: true, completedAt: true, quizTitle: true, room: { select: { title: true } } },
         orderBy: { completedAt: "desc" },
         take: 6
       }),
@@ -90,8 +92,8 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         orderBy: [{ difficulty: "asc" }, { title: "asc" }]
       }),
       getLearningStreak(profile.id, now),
-      // Quiz berbeda yang pernah lulus (sama dengan halaman Progress dan Profile).
-      prisma.userQuizAttempt.groupBy({ by: ["quizId"], where: { userId: profile.id, passed: true } })
+      // Quiz lulus dihitung per room (satu room satu quiz), termasuk quiz yang sudah dihapus; sama dengan Progress dan Profile.
+      prisma.userQuizAttempt.groupBy({ by: ["roomId"], where: { userId: profile.id, passed: true, roomId: { not: null } } })
     ]);
 
   const completedRoomIds = new Set(completedRooms.map((row) => row.roomId));
@@ -118,16 +120,19 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
     null;
   const nextRoomPosition = nextRoom ? pathRooms.findIndex((room) => room.id === nextRoom.id) + 1 : 0;
   const nextRoomProgress = nextRoom?.userProgress[0];
+  const nextRoomStarted = Boolean(nextRoomProgress && nextRoomProgress.status !== "NOT_STARTED");
   const nextRoomAvailability = nextRoom ? getRoomAvailability(nextRoom, now) : null;
 
   const nextRoomDetail = nextRoom
     ? await prisma.room.findUnique({
         where: { id: nextRoom.id },
         select: {
+          chapters: { select: { id: true }, orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }] },
           tasks: {
-            orderBy: { orderIndex: "asc" },
+            orderBy: [{ orderIndex: "asc" }, { createdAt: "asc" }],
             select: {
               id: true,
+              chapterId: true,
               title: true,
               points: true,
               userSubmissions: { where: { userId: profile.id, isCorrect: true }, take: 1, select: { id: true } }
@@ -138,10 +143,23 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
       })
     : null;
 
-  const tasks = nextRoomDetail?.tasks ?? [];
+  // Urutan baca halaman room: bab tempat task tampil, lalu orderIndex di dalam bab (sort stabil). Task berikutnya
+  // adalah task terbuka di bab paling awal, sama dengan tautan "x of y solved" di strip room.
+  const chapters = nextRoomDetail?.chapters ?? [];
+  const chapterPosition = new Map(chapters.map((chapter, index) => [chapter.id, index]));
+  const readingPosition = (task: { chapterId: string | null }) => chapterPosition.get(taskChapterId(task.chapterId, chapters) ?? "") ?? 0;
+  const tasks = [...(nextRoomDetail?.tasks ?? [])].sort((a, b) => readingPosition(a) - readingPosition(b));
   const nextTaskIndex = tasks.findIndex((task) => task.userSubmissions.length === 0);
   const nextTask = nextTaskIndex >= 0 ? tasks[nextTaskIndex] : null;
   const quizWaiting = !nextTask && Boolean(nextRoomDetail?.quiz) && !nextRoomDetail?.quiz?.attempts.length;
+  // Resume membuka bab yang memuat task berikutnya, atau quiz bila hanya quiz yang tersisa. Start tetap dari bab pertama.
+  const resumeHref = !nextRoom
+    ? null
+    : nextTask
+      ? taskChapterHref(nextRoom.slug, nextTask.chapterId, chapters)
+      : quizWaiting
+        ? `/rooms/${nextRoom.slug}/quiz`
+        : `/rooms/${nextRoom.slug}`;
   const nextRoomPoints = nextRoom && nextRoomDetail ? earnablePoints({ points: nextRoom.points, quiz: nextRoomDetail.quiz, tasks }).total : 0;
 
   // Riwayat selesai: room lulus dan attempt quiz, terbaru dulu.
@@ -156,7 +174,7 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
         id: `quiz-${attempt.id}`,
         at,
         kind: attempt.passed ? ("quiz-pass" as const) : ("quiz-retry" as const),
-        title: attempt.quiz.room.title,
+        title: attempt.room?.title ?? attempt.quizTitle,
         score: attempt.score,
         date: formatShortDate(at)
       };
@@ -261,8 +279,11 @@ export default async function DashboardPage({ searchParams = {} }: { searchParam
 
                       <div className="mt-5 flex flex-wrap items-center gap-3 md:mt-auto md:pt-5">
                         {nextRoomAvailability?.isOpen ? (
-                          <Link href={`/rooms/${nextRoom.slug}`} className="btn-primary min-h-11 px-5 text-[0.9375rem]">
-                            {nextRoomProgress && nextRoomProgress.status !== "NOT_STARTED" ? "Resume room" : "Start room"}
+                          <Link
+                            href={nextRoomStarted && resumeHref ? resumeHref : `/rooms/${nextRoom.slug}`}
+                            className="btn-primary min-h-11 px-5 text-[0.9375rem]"
+                          >
+                            {nextRoomStarted ? "Resume room" : "Start room"}
                             <svg viewBox="0 0 16 16" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                               <path d="M3 8h10M9 4l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

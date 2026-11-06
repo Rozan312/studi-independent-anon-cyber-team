@@ -57,6 +57,12 @@ function InlineStat({ label, value, note }: { label: string; value: React.ReactN
 
 const thClass = "field-label border-b border-line px-3 py-2.5";
 
+/** Attempt dari quiz yang sudah dihapus menaut ke halaman room-nya, karena halaman quiz room itu tidak ada lagi. */
+function attemptHref(attempt: { quiz: object | null; room: { slug: string } | null }) {
+  if (!attempt.room) return "/rooms";
+  return attempt.quiz ? `/rooms/${attempt.room.slug}/quiz` : `/rooms/${attempt.room.slug}`;
+}
+
 export default async function ProgressPage() {
   const profile = await requireRole(["STUDENT"]);
   const now = new Date();
@@ -72,13 +78,16 @@ export default async function ProgressPage() {
     getLearningActivity(profile.id, now, ACTIVITY_CALENDAR_WEEKS_WIDE),
     prisma.userQuizAttempt.findMany({
       where: { userId: profile.id, completedAt: { not: null } },
+      // Room dibaca lewat roomId attempt agar attempt dari quiz yang sudah dihapus (quiz null) tetap tampil.
       select: {
         id: true,
         quizId: true,
+        quizTitle: true,
         score: true,
         passed: true,
         completedAt: true,
-        quiz: { select: { passingScore: true, room: { select: { title: true, slug: true } } } }
+        quiz: { select: { passingScore: true } },
+        room: { select: { title: true, slug: true } }
       },
       orderBy: { completedAt: "desc" },
       take: ATTEMPT_LIMIT
@@ -89,9 +98,10 @@ export default async function ProgressPage() {
     }),
     // Agregat seluruh riwayat agar angka tidak terpotong oleh batas 100 attempt di atas.
     prisma.userQuizAttempt.count({ where: { userId: profile.id, completedAt: { not: null } } }),
+    // Quiz lulus dihitung per room, termasuk quiz yang sudah dihapus (sama dengan dasbor dan Profile).
     prisma.userQuizAttempt.groupBy({
-      by: ["quizId"],
-      where: { userId: profile.id, passed: true }
+      by: ["roomId"],
+      where: { userId: profile.id, passed: true, roomId: { not: null } }
     })
   ]);
 
@@ -105,7 +115,7 @@ export default async function ProgressPage() {
   const inProgressRows = rows.filter((row) => row.status === "IN_PROGRESS");
   const completedRoomIds = new Set(completedRows.map((row) => row.roomId));
   const passedAttempts = quizAttempts.filter((attempt) => attempt.passed);
-  // Quiz berbeda yang pernah lulus, dari seluruh riwayat (sama dengan halaman Profile).
+  // Room yang quiz-nya pernah lulus, dari seluruh riwayat (sama dengan halaman Profile).
   const quizzesPassed = passedQuizGroups.length;
   const attemptsCapped = attemptTotal > quizAttempts.length;
   // Pembilang dan penyebut memakai himpunan yang sama: room terbit di path yang terbit.
@@ -125,7 +135,7 @@ export default async function ProgressPage() {
         id: `quiz-${attempt.id}`,
         at,
         kind: "quiz-pass" as const,
-        title: attempt.quiz.room.title,
+        title: attempt.room?.title ?? attempt.quizTitle,
         score: attempt.score,
         date: formatShortDate(at)
       };
@@ -277,16 +287,18 @@ export default async function ProgressPage() {
                     <tr key={attempt.id} className="group transition-colors hover:bg-well">
                       <td className="px-3 py-2.5 pl-5 sm:pl-6">
                         <Link
-                          href={`/rooms/${attempt.quiz.room.slug}/quiz`}
+                          href={attemptHref(attempt)}
                           className="tap-target font-display font-semibold text-ink transition-colors group-hover:text-cyan-ink"
                         >
-                          {attempt.quiz.room.title}
+                          {attempt.room?.title ?? attempt.quizTitle}
                         </Link>
                         <span className="block text-xs text-ink-3 sm:hidden">{formatShortDate(attempt.completedAt as Date)}</span>
                       </td>
                       <td className="figure px-3 py-2.5 text-right">
                         <span className="font-semibold text-ink">{attempt.score}%</span>
-                        <span className="block whitespace-nowrap text-xs text-ink-3">pass {attempt.quiz.passingScore}%</span>
+                        <span className="block whitespace-nowrap text-xs text-ink-3">
+                          {attempt.quiz ? `pass ${attempt.quiz.passingScore}%` : "quiz removed"}
+                        </span>
                       </td>
                       <td className="px-3 py-2.5 pr-5 sm:pr-3">
                         <StatusPill tone={attempt.passed ? "success" : "danger"}>{attempt.passed ? "Passed" : "Retry"}</StatusPill>
